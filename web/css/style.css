@@ -1,0 +1,54 @@
+:root {
+  --ink: #4a3426;
+  --paper: #fbf1dc;
+  --ok: #6f9a3e;
+  --warn: #c9822f;
+  --bad: #b5523b;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #f1d4a6;
+  color: var(--ink);
+  font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+}
+
+#app, #app canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.card {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  box-shadow: 3px 3px 0 rgba(74, 52, 38, 0.35);
+}
+
+.card h1 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: 0.02em;
+}
+
+.pill {
+  font-size: 13px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #e9dcc0;
+}
+.pill.ok { background: var(--ok); color: #fff; }
+.pill.warn { background: var(--warn); color: #fff; }
+.pill.bad { background: var(--bad); color: #fff; }
