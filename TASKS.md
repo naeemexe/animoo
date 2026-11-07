@@ -17,7 +17,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 01 | A | Skeleton + storybook look | 2.5 h | done | — |
 | 02 | B | Kimodo motion server on the pod (:8101) | 1.5 h | done | — |
 | 03 | B | TRELLIS.2 asset server on the pod (:8102) | 2 h | doing | — |
-| 04 | A | Library: the old project's VRMs, props and sample BVHs, plus a CC0 low-poly kit and `manifest.json` | 1.5 h | doing | 01 |
+| 04 | A | Library: the old project's VRMs, props and sample BVHs, plus a CC0 low-poly kit and `manifest.json` | 1.5 h | done | 01 |
 | 05 | A | Characters: load VRMs, retarget Kimodo BVH, play a clip, planted feet | 2.5 h | todo | 04 |
 | 06 | A | Nemotron client + agent loop on the server (tool calling, streamed steps) | 1.5 h | waiting | `NVIDIA_API_KEY` in `.env` |
 | 07 | B | Text → concept image for props (pick a model, add an endpoint) | 1.5 h | todo | 03 |
@@ -96,3 +96,16 @@ license used.
   `web/js/toon.js`, and run every loaded GLB through `toonify()`.
 - Outlines in `web/js/look.js` use vertex normals, so check them on TRELLIS
   meshes in task 11.
+- Library: `web/js/library.js` has `loadManifest()`, `findProps()` and
+  `loadProp(idOrEntry)`. Props come back toonified, scaled to `size[1]` meters,
+  pivot at bottom-center. `/props.html?labels` shows all 45 with 1.7 m figures.
+  FastAPI serves `library/` at `/library/`; the static dev server can't.
+- The two VRMs' VRoid license says "redistribution: disallow" and "credit:
+  necessary". That's fine in a private repo, but credit SherryKatzu and
+  Rarestgrass in the submission (task 12), and don't publish the files.
+- The old project's 5 props have no recorded license or origin (trimesh exports,
+  probably image→3D). They ship without normals; `toonify()` now computes them.
+  `house.glb` has a dark ground disc around it that makes its footprint 7 m.
+- Kenney's Fantasy Town `windmill`/`watermill` are only the sails and wheel,
+  and Pirate `tower-watch` is a tower top, so they were left out. A full windmill
+  is still a good test for task 11.
