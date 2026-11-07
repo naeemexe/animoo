@@ -14,7 +14,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 
 | # | Track | Task | Budget | Status | Needs first |
 |---|---|---|---|---|---|
-| 01 | A | Skeleton + stylized look: page, backend, toon shading, outlines, warm light | 2.5 h | doing | — |
+| 01 | A | Skeleton + stylized look: page, backend, toon shading, outlines, warm light | 2.5 h | done | — |
 | 02 | A | Starter library: a CC0 low-poly kit plus `manifest.json` | 1.5 h | todo | 01 |
 | 03 | A | Nemotron connection: pick the model, prove tool calling | 1 h | waiting | API key in `.env` |
 | 04 | A | World agent: prompt → plan → tool calls → world on screen (streams its steps) | 3 h | todo | 02, 03 |
@@ -88,3 +88,8 @@ _Sessions add new bugs and ideas here._
 - Kimodo has `post_processing=True`, which v1 never turned on. Compare it against False for foot sliding (both test clips are in `tmp/`).
 - Kimodo prints LoRA weights as "MISSING" while loading its LLM2Vec text encoder. Check whether the text encoding is actually right, because this could be a hidden cause of bad motion.
 - TRELLIS.2 needs gated `facebook/dinov3-vitl16-pretrain-lvd1689m`. Access was requested on 2026-11-07 and is waiting on Meta.
+- 01: `.claude/` is gitignored, so `.claude/launch.json` (configs `animo-world-server`, `animo-world-web`) exists only in this checkout. Un-ignore it if other machines need it.
+- 01: Run the app with `animo-world-server` (FastAPI serves `web/` at `/`). The static `animo-world-web` answers `/health` from `web/health` with `service: "static"`; add `?api=http://localhost:8000` to reach the backend from it. The server venv is `server/.venv` (`pip install -r server/requirements.txt`).
+- 01: three r160 `MeshToonMaterial` has no `flatShading`. Use `faceted(geometry)` from `web/js/toon.js`, and run loaded GLBs through `toonify()` so library and generated props match the look.
+- 01: Outlines come from depth and normal edges in `web/js/look.js` (`LOOK` holds every look parameter). The normal pass uses vertex normals, so faceted props get few inner lines. That suits low poly, but check it on TRELLIS meshes in task 07.
+- 01: `/health` reports `nvidia_api_key: false`, so `.env` has no `NVIDIA_API_KEY` yet (only presence is checked, values are never read out). Task 03 needs it.
