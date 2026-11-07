@@ -18,7 +18,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 02 | B | Kimodo motion server on the pod (:8101) | 1.5 h | done | — |
 | 03 | B | TRELLIS.2 asset server on the pod (:8102) | 2 h | doing | — |
 | 04 | A | Library: the old project's VRMs, props and sample BVHs, plus a CC0 low-poly kit and `manifest.json` | 1.5 h | done | 01 |
-| 05 | A | Characters: load VRMs, retarget Kimodo BVH, play a clip, planted feet | 2.5 h | doing | 04 |
+| 05 | A | Characters: load VRMs, retarget Kimodo BVH, play a clip, planted feet | 2.5 h | done | 04 |
 | 06 | A | Nemotron client + agent loop on the server (tool calling, streamed steps) | 1.5 h | waiting | `NVIDIA_API_KEY` in `.env` |
 | 07 | B | Text → concept image for props (pick a model, add an endpoint) | 1.5 h | todo | 03 |
 | 08 | A | Movie: the orchestrator splits a scene into shots and beats, and the world agent builds the set | 3 h | todo | 04, 06 |
@@ -109,3 +109,24 @@ license used.
 - Kenney's Fantasy Town `windmill`/`watermill` are only the sails and wheel,
   and Pirate `tower-watch` is a tower top, so they were left out. A full windmill
   is still a good test for task 11.
+- Characters (task 05): `web/js/characters/index.js` has `loadCharacter(id)`,
+  `hero.makeClip(bvh, name)`, `hero.setClips([...])` and `hero.update(dt)`.
+  `/characters.html` plays walk → wave (`?char=avatar_female`, `?clips=a,b`,
+  `?live`, `?t=3.2`, `?marks`). Retargeting matches per-bone anatomical frames
+  measured on `persona_idle.bvh` frame 0, because Kimodo's rest pose is
+  degenerate (every bone along +X).
+- Kimodo `post_processing` really fixes sliding. In `walk_true.bvh`, a planted
+  ankle moves 0.0 cm/s with the toe at exactly 2.0 cm. In `walk_false.bvh`, a
+  planted ankle drifts 3–19 cm/s. On the VRM with leg IK, a planted foot moves
+  0.01 cm/s (median) and 0.24 cm/s (p95); without IK it's 1 / 15.7 cm/s.
+  Always request `post_processing: true`.
+- The pod was unreachable during task 05 (the tunnel timed out), so "walks
+  forward" is the cached `tmp/walk_true.bvh` (now `library/motions/walk_forward.bvh`),
+  and "waves hello" is `persona_wave.bvh`. Retry `?live` once the pod is up. That
+  walk clip raises its right hand to head height around 1 s: it's in Kimodo's
+  output, not a retargeting bug.
+- three-vrm 2.x renames VRM 0 thumbs to VRM 1 names (`thumbMetacarpal`,
+  `thumbProximal`, `thumbDistal`). VRoid MToon materials draw in the transparent
+  pass, so overlays need `transparent: true` to draw on top.
+- Merging only tested standing → standing (walk ends stopped). Joining mid-stride
+  clips may need the overlap moved to a double-support frame (task 09).
