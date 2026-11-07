@@ -40,6 +40,8 @@ export function toonMaterial(color, opts = {}) {
 export function toonify(object, { castShadow = true, receiveShadow = true } = {}) {
   object.traverse((node) => {
     if (!node.isMesh) return;
+    // Some exports (the old trimesh props) ship without normals and shade black.
+    if (!node.geometry.attributes.normal) node.geometry.computeVertexNormals();
     const swap = (m) => {
       if (m.isMeshToonMaterial) return m;
       const t = toonMaterial(m.color ? m.color.clone() : 0xffffff, {

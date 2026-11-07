@@ -44,5 +44,7 @@ def health() -> dict:
     }
 
 
+# The asset library (props, characters, motions, manifest.json).
+app.mount("/library", StaticFiles(directory=ROOT / "library"), name="library")
 # Mounted last so API routes win.
 app.mount("/", StaticFiles(directory=ROOT / "web", html=True), name="web")
