@@ -165,6 +165,22 @@
    ],
    "license": "generated with Kimodo in the old animo project",
    "source": "old animo project, assets/motions/"
+  },
+  {
+   "id": "walk-forward",
+   "file": "motions/walk_forward.bvh",
+   "category": "motion",
+   "size": null,
+   "duration_s": 5.0,
+   "fps": 30,
+   "tags": [
+    "walk",
+    "forward"
+   ],
+   "prompt": "A person walks forward",
+   "post_processing": true,
+   "license": "generated with Kimodo (kimodo-soma-rp-v1.2) for this project",
+   "source": "Kimodo motion server on the pod, copied from tmp/walk_true.bvh"
   }
  ],
  "props": [

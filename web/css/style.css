@@ -64,3 +64,21 @@ html, body {
   pointer-events: none;
   white-space: nowrap;
 }
+
+.transport {
+  top: auto;
+  bottom: 16px;
+  right: 16px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+.transport input[type="range"] { flex: 1; min-width: 160px; }
+.transport button {
+  font: inherit;
+  padding: 3px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
