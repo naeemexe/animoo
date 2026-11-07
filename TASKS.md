@@ -14,7 +14,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 
 | # | Track | Task | Budget | Status | Needs first |
 |---|---|---|---|---|---|
-| 01 | A | Skeleton + stylized look: page, backend, toon shading, outlines, warm light | 2.5 h | todo | — |
+| 01 | A | Skeleton + stylized look: page, backend, toon shading, outlines, warm light | 2.5 h | doing | — |
 | 02 | A | Starter library: a CC0 low-poly kit plus `manifest.json` | 1.5 h | todo | 01 |
 | 03 | A | Nemotron connection: pick the model, prove tool calling | 1 h | waiting | API key in `.env` |
 | 04 | A | World agent: prompt → plan → tool calls → world on screen (streams its steps) | 3 h | todo | 02, 03 |
