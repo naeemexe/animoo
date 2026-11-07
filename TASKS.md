@@ -18,7 +18,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 02 | B | Kimodo motion server on the pod (:8101) | 1.5 h | done | — |
 | 03 | B | TRELLIS.2 asset server on the pod (:8102) | 2 h | doing | — |
 | 04 | A | Library: the old project's VRMs, props and sample BVHs, plus a CC0 low-poly kit and `manifest.json` | 1.5 h | done | 01 |
-| 05 | A | Characters: load VRMs, retarget Kimodo BVH, play a clip, planted feet | 2.5 h | todo | 04 |
+| 05 | A | Characters: load VRMs, retarget Kimodo BVH, play a clip, planted feet | 2.5 h | doing | 04 |
 | 06 | A | Nemotron client + agent loop on the server (tool calling, streamed steps) | 1.5 h | waiting | `NVIDIA_API_KEY` in `.env` |
 | 07 | B | Text → concept image for props (pick a model, add an endpoint) | 1.5 h | todo | 03 |
 | 08 | A | Movie: the orchestrator splits a scene into shots and beats, and the world agent builds the set | 3 h | todo | 04, 06 |
