@@ -49,7 +49,7 @@ setup_trellis() {
   clone https://github.com/microsoft/TRELLIS.2.git /opt/src/TRELLIS.2 --recursive
   $V/bin/pip install -q -U pip wheel setuptools ninja
   $V/bin/pip install -q imageio imageio-ffmpeg tqdm easydict opencv-python-headless trimesh \
-      transformers pandas zstandard kornia timm pillow fastapi "uvicorn[standard]" python-multipart
+      "transformers==4.57.1" pandas zstandard kornia timm pillow fastapi "uvicorn[standard]" python-multipart
   $V/bin/pip install -q "git+https://github.com/EasternJournalist/utils3d.git@9a4eb15e4021b67b12c460c7057d642626897ec8"
 
   log "attention backend"
