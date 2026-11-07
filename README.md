@@ -1,20 +1,29 @@
 # Animo World
 
-Describe a place and the people in it. An agent builds a stylized 3D world
-around your words, makes any props it doesn't already have, and then animates
-characters acting out the scene.
+Two pages, one storybook 3D world:
+
+- **Chat:** a character talks with you, and can show you a move when you ask.
+- **Movie:** describe a longer scene. A team of Nemotron agents breaks it into
+  short shots, builds the world (generating any props it lacks), animates each
+  character clip by clip, and merges everything into one film you can export.
 
 ```
-"a fishing village at golden hour, an old man repairs a net by the well
- while two kids chase each other around the market stall"
+"At sunrise an old fisherman walks out of his hut, stretches, waves at a kid
+ running past the well, and then they both sit on the dock."
 ```
 
-Built for the **NVIDIA Nemotron prize track**: "Use Nemotron beyond a chatbot".
-Nemotron doesn't just answer. It plans the world and calls tools to build it,
-step by step.
+Built for the **NVIDIA Nemotron prize track**, "Use Nemotron beyond a chatbot".
 
-- [PLAN.md](PLAN.md): architecture, model choices, GPU budget and milestones.
-- [TASKS.md](TASKS.md): the task list. One task is handled per Claude session.
-- [WORKFLOW.md](WORKFLOW.md): how those sessions run.
+- [PLAN.md](PLAN.md): the product, agents, architecture and models.
+- [TASKS.md](TASKS.md): the task list. One Claude session per task.
+- [WORKFLOW.md](WORKFLOW.md): how to start and close a task session.
+- [docs/gpu-log.md](docs/gpu-log.md): the RunPod GPU box, servers and costs.
 
-Status: planning. Nothing runs yet.
+## Run
+
+```bash
+python3 -m venv server/.venv && server/.venv/bin/pip install -r server/requirements.txt
+cp .env.example .env          # then add NVIDIA_API_KEY
+server/.venv/bin/uvicorn server.app:app --port 8000   # serves web/ at http://localhost:8000
+bash gpu/tunnel.sh            # in another terminal: GPU servers on :8101 / :8102
+```

@@ -1,38 +1,46 @@
-# Workflow
+# Workflow: one session per task
 
-There are two kinds of Claude session.
+**Main session (planning).** This session keeps `PLAN.md` and `TASKS.md` up to
+date, says which task is next, reviews finished work and adds new findings.
+It doesn't build features.
 
-**Main session (planning).** This one keeps `TASKS.md` up to date, starts a
-session for the next task, checks the finished work, and adds anything new to
-the list. It doesn't build features itself.
+**Task session.** You open a new session for one task. It does that task, then
+you close it.
 
-**Task session (one per task).** It does one task from `TASKS.md`, then you
-delete it.
+## Starting a task session
 
-## The loop
+Open a new session in this folder and say:
 
-1. The main session says which task is next and offers a **session card**.
-   You click it.
-2. The task session marks the task `doing` and commits that change.
-3. It works in **small commits**. Each one is a single step, the project still
-   runs after it, and the message starts with the task number, for example
-   `03: import kit and write manifest`. It pushes to `main`.
-4. It checks the task's "Done when" for real (it runs the page and takes a
-   screenshot) and tells you exactly what it checked.
-5. It marks the task `done`, and adds anything it noticed but didn't fix to
+> Do task NN from TASKS.md.
+
+`CLAUDE.md` makes it read the plan, the task list and this file first.
+
+## What a task session does
+
+1. Sets its task to `doing` in `TASKS.md` and commits that.
+2. Works in **small commits** prefixed with the task number, for example
+   `04: copy VRMs into library/characters`. Each commit leaves the app running.
+   It stages files by explicit path, because another session may be committing
+   in the same folder.
+3. Checks the task's "Done when" for real: it runs the app, looks at a
+   screenshot and reads the console. Then it reports exactly what it checked.
+4. Sets the task to `done` and adds anything it noticed but didn't fix to
    **Found along the way**.
-6. Back in the main session, the work gets reviewed. You say OK, delete the
-   task session, and move on to the next card.
+5. Stops. It never moves on to the next task.
+
+## Closing it
+
+Come back to the main session and say "task NN is done". The main session
+reviews the commits against "Done when" and updates the plan. Then you close or
+delete the task session and open the next one.
 
 ## Rules
 
-- At most two task sessions run at once: one per track (A: app, B: GPU).
-  They work in different folders, so they never edit the same files. Each one
-  updates only its own task's row in `TASKS.md`.
-- If a task is too big, split it into 05a, 05b and so on in `TASKS.md` first.
+- At most one task session per track (A app, B GPU) at a time, so two sessions
+  never edit the same files.
+- If a task is too big, split it in `TASKS.md` first (09a, 09b and so on).
 - If a task is stuck, the session marks it `waiting`, says why, and stops.
-- Research tasks produce a write-up in `docs/research/` and new tasks. They
-  don't produce feature code.
-- Keys go only in `.env` (gitignored). They never appear in code, commits or
-  the browser.
-- GPU time gets logged in `docs/gpu-log.md`. Stop the instance when you're done.
+- Keys live only in `.env` (gitignored). Sessions never read them out, print
+  them, or commit them.
+- The pod costs money: log GPU hours in `docs/gpu-log.md`, and stop the pod when
+  nothing is generating.
