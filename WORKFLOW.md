@@ -26,8 +26,9 @@ delete it.
 
 ## Rules
 
-- Only one task session runs at a time, so two sessions never edit the same
-  files.
+- At most two task sessions run at once: one per track (A: app, B: GPU).
+  They work in different folders, so they never edit the same files. Each one
+  updates only its own task's row in `TASKS.md`.
 - If a task is too big, split it into 05a, 05b and so on in `TASKS.md` first.
 - If a task is stuck, the session marks it `waiting`, says why, and stops.
 - Research tasks produce a write-up in `docs/research/` and new tasks. They

@@ -1,88 +1,86 @@
 # Tasks
 
-Each task gets **one Claude session**. Work top to bottom unless a task is
-waiting on something. Status: `todo` · `doing` · `waiting` · `done`.
+**Deadline: Sunday 2026-11-08, 12:00 pm.** That's under 24 hours, so only
+what's needed for a working demo is in scope. Everything else sits under
+**Later**.
 
-| # | Task | Status | Needs first |
-|---|---|---|---|
-| 01 | Project skeleton: page + backend, both running locally | todo | — |
-| 02 | Stylized look: toon shading, outlines, warm light, tilt-shift | todo | 01 |
-| 03 | Starter asset library from a free CC0 kit, plus a manifest | todo | 01 |
-| 04 | Connect Nemotron, pick the model, prove tool calling works | waiting | your API key |
-| 05 | World agent: prompt → plan → tool calls → world on screen | todo | 03, 04 |
-| 06 | Terrain: paths, grass, water, gentle hills | todo | 02 |
-| 07 | Research: compare image→3D generators on the GPU | waiting | Brev credit |
-| 08 | GPU server on Brev: start/stop scripts, generation endpoints, cost log | todo | 07 |
-| 09 | `generate_asset` tool: missing prop → new 3D model → library | todo | 05, 08 |
-| 10 | Characters: pick stylized rigged characters that match the look | todo | 02 |
-| 11 | Research: why the old motion looked unnatural, and which motion model to use | todo | — |
-| 12 | Motion pipeline with cleanup (planted feet, smooth joins) | todo | 08, 10, 11 |
-| 13 | Agent can add characters and make them act in the world | todo | 05, 12 |
-| 14 | Self-check: screenshot → Nemotron vision → agent fixes problems | todo | 05 |
-| 15 | Demo video and submission write-up | todo | all you want shown |
+Each task gets **one Claude session**. There are two tracks, and they touch
+different folders, so **one session from each track can run at the same time**:
+
+- **Track A, app** (`web/`, `server/`, `library/`): runs on the laptop, no GPU.
+- **Track B, GPU** (`gpu/`): runs on the Brev box.
+
+Status: `todo` · `doing` · `waiting` · `done`
+
+| # | Track | Task | Budget | Status | Needs first |
+|---|---|---|---|---|---|
+| 01 | A | Skeleton + stylized look: page, backend, toon shading, outlines, warm light | 2.5 h | todo | — |
+| 02 | A | Starter library: a CC0 low-poly kit plus `manifest.json` | 1.5 h | todo | 01 |
+| 03 | A | Nemotron connection: pick the model, prove tool calling | 1 h | waiting | API key in `.env` |
+| 04 | A | World agent: prompt → plan → tool calls → world on screen (streams its steps) | 3 h | todo | 02, 03 |
+| 05 | B | GPU box: Brev up, TRELLIS.2 serving `/generate-asset`, start/stop scripts, cost log | 3 h | waiting | Brev code |
+| 06 | B | Kimodo serving `/generate-motion` on the same box | 1.5 h | todo | 05 |
+| 07 | A | `generate_asset` tool: missing prop → image → 3D → cleanup → library | 2 h | todo | 04, 05 |
+| 08 | A | Characters act in the world: add character, animate, planted feet | 3 h | todo | 04, 06 |
+| 09 | A | Demo: pre-generate and cache the demo scenes, record the video, write the submission | 2 h | todo | 07, 08 |
+
+That's about 20 hours of work, done as about 14 hours of real time across the
+two tracks, which leaves some slack. **Lock what's working by 9:00 am.**
+After that, only task 09 is in progress.
+
+**Cut rule.** If it's 6:00 am and 08 isn't working, the demo becomes the world
+agent plus prop generation, with one sample motion. A finished smaller demo
+beats an unfinished bigger one.
 
 ## Details
 
-**01 Project skeleton.** `web/` holds a static three.js page with no build
-step. `server/` is a FastAPI app with a `/health` route. `.env.example` lists
-every key. Both start from `.claude/launch.json`. *Done when* the page shows a
-ground plane and calls `/health` with no console errors.
+**01 Skeleton + look.** `web/` holds a static three.js page with no build
+step. `server/` is FastAPI with `/health`. `.env.example` lists every key.
+`.claude/launch.json` starts both. The renderer gets toon shading, soft
+outlines, warm grading and tilt-shift. *Done when* a screenshot of a few boxes
+and spheres on the ground already reads as "storybook", with no console errors.
 
-**02 Stylized look.** Tune the renderer against the village reference image.
-*Done when* a screenshot of a few boxes and spheres already reads as "storybook".
+**02 Starter library.** Each manifest entry records id, file, category,
+real-world size, tags, license and source. *Done when* there are at least 30
+assets loading at the right scale.
 
-**03 Starter library.** Import a CC0 low-poly kit into `library/`. Each entry in
-`library/manifest.json` records id, file, category, real-world size, footprint,
-tags, license and source. *Done when* there are at least 30 assets loading in
-the scene at the right scale.
+**03 Nemotron.** Use the hosted API at `integrate.api.nvidia.com/v1`. Pick a
+Nemotron model that does tool calling well, and record the choice in
+`docs/decisions.md`. *Done when* a test prompt calls a dummy tool correctly.
 
-**04 Nemotron.** Make a backend call to the hosted API. Compare the live Nemotron
-models on JSON output and tool calling, then write down the choice in
-`docs/decisions.md`. *Done when* a test prompt makes Nemotron call a dummy tool
-correctly.
+**04 World agent.** Tools: `search_library`, `set_terrain` (ground, a path, a
+water patch) and `place`. Code decides exact positions; Nemotron decides what
+goes in and roughly where. The UI shows each step as it happens, which is the
+"beyond a chatbot" part judges will see. *Done when* three different prompts
+each make a sensible world.
 
-**05 World agent.** Run the agent loop on the backend with the tools
-`search_library`, `set_terrain` and `place`. Code decides exact positions;
-Nemotron decides what goes in and roughly where. The UI streams the steps.
-*Done when* three different prompts each produce a sensible world.
+**05 GPU box.** TRELLIS.2 goes straight in. There's no time for a comparison
+run. *Done when* `gpu/start.sh` and `gpu/stop.sh` work, a test image returns a
+GLB, and `docs/gpu-log.md` has its first entry.
 
-**06 Terrain.** *Done when* a prompt with "a river through the village" shows
-one.
+**06 Kimodo.** It needs `HF_TOKEN` with access to Llama-3-8B-Instruct. *Done
+when* `/generate-motion` returns a clip for "a person waves".
 
-**07 Image→3D research.** Run TRELLIS.2, Hunyuan3D 2.1 and SAM 3D on the same 5
-props. Measure time, quality, VRAM, license, and how well the results fit our
-style after our renderer. Write it up in `docs/research/image-to-3d.md`. Keep
-GPU time under 3 hours.
+**07 generate_asset.** Text → concept image in our style → TRELLIS.2 → put the
+pivot on the ground, normalize scale, reduce polygons → saved to the library
+with its prompt. *Done when* "a red wooden windmill" shows up in the world and
+in the library.
 
-**08 GPU server.** *Done when* one script starts the Brev box, one stops it,
-`/generate-asset` and `/generate-motion` respond, and `docs/gpu-log.md` is updated.
+**08 Characters.** Use stylized rigged characters with a license that allows
+use, and retarget the Kimodo output onto them. Feet stay planted, and
+consecutive clips join without a pop. *Done when* the README example plays end
+to end.
 
-**09 generate_asset.** Text → concept image in our style → 3D → cleanup (put the
-pivot on the ground, normalize scale, reduce polygons) → saved to the library
-with its prompt. *Done when* asking for "a red wooden windmill" adds one to the
-world and to the library.
+**09 Demo.** The video plays from cached assets only. List every model and
+license used.
 
-**10 Characters.** Pick characters whose license allows use and whose look
-matches ours. They need to be rigged so the motion data fits them.
+## Later (after the deadline, or only if there's spare time)
 
-**11 Motion research.** List every cause of the old stiffness: padded clips
-being looped, sliding feet, the fixed crossfade, travel clamping. Compare Kimodo
-with other current text-to-motion models. Write it up in
-`docs/research/motion.md`, and add the fixes here as new tasks.
-
-**12 Motion pipeline.** *Done when* a three-step action plays with no foot
-sliding and no pop at the joins, shown with before/after clips.
-
-**13 Characters in the world.** *Done when* the example prompt in the README
-plays end to end.
-
-**14 Self-check.** *Done when* a deliberately broken scene (a floating prop, a
-character inside a wall) gets noticed and fixed.
-
-**15 Demo.** Record the video from cached assets only, write the submission
-text, and list every model and license used.
+- Self-check loop: screenshot → Nemotron vision → agent fixes problems.
+- Comparing image→3D generators (Hunyuan3D, SAM 3D).
+- Deeper motion research and a model comparison.
+- Rivers and hills in the terrain, and reactive water and grass.
 
 ## Found along the way
 
-_Sessions add new bugs and ideas here. They become numbered tasks once they're
-picked up._
+_Sessions add new bugs and ideas here._

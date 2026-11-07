@@ -74,6 +74,13 @@ look like one set.
 | RTX 4090 | 24 GB | 0.89 | ~67 | Faster, but fewer hours. |
 | A100 80 GB | 80 GB | 1.79 | ~33 | Not needed. |
 
+**$60 is enough, so there's no need for RunPod.** With a deadline under 24 hours,
+the box will run about 12–15 hours at most, which is about $7–9 on an A6000 or
+A40 and $13–16 on an L40S. Even an A100 for the whole time would fit. The real
+risks are time, not money: the card type being out of stock (pick the next
+48 GB option on the list), and model weights taking time to download on first
+start.
+
 Rules:
 - **Stop the instance whenever no one is actively testing generation.** The
   frontend, agent and renderer work runs on the laptop without a GPU.
@@ -84,25 +91,25 @@ Rules:
   Stop and re-plan at $40 spent.
 - RunPod is the fallback if Brev doesn't work out. The same server code runs there.
 
-## 6. Milestones
+## 6. Milestones (deadline: 2026-11-08, 12:00 pm)
 
 | # | Milestone | Tasks | GPU? |
 |---|---|---|---|
-| M1 | A pretty world from library assets, placed by hand-written JSON | 01–03 | no |
-| M2 | Nemotron builds that world from a prompt | 04–06 | no |
-| M3 | Missing props get generated | 07–09 | yes |
-| M4 | Characters move naturally in the world | 10–13 | yes |
-| M5 | Self-check loop plus the demo | 14–15 | a little |
+| M1 | A storybook world from library assets | 01–02 | no |
+| M2 | Nemotron builds that world from a prompt | 03–04 | no |
+| M3 | Missing props get generated | 05, 07 | yes |
+| M4 | Characters act in the world | 06, 08 | yes |
+| M5 | Demo recorded from cache | 09 | no |
 
-M1 and M2 alone already make a working demo. Each later milestone adds to it
-without breaking what came before.
+M1 and M2 alone already make a working demo, and each later milestone adds to
+it. Work runs in two tracks at once: app on the laptop, GPU on Brev. See
+`TASKS.md` for the schedule and the cut rule.
 
 ## 7. Open questions for you
 
-- **Deadline:** when is submission? That decides how much of M3–M5 we can fit.
 - **Brev:** has the $60 code been redeemed?
 - **Nemotron API key:** do you have a build.nvidia.com account?
-- **Team:** who else is working on this, if anyone?
+- **HF token:** is the old token with Llama-3-8B-Instruct access still valid? Kimodo needs it.
 
 ## 8. Inspiration
 
