@@ -18,8 +18,8 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 02 | A | Starter library: a CC0 low-poly kit plus `manifest.json` | 1.5 h | todo | 01 |
 | 03 | A | Nemotron connection: pick the model, prove tool calling | 1 h | waiting | API key in `.env` |
 | 04 | A | World agent: prompt → plan → tool calls → world on screen (streams its steps) | 3 h | todo | 02, 03 |
-| 05 | B | GPU box: Brev up, TRELLIS.2 serving `/generate-asset`, start/stop scripts, cost log | 3 h | waiting | Brev code |
-| 06 | B | Kimodo serving `/generate-motion` on the same box | 1.5 h | todo | 05 |
+| 05 | B | GPU box: TRELLIS.2 serving `/generate-asset`, setup script, cost log | 3 h | doing (RunPod pod up; TRELLIS.2 building; waiting on DINOv3 access) | — |
+| 06 | B | Kimodo serving `/generate-motion` on the same box | 1.5 h | done | — |
 | 07 | A | `generate_asset` tool: missing prop → image → 3D → cleanup → library | 2 h | todo | 04, 05 |
 | 08 | A | Characters act in the world: add character, animate, planted feet | 3 h | todo | 04, 06 |
 | 09 | A | Demo: pre-generate and cache the demo scenes, record the video, write the submission | 2 h | todo | 07, 08 |
@@ -84,3 +84,7 @@ license used.
 ## Found along the way
 
 _Sessions add new bugs and ideas here._
+
+- Kimodo has `post_processing=True`, which v1 never turned on. Compare it against False for foot sliding (both test clips are in `tmp/`).
+- Kimodo prints LoRA weights as "MISSING" while loading its LLM2Vec text encoder. Check whether the text encoding is actually right, because this could be a hidden cause of bad motion.
+- TRELLIS.2 needs gated `facebook/dinov3-vitl16-pretrain-lvd1689m`. Access was requested on 2026-11-07 and is waiting on Meta.

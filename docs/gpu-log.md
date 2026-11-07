@@ -11,6 +11,13 @@
 | Storage | Global volume `framed-models` mounted at `/workspace`, $0.09/GB per month plus IOPS. It survives pod resets and deletion. The 50 GB container disk at `/` is wiped on every reset. |
 | Hugging Face | Logged in as `naeemexe`, with the token stored in `/workspace/hf`. **Always `export HF_HOME=/workspace/hf`** so the login and model weights persist. Access to gated Llama-3-8B-Instruct is confirmed. |
 
+Servers (run on the pod, bound to localhost; reach them with `bash gpu/tunnel.sh`):
+- Motion server (Kimodo `kimodo-soma-rp-v1.2`) on **8101**. Starting it the first time
+  downloads about 16 GB and takes about 6 minutes; later starts read from the volume.
+  It uses about 16 GB of VRAM, and a 5 s clip takes about 4 s to generate.
+- Asset server (TRELLIS.2) on **8102**: not running yet.
+- Port 8001 belongs to the pod's own nginx, so don't use it.
+
 Notes:
 - `/workspace` is a FUSE object store (geesefs). It's fine for model weights, but
   slow for many small files, so put Python environments on the container disk
@@ -25,3 +32,4 @@ Notes:
 | Date | Hours | Cost | What |
 |---|---|---|---|
 | 2026-11-07 | ~0.6 | ~$0.35 | Pod created, GPU smoke test, volume attached, HF login |
+| 2026-11-07 | ~1.0 | ~$0.60 | Kimodo installed and serving; TRELLIS.2 build started |
