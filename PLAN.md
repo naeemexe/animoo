@@ -1,120 +1,100 @@
 # Plan
 
-## 1. What we're building
+Deadline: **Sunday 2026-11-08, 12:00 pm**. Track: **NVIDIA Nemotron, "beyond a
+chatbot"**. GPU: one RunPod A40 (see `docs/gpu-log.md`).
 
-The user types a scene. **Nemotron, working as an agent**, does the rest:
+## 1. The product: two pages
 
-1. **Plan:** it breaks the prompt into a world layout (terrain, paths, water,
-   zones), a list of props, the characters, and what each character does.
-2. **Build:** it calls tools to make each part. Props come from the asset
-   library, and any prop that's missing gets generated as a new 3D model.
-3. **Animate:** it generates motion for each character and places them in the
-   world.
-4. **Check:** it renders a screenshot, looks at it with a Nemotron vision
-   model, and fixes problems such as floating props or a character inside a house.
+**Chat page.** A character stands in a small storybook world and talks with
+you. Nemotron writes the replies, and the browser speaks them. If you ask
+it to show you something ("how do I do a squat?"), it generates that motion and
+performs it.
 
-The look we're aiming for is the cel-shaded storybook village from the last
-reference post. Most of that look comes from **the renderer** (toon shading,
-soft outlines, warm grading, tilt-shift depth of field), not from the models.
-That matters because the renderer can make generated assets and library assets
-look like one set.
+**Movie page.** You describe a longer scene:
+
+> "At sunrise an old fisherman walks out of his hut, stretches, waves at a kid
+> running past the well, and then they both sit on the dock."
+
+A team of Nemotron agents turns that into a short animated film:
+
+```
+                       ┌──────────────────────┐
+  long scene text ───▶ │  Orchestrator agent  │  breaks the scene into shots and beats
+                       └──────────┬───────────┘  (who does what, for how long)
+             ┌────────────────────┼─────────────────────┐
+             ▼                    ▼                     ▼
+     ┌───────────────┐   ┌────────────────┐    ┌────────────────┐
+     │  World agent  │   │  Motion agent  │    │ Director agent │
+     │ terrain, props│   │ one short clip │    │ timing, facing,│
+     │ (library or   │   │ per character  │    │ camera, merge  │
+     │  generate)    │   │ per beat       │    │ into one film  │
+     └──────┬────────┘   └───────┬────────┘    └───────┬────────┘
+            ▼                    ▼                     ▼
+      TRELLIS.2 (GPU)       Kimodo (GPU)         timeline in the browser
+      image → GLB           text → BVH           → play → export WebM
+```
+
+Kimodo produces clean clips only up to about 10 seconds, so splitting a long
+scene into short beats is what makes long, natural-looking scenes possible. The
+UI shows every agent step live, so judges can see the multi-step work as it
+happens.
 
 ## 2. How it fits the track
 
 | Track requirement | Where we meet it |
 |---|---|
-| Beyond a chatbot | The output is a 3D world with animated characters, not text. |
-| Multi-step workflows | Plan → build → animate → check → fix, run by one agent loop. |
-| Tool integration | `search_library`, `generate_asset`, `place`, `set_terrain`, `add_character`, `animate`, `render_and_check`. |
-| Real-world applicability | Previs and storyboarding for small film teams, and fast world prototyping for indie games. |
+| Beyond a chatbot | The output is an animated 3D film, and Chat can demonstrate motion. |
+| Multi-step workflows | Orchestrator → world, motion and director agents → merge. |
+| Tool integration | `search_library`, `generate_prop`, `place`, `set_terrain`, `generate_motion`, `add_to_timeline`. |
+| Real-world applicability | Previs and storyboarding for small film teams, plus teaching physical moves. |
 
-## 3. Architecture
+## 3. Architecture and repo layout
 
 ```
- browser (three.js)                       backend (Python, FastAPI)
- ─────────────────                        ──────────────────────────
- prompt box  ───────────────────────────▶ agent loop ──▶ Nemotron (build.nvidia.com API)
- stylized renderer  ◀── scene JSON ────── │   tools:
- timeline / playback                      │   search_library   → library/manifest.json
- screenshot  ──────────────────────────▶  │   generate_asset   → GPU box: text→image→3D
-                                          │   set_terrain / place (pure code)
-                                          │   animate          → GPU box: text→motion
-                                          │   render_and_check → Nemotron vision model
-                                          ▼
-                                   library/  (every generated asset is cached here,
-                                              so the demo never waits on a GPU)
+web/                  static three.js, no build step
+  index.html          shell with the Chat | Movie switch
+  js/look.js …        storybook renderer (done in task 01)
+  js/chat/            chat page
+  js/movie/           movie page: agent log, timeline, playback, export
+  js/characters/      VRM loading, BVH retargeting, clip merging
+server/               FastAPI: serves web/ and runs the agents
+  agents/             orchestrator, world, motion and director agents (Nemotron)
+  tools/              library search, GPU calls, layout math
+library/              props (GLB + manifest.json), characters (VRM), cached clips
+gpu/                  RunPod side: setup.sh, motion_server.py, asset_server.py, tunnel.sh
+docs/                 gpu-log.md, decisions.md
 ```
 
-- **Nemotron runs hosted**, through NVIDIA's OpenAI-compatible API at
-  `integrate.api.nvidia.com/v1`, which has a free trial tier. That costs no GPU
-  time. The exact model (a Nemotron 3 Super/Nano with tool calling, plus a
-  Nemotron vision model for the check step) gets picked in Task 04 from what's
-  live on build.nvidia.com.
-- **The GPU box runs only the heavy models:** image→3D and text→motion. It's off
-  when we aren't testing them.
-- **API keys stay on the backend** and never reach the browser.
+- **Nemotron** runs hosted on build.nvidia.com (OpenAI-compatible API), so it
+  uses no GPU time. The key lives in `.env` and is only read by the server.
+- **The GPU servers** run on the pod, bound to its localhost: motion on :8101
+  and assets on :8102. `gpu/tunnel.sh` forwards both to the laptop.
+- **Everything generated is cached**, on the pod's volume and in `library/`, so
+  the demo can replay without the GPU.
 
-## 4. Model choices (to confirm in research tasks)
+## 4. Models
 
-| Job | Lead option | Alternatives | Notes |
+| Job | Model | Where | Status |
 |---|---|---|---|
-| Agent / planner | Nemotron (hosted) | — | Required by the track. |
-| Vision check | Nemotron vision model (hosted) | — | Looks at screenshots. |
-| Text → concept image | An image model hosted on build.nvidia.com, if one is available | FLUX / SDXL on the GPU box | Feeds image→3D. The prompt carries our style. |
-| Image → 3D prop | **TRELLIS.2** (MIT, textured GLB) | Hunyuan3D 2.1 (restrictive license), SAM 3D Objects | Plan for about 24 GB VRAM. |
-| Text → motion | **Kimodo** (NVIDIA, so it fits the track) | other open text-to-motion models | Needs about 17–24 GB VRAM. Fixing unnatural movement is its own task. |
-| Starter props | A CC0 low-poly kit (for example Kenney or Quaternius) | — | The library starts with these, and generation fills the gaps. |
+| Agents and chat | Nemotron (hosted) | build.nvidia.com | needs `NVIDIA_API_KEY` |
+| Text → motion | Kimodo SOMA-RP v1.2 | pod :8101 | **working**, about 4 s per 5 s clip |
+| Image → 3D prop | TRELLIS.2-4B | pod :8102 | installed, smoke test running |
+| Text → concept image | to be picked in task 07 (a hosted NVIDIA image model, or SDXL-Turbo on the pod) | — | todo |
+| Characters | the two VRM avatars from the old project (already toon-shaded) | `library/characters/` | to be copied |
+| Starter props | the old project's 5 props plus a CC0 low-poly kit | `library/props/` | todo |
 
-## 5. GPU budget: $60 of Brev credit
+## 5. Unnatural movement: what we'll fix
 
-| Option | VRAM | $/hr | Hours for $60 | Fit |
-|---|---|---|---|---|
-| **RTX A6000 / A40** | 48 GB | 0.59 | ~100 | **Pick.** TRELLIS.2 and Kimodo both fit on one box. |
-| L4 | 24 GB | 0.59 | ~100 | One model at a time, so models get swapped. |
-| RTX 4090 | 24 GB | 0.89 | ~67 | Faster, but fewer hours. |
-| A100 80 GB | 80 GB | 1.79 | ~33 | Not needed. |
+- Turn on Kimodo's `post_processing`, which the old app never did, and compare
+  foot sliding with and without it.
+- Never loop Kimodo's padded still frames. Ask for the real beat length, and
+  keep beats at 10 seconds or less.
+- Join clips by matching pose and root position, not with a fixed 0.4 s crossfade.
+- Check that Kimodo's text encoder loads correctly. It printed "MISSING"
+  weights while loading.
 
-**$60 is enough, so there's no need for RunPod.** With a deadline under 24 hours,
-the box will run about 12–15 hours at most, which is about $7–9 on an A6000 or
-A40 and $13–16 on an L40S. Even an A100 for the whole time would fit. The real
-risks are time, not money: the card type being out of stock (pick the next
-48 GB option on the list), and model weights taking time to download on first
-start.
+## 6. Budget
 
-Rules:
-- **Stop the instance whenever no one is actively testing generation.** The
-  frontend, agent and renderer work runs on the laptop without a GPU.
-- **Cache everything.** Each generated GLB or motion goes into `library/` with
-  its prompt, so it's never paid for twice, and the final demo can run fully
-  from the cache.
-- **Log every session** in `docs/gpu-log.md` (date, hours, cost, what for).
-  Stop and re-plan at $40 spent.
-- RunPod is the fallback if Brev doesn't work out. The same server code runs there.
-
-## 6. Milestones (deadline: 2026-11-08, 12:00 pm)
-
-| # | Milestone | Tasks | GPU? |
-|---|---|---|---|
-| M1 | A storybook world from library assets | 01–02 | no |
-| M2 | Nemotron builds that world from a prompt | 03–04 | no |
-| M3 | Missing props get generated | 05, 07 | yes |
-| M4 | Characters act in the world | 06, 08 | yes |
-| M5 | Demo recorded from cache | 09 | no |
-
-M1 and M2 alone already make a working demo, and each later milestone adds to
-it. Work runs in two tracks at once: app on the laptop, GPU on Brev. See
-`TASKS.md` for the schedule and the cut rule.
-
-## 7. Open questions for you
-
-- **Brev:** has the $60 code been redeemed?
-- **Nemotron API key:** do you have a build.nvidia.com account?
-- **HF token:** is the old token with Llama-3-8B-Instruct access still valid? Kimodo needs it.
-
-## 8. Inspiration
-
-- The cel-shaded village built from concept art (the target look).
-- Polyfork: themed kits that share one palette and scale (our library idea).
-- Strata: painted terrain tiles (terrain ideas).
-- Wildward: water and reeds reacting to movement (stretch goal).
-- SAM 3D: photo to 3D object (a candidate generator).
+The pod costs $0.60/hr, plus about $0.09/GB per month for the volume. Stop the pod
+whenever no one is generating, log the hours in `docs/gpu-log.md`, and delete
+the volume after the hackathon.
