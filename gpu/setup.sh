@@ -28,17 +28,18 @@ clone() {  # clone <url> <dir> [git args...]
 }
 
 # Build a wheel once into /workspace/wheels, then install it from there.
-wheel_install() {  # wheel_install <venv> <name-glob> <source>
-  local venv=$1 glob=$2 src=$3
+wheel_install() {  # wheel_install <venv> <key> <source>
+  local venv=$1 key=$2 src=$3 dir="$WHEELS/$2"
   # pip can't write wheels straight onto the volume (it's a FUSE store that
-  # rejects chmod), so build on local disk and copy the bytes over.
-  if ! ls "$WHEELS"/$glob*.whl >/dev/null 2>&1; then
-    log "building $glob (first time only)"
-    rm -rf /opt/wheels-build && mkdir -p /opt/wheels-build
+  # rejects chmod), so build on local disk and copy the bytes over. Each
+  # extension gets its own folder because wheel names don't match repo names.
+  if ! ls "$dir"/*.whl >/dev/null 2>&1; then
+    log "building $key (first time only)"
+    rm -rf /opt/wheels-build && mkdir -p /opt/wheels-build "$dir"
     "$venv/bin/pip" wheel --no-deps --no-build-isolation -w /opt/wheels-build "$src"
-    for w in /opt/wheels-build/*.whl; do cat "$w" > "$WHEELS/$(basename "$w")"; done
+    for w in /opt/wheels-build/*.whl; do cat "$w" > "$dir/$(basename "$w")"; done
   fi
-  "$venv/bin/pip" install -q --no-deps "$WHEELS"/$glob*.whl
+  "$venv/bin/pip" install -q --no-deps "$dir"/*.whl
 }
 
 setup_trellis() {
