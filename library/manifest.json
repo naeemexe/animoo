@@ -1,0 +1,927 @@
+{
+ "version": 1,
+ "units": "meters",
+ "up": "+y",
+ "notes": "Paths are relative to library/. size is [width x, height y, depth z] in meters after scaling; the loader scales each prop uniformly to size[1] and moves its pivot to bottom-center. Motions have no size.",
+ "characters": [
+  {
+   "id": "avatar-female",
+   "file": "characters/avatar_female.vrm",
+   "category": "character",
+   "size": [
+    1.32,
+    1.58,
+    0.64
+   ],
+   "tags": [
+    "girl",
+    "woman",
+    "cat ears",
+    "black hair",
+    "vrm0"
+   ],
+   "license": "VRoid Hub conditions: credit SherryKatzu; commercial use allowed; modification and redistribution not allowed",
+   "source": "old animo project, assets/character/ (VRM meta: \"black hair Cat girl\" by SherryKatzu)"
+  },
+  {
+   "id": "avatar-male",
+   "file": "characters/avatar_male.vrm",
+   "category": "character",
+   "size": [
+    1.88,
+    2.03,
+    0.42
+   ],
+   "tags": [
+    "boy",
+    "man",
+    "vrm0"
+   ],
+   "license": "VRoid Hub conditions: credit @SherryKatzu & @Rarestgrass; commercial use allowed; modification and redistribution not allowed",
+   "source": "old animo project, assets/character/ (VRM meta: \"Boy\" by @SherryKatzu & @Rarestgrass)"
+  }
+ ],
+ "motions": [
+  {
+   "id": "backflip",
+   "file": "motions/backflip.bvh",
+   "category": "motion",
+   "size": null,
+   "duration_s": 3.0,
+   "fps": 30,
+   "tags": [
+    "backflip"
+   ],
+   "license": "generated with Kimodo in the old animo project",
+   "source": "old animo project, assets/motions/"
+  },
+  {
+   "id": "drunk-dance",
+   "file": "motions/drunk_dance.bvh",
+   "category": "motion",
+   "size": null,
+   "duration_s": 5.0,
+   "fps": 30,
+   "tags": [
+    "drunk",
+    "dance"
+   ],
+   "license": "generated with Kimodo in the old animo project",
+   "source": "old animo project, assets/motions/"
+  },
+  {
+   "id": "persona-idle",
+   "file": "motions/persona_idle.bvh",
+   "category": "motion",
+   "size": null,
+   "duration_s": 6.0,
+   "fps": 30,
+   "tags": [
+    "persona",
+    "idle"
+   ],
+   "license": "generated with Kimodo in the old animo project",
+   "source": "old animo project, assets/motions/"
+  },
+  {
+   "id": "persona-wave",
+   "file": "motions/persona_wave.bvh",
+   "category": "motion",
+   "size": null,
+   "duration_s": 4.53,
+   "fps": 30,
+   "tags": [
+    "persona",
+    "wave"
+   ],
+   "license": "generated with Kimodo in the old animo project",
+   "source": "old animo project, assets/motions/"
+  },
+  {
+   "id": "silly-dance",
+   "file": "motions/silly_dance.bvh",
+   "category": "motion",
+   "size": null,
+   "duration_s": 5.0,
+   "fps": 30,
+   "tags": [
+    "silly",
+    "dance"
+   ],
+   "license": "generated with Kimodo in the old animo project",
+   "source": "old animo project, assets/motions/"
+  },
+  {
+   "id": "sneak-forward",
+   "file": "motions/sneak_forward.bvh",
+   "category": "motion",
+   "size": null,
+   "duration_s": 5.0,
+   "fps": 30,
+   "tags": [
+    "sneak",
+    "forward"
+   ],
+   "license": "generated with Kimodo in the old animo project",
+   "source": "old animo project, assets/motions/"
+  },
+  {
+   "id": "sneak-jump",
+   "file": "motions/sneak_jump.bvh",
+   "category": "motion",
+   "size": null,
+   "duration_s": 5.0,
+   "fps": 30,
+   "tags": [
+    "sneak",
+    "jump"
+   ],
+   "license": "generated with Kimodo in the old animo project",
+   "source": "old animo project, assets/motions/"
+  },
+  {
+   "id": "spinning-kick",
+   "file": "motions/spinning_kick.bvh",
+   "category": "motion",
+   "size": null,
+   "duration_s": 3.0,
+   "fps": 30,
+   "tags": [
+    "spinning",
+    "kick"
+   ],
+   "license": "generated with Kimodo in the old animo project",
+   "source": "old animo project, assets/motions/"
+  },
+  {
+   "id": "talking",
+   "file": "motions/talking.bvh",
+   "category": "motion",
+   "size": null,
+   "duration_s": 6.0,
+   "fps": 30,
+   "tags": [
+    "talking"
+   ],
+   "license": "generated with Kimodo in the old animo project",
+   "source": "old animo project, assets/motions/"
+  }
+ ],
+ "props": [
+  {
+   "id": "tree",
+   "file": "props/tree.glb",
+   "category": "nature",
+   "size": [
+    4.08,
+    5.0,
+    3.5
+   ],
+   "tags": [
+    "tree",
+    "leafy"
+   ],
+   "license": "unknown: generated in the old animo project (trimesh export), origin not recorded",
+   "source": "old animo project, models/",
+   "thumbnail": "props/tree.png"
+  },
+  {
+   "id": "bush",
+   "file": "props/bush.glb",
+   "category": "nature",
+   "size": [
+    0.94,
+    1.0,
+    0.75
+   ],
+   "tags": [
+    "bush",
+    "shrub"
+   ],
+   "license": "unknown: generated in the old animo project (trimesh export), origin not recorded",
+   "source": "old animo project, models/",
+   "thumbnail": "props/bush.png"
+  },
+  {
+   "id": "tree-oak",
+   "file": "props/kenney-nature/tree_oak.glb",
+   "category": "nature",
+   "size": [
+    2.61,
+    5.0,
+    3.02
+   ],
+   "tags": [
+    "tree",
+    "oak",
+    "forest"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "tree-round",
+   "file": "props/kenney-nature/tree_default.glb",
+   "category": "nature",
+   "size": [
+    2.65,
+    6.0,
+    2.3
+   ],
+   "tags": [
+    "tree",
+    "forest"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "tree-autumn",
+   "file": "props/kenney-nature/tree_detailed_fall.glb",
+   "category": "nature",
+   "size": [
+    3.18,
+    5.0,
+    2.86
+   ],
+   "tags": [
+    "tree",
+    "autumn",
+    "orange"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "tree-fat",
+   "file": "props/kenney-nature/tree_fat.glb",
+   "category": "nature",
+   "size": [
+    2.95,
+    4.5,
+    2.56
+   ],
+   "tags": [
+    "tree",
+    "forest"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "pine-tall",
+   "file": "props/kenney-nature/tree_pineTallA_detailed.glb",
+   "category": "nature",
+   "size": [
+    2.02,
+    8.0,
+    2.05
+   ],
+   "tags": [
+    "tree",
+    "pine",
+    "conifer",
+    "forest"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "pine-round",
+   "file": "props/kenney-nature/tree_pineRoundC.glb",
+   "category": "nature",
+   "size": [
+    2.3,
+    6.0,
+    2.66
+   ],
+   "tags": [
+    "tree",
+    "pine",
+    "conifer",
+    "forest"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "bush-large",
+   "file": "props/kenney-nature/plant_bushLarge.glb",
+   "category": "nature",
+   "size": [
+    1.54,
+    1.0,
+    1.38
+   ],
+   "tags": [
+    "bush",
+    "shrub"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "bush-small",
+   "file": "props/kenney-nature/plant_bush.glb",
+   "category": "nature",
+   "size": [
+    1.3,
+    0.8,
+    1.3
+   ],
+   "tags": [
+    "bush",
+    "shrub"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "flower-red",
+   "file": "props/kenney-nature/flower_redA.glb",
+   "category": "nature",
+   "size": [
+    0.22,
+    0.4,
+    0.25
+   ],
+   "tags": [
+    "flower",
+    "red"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "flower-yellow",
+   "file": "props/kenney-nature/flower_yellowB.glb",
+   "category": "nature",
+   "size": [
+    0.39,
+    0.3,
+    0.45
+   ],
+   "tags": [
+    "flower",
+    "yellow"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "mushrooms",
+   "file": "props/kenney-nature/mushroom_redGroup.glb",
+   "category": "nature",
+   "size": [
+    0.32,
+    0.3,
+    0.3
+   ],
+   "tags": [
+    "mushroom",
+    "forest"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "grass-tuft",
+   "file": "props/kenney-nature/grass_large.glb",
+   "category": "nature",
+   "size": [
+    0.72,
+    0.45,
+    0.72
+   ],
+   "tags": [
+    "grass"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "rock-large",
+   "file": "props/kenney-nature/rock_largeA.glb",
+   "category": "nature",
+   "size": [
+    1.55,
+    0.51,
+    2.0
+   ],
+   "tags": [
+    "rock",
+    "stone",
+    "boulder"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "rock-small",
+   "file": "props/kenney-nature/rock_smallC.glb",
+   "category": "nature",
+   "size": [
+    0.6,
+    0.2,
+    0.6
+   ],
+   "tags": [
+    "rock",
+    "stone",
+    "pebble"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "stump",
+   "file": "props/kenney-nature/stump_round.glb",
+   "category": "nature",
+   "size": [
+    0.78,
+    0.5,
+    0.9
+   ],
+   "tags": [
+    "stump",
+    "wood",
+    "seat",
+    "forest"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "log-stack",
+   "file": "props/kenney-nature/log_stack.glb",
+   "category": "village",
+   "size": [
+    1.08,
+    0.88,
+    1.8
+   ],
+   "tags": [
+    "logs",
+    "firewood",
+    "wood"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "campfire",
+   "file": "props/kenney-nature/campfire_stones.glb",
+   "category": "village",
+   "size": [
+    1.2,
+    0.17,
+    1.14
+   ],
+   "tags": [
+    "campfire",
+    "fire",
+    "camp"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "pumpkin",
+   "file": "props/kenney-nature/crop_pumpkin.glb",
+   "category": "village",
+   "size": [
+    0.59,
+    0.45,
+    0.61
+   ],
+   "tags": [
+    "pumpkin",
+    "crop",
+    "farm"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "fence-wood",
+   "file": "props/kenney-nature/fence_simple.glb",
+   "category": "village",
+   "size": [
+    2.0,
+    0.69,
+    0.14
+   ],
+   "tags": [
+    "fence",
+    "wood",
+    "farm"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "signpost",
+   "file": "props/kenney-nature/sign.glb",
+   "category": "village",
+   "size": [
+    1.03,
+    1.4,
+    0.24
+   ],
+   "tags": [
+    "sign",
+    "signpost",
+    "path"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "market-stall",
+   "file": "props/kenney-fantasy-town/stall-red.glb",
+   "category": "village",
+   "size": [
+    2.1,
+    2.6,
+    2.1
+   ],
+   "tags": [
+    "stall",
+    "market",
+    "shop"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Fantasy Town Kit 2.0, https://kenney.nl/assets/fantasy-town-kit"
+  },
+  {
+   "id": "cart",
+   "file": "props/kenney-fantasy-town/cart.glb",
+   "category": "village",
+   "size": [
+    1.47,
+    0.88,
+    2.2
+   ],
+   "tags": [
+    "cart",
+    "wagon",
+    "farm"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Fantasy Town Kit 2.0, https://kenney.nl/assets/fantasy-town-kit"
+  },
+  {
+   "id": "fountain",
+   "file": "props/kenney-fantasy-town/fountain-round.glb",
+   "category": "village",
+   "size": [
+    3.0,
+    0.42,
+    3.0
+   ],
+   "tags": [
+    "fountain",
+    "square",
+    "water"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Fantasy Town Kit 2.0, https://kenney.nl/assets/fantasy-town-kit"
+  },
+  {
+   "id": "lantern-post",
+   "file": "props/kenney-fantasy-town/lantern.glb",
+   "category": "village",
+   "size": [
+    0.33,
+    2.4,
+    0.35
+   ],
+   "tags": [
+    "lantern",
+    "lamp",
+    "street light"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Fantasy Town Kit 2.0, https://kenney.nl/assets/fantasy-town-kit"
+  },
+  {
+   "id": "hedge",
+   "file": "props/kenney-fantasy-town/hedge.glb",
+   "category": "village",
+   "size": [
+    0.5,
+    0.5,
+    2.0
+   ],
+   "tags": [
+    "hedge",
+    "garden"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Fantasy Town Kit 2.0, https://kenney.nl/assets/fantasy-town-kit"
+  },
+  {
+   "id": "bench",
+   "file": "props/kenney-fantasy-town/stall-bench.glb",
+   "category": "village",
+   "size": [
+    0.5,
+    0.43,
+    1.8
+   ],
+   "tags": [
+    "bench",
+    "seat"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Fantasy Town Kit 2.0, https://kenney.nl/assets/fantasy-town-kit"
+  },
+  {
+   "id": "cart-wheel",
+   "file": "props/kenney-fantasy-town/wheel.glb",
+   "category": "village",
+   "size": [
+    0.49,
+    1.0,
+    0.97
+   ],
+   "tags": [
+    "wheel",
+    "cart"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Fantasy Town Kit 2.0, https://kenney.nl/assets/fantasy-town-kit"
+  },
+  {
+   "id": "barrel",
+   "file": "props/kenney-pirate/barrel.glb",
+   "category": "village",
+   "size": [
+    0.98,
+    0.9,
+    0.98
+   ],
+   "tags": [
+    "barrel",
+    "storage"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Pirate Kit 2.1, https://kenney.nl/assets/pirate-kit"
+  },
+  {
+   "id": "crate",
+   "file": "props/kenney-pirate/crate.glb",
+   "category": "village",
+   "size": [
+    0.84,
+    0.6,
+    1.02
+   ],
+   "tags": [
+    "crate",
+    "box",
+    "storage"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Pirate Kit 2.1, https://kenney.nl/assets/pirate-kit"
+  },
+  {
+   "id": "chest",
+   "file": "props/kenney-pirate/chest.glb",
+   "category": "village",
+   "size": [
+    0.67,
+    0.6,
+    0.67
+   ],
+   "tags": [
+    "chest",
+    "treasure"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Pirate Kit 2.1, https://kenney.nl/assets/pirate-kit"
+  },
+  {
+   "id": "flag-pole",
+   "file": "props/kenney-pirate/flag.glb",
+   "category": "village",
+   "size": [
+    2.23,
+    3.5,
+    0.67
+   ],
+   "tags": [
+    "flag",
+    "pole"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Pirate Kit 2.1, https://kenney.nl/assets/pirate-kit"
+  },
+  {
+   "id": "bridge-wood",
+   "file": "props/kenney-nature/bridge_wood.glb",
+   "category": "water",
+   "size": [
+    4.0,
+    1.54,
+    4.0
+   ],
+   "tags": [
+    "bridge",
+    "wood",
+    "river"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "canoe",
+   "file": "props/kenney-nature/canoe.glb",
+   "category": "water",
+   "size": [
+    1.04,
+    0.63,
+    4.0
+   ],
+   "tags": [
+    "canoe",
+    "boat"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "lily-pad",
+   "file": "props/kenney-nature/lily_large.glb",
+   "category": "water",
+   "size": [
+    0.52,
+    0.19,
+    0.6
+   ],
+   "tags": [
+    "lily",
+    "pond",
+    "water plant"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "dock",
+   "file": "props/kenney-pirate/structure-platform-dock.glb",
+   "category": "water",
+   "size": [
+    3.98,
+    2.09,
+    4.0
+   ],
+   "tags": [
+    "dock",
+    "pier",
+    "jetty",
+    "wood"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Pirate Kit 2.1, https://kenney.nl/assets/pirate-kit"
+  },
+  {
+   "id": "dock-small",
+   "file": "props/kenney-pirate/structure-platform-dock-small.glb",
+   "category": "water",
+   "size": [
+    2.27,
+    1.57,
+    3.0
+   ],
+   "tags": [
+    "dock",
+    "pier",
+    "jetty",
+    "wood"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Pirate Kit 2.1, https://kenney.nl/assets/pirate-kit"
+  },
+  {
+   "id": "rowboat",
+   "file": "props/kenney-pirate/boat-row-small.glb",
+   "category": "water",
+   "size": [
+    3.5,
+    1.08,
+    3.02
+   ],
+   "tags": [
+    "boat",
+    "rowboat",
+    "fishing"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Pirate Kit 2.1, https://kenney.nl/assets/pirate-kit"
+  },
+  {
+   "id": "paddle",
+   "file": "props/kenney-pirate/tool-paddle.glb",
+   "category": "water",
+   "size": [
+    0.5,
+    1.8,
+    0.16
+   ],
+   "tags": [
+    "paddle",
+    "oar",
+    "tool"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Pirate Kit 2.1, https://kenney.nl/assets/pirate-kit"
+  },
+  {
+   "id": "house",
+   "file": "props/house.glb",
+   "category": "buildings",
+   "size": [
+    7.07,
+    3.5,
+    7.07
+   ],
+   "tags": [
+    "house",
+    "home"
+   ],
+   "license": "unknown: generated in the old animo project (trimesh export), origin not recorded",
+   "source": "old animo project, models/",
+   "thumbnail": "props/house.png"
+  },
+  {
+   "id": "building",
+   "file": "props/building.glb",
+   "category": "buildings",
+   "size": [
+    5.89,
+    9.0,
+    5.85
+   ],
+   "tags": [
+    "building",
+    "tower",
+    "town"
+   ],
+   "license": "unknown: generated in the old animo project (trimesh export), origin not recorded",
+   "source": "old animo project, models/",
+   "thumbnail": "props/building.png"
+  },
+  {
+   "id": "tent",
+   "file": "props/kenney-nature/tent_detailedOpen.glb",
+   "category": "buildings",
+   "size": [
+    3.43,
+    2.2,
+    2.61
+   ],
+   "tags": [
+    "tent",
+    "camp"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Nature Kit 2.1, https://kenney.nl/assets/nature-kit"
+  },
+  {
+   "id": "stilt-hut",
+   "file": "props/kenney-pirate/structure.glb",
+   "category": "buildings",
+   "size": [
+    3.98,
+    3.5,
+    3.98
+   ],
+   "tags": [
+    "hut",
+    "shelter",
+    "fisherman"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Pirate Kit 2.1, https://kenney.nl/assets/pirate-kit"
+  },
+  {
+   "id": "truck",
+   "file": "props/truck.glb",
+   "category": "vehicles",
+   "size": [
+    5.5,
+    2.21,
+    2.09
+   ],
+   "tags": [
+    "truck",
+    "vehicle",
+    "modern"
+   ],
+   "license": "unknown: generated in the old animo project (trimesh export), origin not recorded",
+   "source": "old animo project, models/",
+   "thumbnail": "props/truck.png"
+  }
+ ]
+}
