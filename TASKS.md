@@ -16,7 +16,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 |---|---|---|---|---|---|
 | 01 | A | Skeleton + storybook look | 2.5 h | done | — |
 | 02 | B | Kimodo motion server on the pod (:8101) | 1.5 h | done | — |
-| 03 | B | TRELLIS.2 asset server on the pod (:8102) | 2 h | doing | — |
+| 03 | B | TRELLIS.2 asset server on the pod (:8102) | 2 h | done | — |
 | 04 | A | Library: the old project's VRMs, props and sample BVHs, plus a CC0 low-poly kit and `manifest.json` | 1.5 h | done | 01 |
 | 05 | A | Characters: load VRMs, retarget Kimodo BVH, play a clip, planted feet | 2.5 h | done | 04 |
 | 06 | A | Nemotron client + agent loop on the server (tool calling, streamed steps) | 1.5 h | waiting | `NVIDIA_API_KEY` in `.env` |
@@ -130,3 +130,8 @@ license used.
   pass, so overlays need `transparent: true` to draw on top.
 - Merging only tested standing → standing (walk ends stopped). Joining mid-stride
   clips may need the overlap moved to a double-support frame (task 09).
+- 03: TRELLIS.2 takes about 47 s per prop at `quality=512` (the default) and about 220 s at
+  `1024_cascade`, and each GLB is about 3 MB. While it's generating, the asset server
+  doesn't answer `/health`, because it handles one job at a time. Pre-generate demo props.
+- 03: the pod's SSH sometimes times out for a minute, so retry before assuming the
+  pod is down. `bash /opt/app/serve.sh status` on the pod shows both servers.

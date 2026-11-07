@@ -15,7 +15,9 @@ Servers (run on the pod, bound to localhost; reach them with `bash gpu/tunnel.sh
 - Motion server (Kimodo `kimodo-soma-rp-v1.2`) on **8101**. Starting it the first time
   downloads about 16 GB and takes about 6 minutes; later starts read from the volume.
   It uses about 16 GB of VRAM, and a 5 s clip takes about 4 s to generate.
-- Asset server (TRELLIS.2) on **8102**: not running yet.
+- Asset server (TRELLIS.2-4B) on **8102**: about 47 s per prop at quality 512, about 220 s at
+  1024_cascade. Background removal uses BiRefNet, not the gated RMBG-2.0.
+- Start, stop or check both with `bash /opt/app/serve.sh start|stop|status` (copy `gpu/` to `/opt/app`).
 - Port 8001 belongs to the pod's own nginx, so don't use it.
 
 Notes:
@@ -33,3 +35,4 @@ Notes:
 |---|---|---|---|
 | 2026-11-07 | ~0.6 | ~$0.35 | Pod created, GPU smoke test, volume attached, HF login |
 | 2026-11-07 | ~1.0 | ~$0.60 | Kimodo installed and serving; TRELLIS.2 build started |
+| 2026-11-07 | ~1.5 | ~$0.90 | TRELLIS.2 built and serving; Kimodo and TRELLIS.2 smoke tests pass |
