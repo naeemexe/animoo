@@ -1,95 +1,98 @@
 # Tasks
 
-**Deadline: Sunday 2026-11-08, 12:00 pm.** That's under 24 hours, so only
-what's needed for a working demo is in scope. Everything else sits under
-**Later**.
+**Deadline: Sunday 2026-11-08, 12:00 pm.** Lock what's working by **9:00 am**;
+after that, only the demo task is in progress.
 
-Each task gets **one Claude session**. There are two tracks, and they touch
-different folders, so **one session from each track can run at the same time**:
+Each task gets **one Claude session**, which is closed once the task is reviewed
+(see `WORKFLOW.md`). Sessions in different tracks touch different folders, so
+**one session per track can run at the same time**:
 
-- **Track A, app** (`web/`, `server/`, `library/`): runs on the laptop, no GPU.
-- **Track B, GPU** (`gpu/`): runs on the Brev box.
+- **A, app** (`web/`, `server/`, `library/`)
+- **B, GPU** (`gpu/`, which runs on the RunPod pod)
 
 Status: `todo` · `doing` · `waiting` · `done`
 
 | # | Track | Task | Budget | Status | Needs first |
 |---|---|---|---|---|---|
-| 01 | A | Skeleton + stylized look: page, backend, toon shading, outlines, warm light | 2.5 h | done | — |
-| 02 | A | Starter library: a CC0 low-poly kit plus `manifest.json` | 1.5 h | todo | 01 |
-| 03 | A | Nemotron connection: pick the model, prove tool calling | 1 h | waiting | API key in `.env` |
-| 04 | A | World agent: prompt → plan → tool calls → world on screen (streams its steps) | 3 h | todo | 02, 03 |
-| 05 | B | GPU box: TRELLIS.2 serving `/generate-asset`, setup script, cost log | 3 h | doing (RunPod pod up; TRELLIS.2 building; waiting on DINOv3 access) | — |
-| 06 | B | Kimodo serving `/generate-motion` on the same box | 1.5 h | done | — |
-| 07 | A | `generate_asset` tool: missing prop → image → 3D → cleanup → library | 2 h | todo | 04, 05 |
-| 08 | A | Characters act in the world: add character, animate, planted feet | 3 h | todo | 04, 06 |
-| 09 | A | Demo: pre-generate and cache the demo scenes, record the video, write the submission | 2 h | todo | 07, 08 |
+| 01 | A | Skeleton + storybook look | 2.5 h | done | — |
+| 02 | B | Kimodo motion server on the pod (:8101) | 1.5 h | done | — |
+| 03 | B | TRELLIS.2 asset server on the pod (:8102) | 2 h | doing | — |
+| 04 | A | Library: the old project's VRMs, props and sample BVHs, plus a CC0 low-poly kit and `manifest.json` | 1.5 h | todo | 01 |
+| 05 | A | Characters: load VRMs, retarget Kimodo BVH, play a clip, planted feet | 2.5 h | todo | 04 |
+| 06 | A | Nemotron client + agent loop on the server (tool calling, streamed steps) | 1.5 h | waiting | `NVIDIA_API_KEY` in `.env` |
+| 07 | B | Text → concept image for props (pick a model, add an endpoint) | 1.5 h | todo | 03 |
+| 08 | A | Movie: the orchestrator splits a scene into shots and beats, and the world agent builds the set | 3 h | todo | 04, 06 |
+| 09 | A | Movie: the motion agent makes clips, the director merges them on a timeline, play and export | 3 h | todo | 05, 08 |
+| 10 | A | Chat page: a character talks (Nemotron + browser voice) and demonstrates moves | 2 h | todo | 05, 06 |
+| 11 | A | Prop generation in the world agent (image → TRELLIS.2 → library) | 1.5 h | todo | 07, 08 |
+| 12 | A | Demo: cache the demo scenes, record the video, write the submission | 2 h | todo | 09, 10 |
 
-That's about 20 hours of work, done as about 14 hours of real time across the
-two tracks, which leaves some slack. **Lock what's working by 9:00 am.**
-After that, only task 09 is in progress.
-
-**Cut rule.** If it's 6:00 am and 08 isn't working, the demo becomes the world
-agent plus prop generation, with one sample motion. A finished smaller demo
-beats an unfinished bigger one.
+**Cut rule.** If it's 6:00 am and task 09 isn't working, demo the Chat page plus a
+Movie page with one generated world and the sample clips. A finished small demo
+beats an unfinished big one.
 
 ## Details
 
-**01 Skeleton + look.** `web/` holds a static three.js page with no build
-step. `server/` is FastAPI with `/health`. `.env.example` lists every key.
-`.claude/launch.json` starts both. The renderer gets toon shading, soft
-outlines, warm grading and tilt-shift. *Done when* a screenshot of a few boxes
-and spheres on the ground already reads as "storybook", with no console errors.
+**03 TRELLIS.2.** `gpu/asset_server.py` takes an image and returns a GLB, cached
+on the volume. *Done when* the example image comes back as a GLB that loads in
+the page through `toonify()`.
 
-**02 Starter library.** Each manifest entry records id, file, category,
-real-world size, tags, license and source. *Done when* there are at least 30
-assets loading at the right scale.
+**04 Library.** `library/characters/` holds the two VRMs, `library/motions/` the
+sample BVHs, and `library/props/` the GLBs. `library/manifest.json` records id,
+file, category, real-world size, tags, license and source for each entry.
+*Done when* there are at least 30 props loading at the right scale.
 
-**03 Nemotron.** Use the hosted API at `integrate.api.nvidia.com/v1`. Pick a
-Nemotron model that does tool calling well, and record the choice in
-`docs/decisions.md`. *Done when* a test prompt calls a dummy tool correctly.
+**05 Characters.** A BVH from Kimodo plays on a VRM in the storybook stage. Use
+`post_processing` clips from the pod, with feet on the ground and no sliding.
+Two clips should join without a pop. *Done when* a "walk, then wave" pair plays
+cleanly. Compare `tmp/walk_true.bvh` against `tmp/walk_false.bvh`.
 
-**04 World agent.** Tools: `search_library`, `set_terrain` (ground, a path, a
-water patch) and `place`. Code decides exact positions; Nemotron decides what
-goes in and roughly where. The UI shows each step as it happens, which is the
-"beyond a chatbot" part judges will see. *Done when* three different prompts
-each make a sensible world.
+**06 Nemotron.** The server talks to `integrate.api.nvidia.com/v1`. Pick the
+Nemotron model that handles tool calling best and record it in
+`docs/decisions.md`. A generic agent loop takes tools and streams each step to
+the browser over SSE. *Done when* a test agent calls a dummy tool correctly
+and the steps show up in the page.
 
-**05 GPU box.** TRELLIS.2 goes straight in. There's no time for a comparison
-run. *Done when* `gpu/start.sh` and `gpu/stop.sh` work, a test image returns a
-GLB, and `docs/gpu-log.md` has its first entry.
+**07 Concept images.** Turn "a red wooden windmill, low-poly storybook style,
+plain background" into a clean single-object image. *Done when* five prompts
+give usable images in under 10 s each.
 
-**06 Kimodo.** It needs `HF_TOKEN` with access to Llama-3-8B-Instruct. *Done
-when* `/generate-motion` returns a clip for "a person waves".
+**08 Orchestrator + world.** Long scene text → JSON script (shots, cast,
+beats of 10 s or less, props, terrain) → the world agent places library props
+using layout code. *Done when* three different scenes produce sensible sets and
+scripts.
 
-**07 generate_asset.** Text → concept image in our style → TRELLIS.2 → put the
-pivot on the ground, normalize scale, reduce polygons → saved to the library
-with its prompt. *Done when* "a red wooden windmill" shows up in the world and
-in the library.
+**09 Motion + director.** For each beat and each character: a Kimodo prompt, a
+clip, and the facing and position worked out from the script. The director lines
+the clips up on a per-character timeline, and the clips merge into one playback
+that can be exported to WebM. *Done when* the scene in `PLAN.md` plays end to end.
 
-**08 Characters.** Use stylized rigged characters with a license that allows
-use, and retarget the Kimodo output onto them. Feet stay planted, and
-consecutive clips join without a pop. *Done when* the README example plays end
-to end.
+**10 Chat.** Show a character in a small world with a chat panel. Replies come
+from Nemotron and are spoken by the browser. "Show me X" triggers a Kimodo clip.
+*Done when* a question gets a spoken answer and "show me a squat" performs one.
 
-**09 Demo.** The video plays from cached assets only. List every model and
+**11 Prop generation.** If the library has no match, generate a concept image,
+run TRELLIS.2, normalize scale and pivot, `toonify()` it, and save it to
+`library/`. *Done when* "a windmill" appears in a world.
+
+**12 Demo.** The video plays from cached assets only. List every model and
 license used.
 
-## Later (after the deadline, or only if there's spare time)
+## Later
 
 - Self-check loop: screenshot → Nemotron vision → agent fixes problems.
-- Comparing image→3D generators (Hunyuan3D, SAM 3D).
-- Deeper motion research and a model comparison.
+- Comparing image→3D generators (Hunyuan3D, SAM 3D), and a motion-model comparison.
 - Rivers and hills in the terrain, and reactive water and grass.
 
 ## Found along the way
 
-_Sessions add new bugs and ideas here._
-
-- Kimodo has `post_processing=True`, which v1 never turned on. Compare it against False for foot sliding (both test clips are in `tmp/`).
-- Kimodo prints LoRA weights as "MISSING" while loading its LLM2Vec text encoder. Check whether the text encoding is actually right, because this could be a hidden cause of bad motion.
-- TRELLIS.2 needs gated `facebook/dinov3-vitl16-pretrain-lvd1689m`. Access was requested on 2026-11-07 and is waiting on Meta.
-- 01: `.claude/` is gitignored, so `.claude/launch.json` (configs `animo-world-server`, `animo-world-web`) exists only in this checkout. Un-ignore it if other machines need it.
-- 01: Run the app with `animo-world-server` (FastAPI serves `web/` at `/`). The static `animo-world-web` answers `/health` from `web/health` with `service: "static"`; add `?api=http://localhost:8000` to reach the backend from it. The server venv is `server/.venv` (`pip install -r server/requirements.txt`).
-- 01: three r160 `MeshToonMaterial` has no `flatShading`. Use `faceted(geometry)` from `web/js/toon.js`, and run loaded GLBs through `toonify()` so library and generated props match the look.
-- 01: Outlines come from depth and normal edges in `web/js/look.js` (`LOOK` holds every look parameter). The normal pass uses vertex normals, so faceted props get few inner lines. That suits low poly, but check it on TRELLIS meshes in task 07.
-- 01: `/health` reports `nvidia_api_key: false`, so `.env` has no `NVIDIA_API_KEY` yet (only presence is checked, values are never read out). Task 03 needs it.
+- Kimodo prints LoRA weights as "MISSING" while loading its LLM2Vec text encoder.
+  Check whether the text encoding is right (task 05).
+- `.claude/` is gitignored, so `.claude/launch.json` (`animo-world-server`,
+  `animo-world-web`) exists only in this checkout.
+- Run the app with `animo-world-server`, since FastAPI serves `web/` at `/`. The
+  server venv is `server/.venv`.
+- three r160 `MeshToonMaterial` has no `flatShading`. Use `faceted(geometry)` from
+  `web/js/toon.js`, and run every loaded GLB through `toonify()`.
+- Outlines in `web/js/look.js` use vertex normals, so check them on TRELLIS
+  meshes in task 11.
