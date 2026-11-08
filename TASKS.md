@@ -35,7 +35,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 16 | A | Cinematic camera: the director picks shots per beat (wide, medium, close, side, over-the-shoulder, low), with cuts and moves (dolly, orbit, crane) | 2.5 h | done (rules, no LLM call) | 08 |
 | 17 | A | Time of day + weather: day/dusk/night lighting with glowing lamps and windows at night, plus rain/snow/fog. The orchestrator sets it from the prompt | 2 h | done | 15 |
 | 18 | A | Edit mode: select, move/rotate/scale, duplicate, delete, replace with a library item, regenerate a prop on the GPU | 3 h | done | 14 |
-| 19 | A | Camera paths: draw a keyframed camera path between two timestamps in edit mode; it overrides the director for that span | 2.5 h | todo | 16, 18 |
+| 19 | A | Camera paths: draw a keyframed camera path between two timestamps in edit mode; it overrides the director for that span | 2.5 h | doing | 16, 18 |
 | 21 | A | Full pipeline check + optimization: load times, GLB sizes, caching, LLM call budget, GPU memory, bug bash | 2 h | done (session closed early: export width, snow ground, shot defaults, 2 scenes cached; timing table not written) | 13–17 |
 | 22 | A | Motion control: a game-style action library (cached clips) plus position control: paths around props, facing, gestures aimed at a target, consistent heights | 3 h | done | 14, 16 |
 | 23 | A | Look fixes: intentional depth of field, stable shadows, thinner outlines on small props, less blocky props, no visible circular world edge | 1.5 h | done | 15 |
