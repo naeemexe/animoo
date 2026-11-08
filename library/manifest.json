@@ -938,6 +938,26 @@
    "license": "unknown: generated in the old animo project (trimesh export), origin not recorded",
    "source": "old animo project, models/",
    "thumbnail": "props/truck.png"
+  },
+  {
+   "id": "windmill",
+   "file": "props/generated/windmill.glb",
+   "category": "buildings",
+   "size": [
+    3.78,
+    7.0,
+    5.9
+   ],
+   "tags": [
+    "generated",
+    "red",
+    "windmill",
+    "wooden"
+   ],
+   "license": "generated: concept image by NVIDIA SANA-Sprint 1.6B (Apache-2.0; its text encoder Gemma-2-2B-IT is under the Gemma Terms of Use), image to 3D by Microsoft TRELLIS.2-4B (MIT) with BiRefNet background removal (MIT)",
+   "source": "generated",
+   "prompt": "a red wooden windmill",
+   "thumbnail": "props/generated/windmill.png"
   }
  ]
 }

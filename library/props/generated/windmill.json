@@ -1,0 +1,24 @@
+{
+ "id": "windmill",
+ "name": "windmill",
+ "prompt": "a red wooden windmill",
+ "sent_prompt": "a red wooden windmill, solid chunky shapes, thick sturdy parts",
+ "seed": 0,
+ "image_key": "dd7300bb111b2ae2",
+ "size_m": 7.0,
+ "normalize": {
+  "normalized": true,
+  "trimmed": true,
+  "cut_fraction": 0.12,
+  "triangles_removed": 21098,
+  "size": [
+   3.78,
+   7.0,
+   5.9
+  ],
+  "vertices": 34137,
+  "triangles": 36045
+ },
+ "pod_seconds": 0.5,
+ "created": "2026-11-08T01:07:18+00:00"
+}
