@@ -33,7 +33,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 14 | A | Scale + placement: characters and props at consistent real-world size; grounded, no overlaps, positions that follow the script | 2 h | done | 08 |
 | 15 | A | World fill + backdrop: no empty island. Ground scatter (grass, flowers, rocks), a dense tree/hill ring, a painted sky/backdrop that fills the frame | 2.5 h | done | 08 |
 | 16 | A | Cinematic camera: the director picks shots per beat (wide, medium, close, side, over-the-shoulder, low), with cuts and moves (dolly, orbit, crane) | 2.5 h | done (rules, no LLM call) | 08 |
-| 17 | A | Time of day + weather: day/dusk/night lighting with glowing lamps and windows at night, plus rain/snow/fog. The orchestrator sets it from the prompt | 2 h | doing | 15 |
+| 17 | A | Time of day + weather: day/dusk/night lighting with glowing lamps and windows at night, plus rain/snow/fog. The orchestrator sets it from the prompt | 2 h | done | 15 |
 | 18 | A | Edit mode: select, move/rotate/scale, duplicate, delete, replace with a library item, regenerate a prop on the GPU | 3 h | todo | 14 |
 | 19 | A | Camera paths: draw a keyframed camera path between two timestamps in edit mode; it overrides the director for that span | 2.5 h | todo | 16, 18 |
 | 21 | A | Full pipeline check + optimization: load times, GLB sizes, caching, LLM call budget, GPU memory, bug bash | 2 h | todo | 13–17 |
@@ -396,3 +396,30 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
   while the Browser pane is hidden or resizing; they aren't from the app.
 - 16: the camera's `fov` stays at 28°; the shot sizes come from distance. Close and OTS shots start the subject at
   3.4 m and 1.9 m behind the partner; `camera.near` is 1, so a closer camera would clip the partner.
+- 17 (2026-11-08): the script's `terrain` carries `time_of_day` (sunrise, day, golden, dusk, **night**) and `weather`
+  (clear, rain, snow, fog, windy). The orchestrator's schema and prompt ask for both; `repair_plan()` then lets words
+  in the scene text win (`time_from_text`/`weather_from_text` in `movie.py`), so replays of old caches pick them up
+  with 0 calls: sunrise → sunrise, "at noon" → day, "at dusk" → dusk, "windy afternoon" → golden + windy. Light
+  presets are `LIGHT`/`WEATHER` in `world.js` (night = a cool moon plus a deep blue fill; rain/snow/fog dim the sun
+  and grey the fill); sky, stars, moon and fog distances are `palette()` in `fill.js`.
+- 17: `web/js/movie/atmosphere.js` adds, inside the set: lit window panes found by raycasting each building's walls
+  (one InstancedMesh plus an additive glow), lantern heads with halos, a campfire flame that always flickers, and at
+  most 4 point lights (fire, then lamps and windows nearest the middle), all at dusk (dimmer) and night. Rain (7,000
+  line streaks) and snow (5,000 points) are one draw call each, moved in the vertex shader inside a world-fixed box in
+  front of the camera. Wind sways the fill's grass and tree leaves (`addWind()`, a shared uniform). `main.js` calls
+  `tickAtmosphere()` per frame. Glows and particles are listed in `scene.userData.noNormal` and skipped by the
+  outline's normal pass in `look.js` (the override material drew them as solid shapes).
+- 17: checked by screenshots: all four cached scenes (sunrise long shadows, noon, dusk campfire with flicker light,
+  golden windy lighthouse), and the new "At night in the rain a lamplighter walks down the village street, lights a
+  lantern by the houses, and waves to a girl at her window." (2 hosted Nemotron calls, cached as
+  `at-night-in-the-rain-2bf73f851d.json`): moonlit street, 7 lit windows, 3 lamps, 4 point lights, rain. Timed GPU
+  renders in the hidden (throttled) pane: 8–14 ms per frame, the night-rain scene no slower than the market. WebM
+  export of the night film: 12.1 MB, 22 s, decodes (2048×1536). No console errors. Chat stays golden.
+- 17: the world agent's first try for the lamplighter generated a lone `girls-window` prop (in the library now, unused)
+  and no houses. `repair_world()` now maps a window/door/porch place to `wooden-cottage`, and a scene that names a
+  village or street with fewer than 2 buildings gets `house` ×2 and `lantern-post` ×2 in the decor; the world prompt says
+  so too. The decor houses land at the edge of the set, not along the path; a real street layout needs the set
+  designer idea from 14.
+- 17: windows are only as good as the raycast: on the thatched cottage a pane can sit under the eaves, and props
+  with no flat walls (the stilt hut's open legs) may get none. The tent is excluded. Market stalls, the lighthouse lamp
+  room and the fountain get no night glow. Snow and fog weather work in code but weren't checked with a scene.
