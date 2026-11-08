@@ -14,7 +14,7 @@ const _b = new THREE.Quaternion();
 const smooth = (x) => x * x * (3 - 2 * x);
 
 // Circular mean of the heading over frames [from, to).
-function meanHeading(clip, from, to) {
+export function meanHeading(clip, from, to) {
   let s = 0, c = 0;
   for (let f = Math.max(from, 0); f < Math.min(to, clip.frames); f++) {
     const h = clip.heading(f);
@@ -23,14 +23,16 @@ function meanHeading(clip, from, to) {
   return Math.atan2(s, c);
 }
 
-export function mergeClips(A, B, { blend = 0.3 } = {}) {
+// `heading` (radians, 0 = +Z) turns B to start facing that way instead of A's
+// end heading; the turn happens over the blend.
+export function mergeClips(A, B, { blend = 0.3, heading } = {}) {
   if (A.fps !== B.fps) throw new Error(`clips differ in fps (${A.fps} vs ${B.fps})`);
   const n = Math.max(1, Math.min(Math.round(blend * A.fps), A.frames - 1, B.frames - 1));
   const start = A.frames - n; // first overlap frame in A
 
   // Align B's frame 0 to A's frame `start`: same heading, same root x/z.
   const b = B.clone();
-  const turn = meanHeading(A, start, A.frames) - meanHeading(b, 0, n);
+  const turn = (heading ?? meanHeading(A, start, A.frames)) - meanHeading(b, 0, n);
   b.transform(turn, [b.hips[0], b.hips[2]], [A.hips[start * 3] - b.hips[0], A.hips[start * 3 + 2] - b.hips[2]]);
   const out = Clip.like(A, A.frames + B.frames - n, `${A.name} + ${B.name}`);
   for (let f = 0; f < start; f++) out.copyFrame(f, A, f);
