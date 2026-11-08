@@ -7,15 +7,20 @@ It also serves `web/` at `/`, so one process is enough for the whole app.
 Keys are read from `.env` into the environment and never sent to the browser.
 """
 
+import json
 import os
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from . import llm
+from .agents import AGENTS, run as run_agent
 from .chat import chat_reply
 from .tools.generate_prop import GenerateError, generate_prop
 
@@ -49,6 +54,7 @@ def health() -> dict:
         "ok": True,
         "service": "animo-world",
         "config": {
+            "llm": llm.info(),
             "nvidia_api_key": bool(os.getenv("NVIDIA_API_KEY")),
             "hf_token": bool(os.getenv("HF_TOKEN")),
             "motion_url": os.getenv("MOTION_URL", "http://localhost:8101"),
@@ -71,6 +77,37 @@ class ChatRequest(BaseModel):
 @app.post("/api/chat")
 def chat(req: ChatRequest) -> dict:
     return chat_reply([m.model_dump() for m in req.messages])
+
+
+# An agent run as server-sent events: one `data: {agent, kind, text, ms, data?}`
+# per step, then `event: done` with {steps, seconds, llm_calls, llm_seconds}.
+# EventSource can only GET, so the task is a query parameter. The generator is
+# sync, so Starlette runs each blocking step in the thread pool.
+@app.get("/api/agents/{name}/run")
+def agent_run(name: str, task: str = "") -> StreamingResponse:
+    agent = AGENTS.get(name)
+    if agent is None:
+        raise HTTPException(status_code=404, detail=f"no agent {name!r}; agents: {sorted(AGENTS)}")
+    if not task.strip():
+        from .agents.test_agent import DEFAULT_TASK
+        task = DEFAULT_TASK if name == "test" else ""
+    if not task.strip():
+        raise HTTPException(status_code=400, detail="task is empty")
+
+    def events():
+        t0, n = time.perf_counter(), 0
+        started = time.time()
+        yield f": {name} agent started\n\n"
+        for step in run_agent(agent, task):
+            n += 1
+            yield f"data: {json.dumps(step, ensure_ascii=False)}\n\n"
+        calls = [c for c in list(llm.CALLS) if c["at"] >= started]
+        summary = {"steps": n, "seconds": round(time.perf_counter() - t0, 2), "llm_calls": len(calls),
+                   "llm_seconds": [c["seconds"] for c in calls], "backend": llm.backend(), "model": llm.model()}
+        yield f"event: done\ndata: {json.dumps(summary)}\n\n"
+
+    return StreamingResponse(events(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 class PropRequest(BaseModel):

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Animo World · agents</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    html, body { overflow: auto; }
+    .agents-page { position: static; margin: 24px auto; max-width: 760px; flex-direction: column; align-items: stretch; }
+    .agents-page .row { display: flex; gap: 8px; align-items: center; }
+    .agents-page input[type=text] { flex: 1; font: 15px Georgia, serif; padding: 6px 8px; border-radius: 8px; border: 1.5px solid var(--ink); background: #fffaf0; color: var(--ink); }
+    .agents-page .agent-log { max-height: 60vh; }
+    .agents-page .agent-log .step { grid-template-columns: 76px 1fr; }
+    .agent.test { color: #2f8a7a; }
+    #summary { font-size: 12.5px; opacity: 0.8; }
+  </style>
+</head>
+<body>
+  <!-- Runs a server agent and shows its steps as they stream in (SSE).
+       ?agent=test (default) · ?task=... · ?run starts on load -->
+  <main class="card agents-page">
+    <div class="row">
+      <h1>Agents</h1>
+      <span id="llm" class="pill">…</span>
+    </div>
+    <div class="row">
+      <input id="task" type="text" spellcheck="false">
+      <button id="go" type="button" class="primary">Run</button>
+    </div>
+    <ol id="log" class="agent-log"></ol>
+    <div id="summary"></div>
+  </main>
+  <script type="module" src="js/agents-page.js"></script>
+</body>
+</html>

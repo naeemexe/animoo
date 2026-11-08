@@ -93,15 +93,17 @@ def info() -> dict:
 # ---- entry point -----------------------------------------------------------
 
 def complete(messages: list[dict], json_schema: dict | None = None, *, temperature: float = 0.4,
-             max_tokens: int = 1200, timeout: float = 90, retries: int = 2, tag: str = ""):
+             max_tokens: int = 1200, timeout: float = 90, retries: int = 2, tag: str = "",
+             shape: str | None = None):
     """One answer from Nemotron: text, or JSON when `json_schema` is given.
 
     With a schema, the schema is described to the model, the answer is
     repaired and checked, and a bad one is sent back with the problem
-    (`retries` times) before LLMError is raised."""
+    (`retries` times) before LLMError is raised. `shape` replaces the
+    schema's generated example when the prompt explains the shape itself."""
     messages = [dict(m) for m in messages]
     if json_schema is not None:
-        messages = _with_json_instruction(messages, json_schema)
+        messages = _with_json_instruction(messages, json_schema, shape)
     last_problem = None
     for attempt in range(retries + 1):
         text = _call(messages, temperature=temperature, max_tokens=max_tokens, timeout=timeout, tag=tag)
@@ -256,12 +258,13 @@ def sketch(schema: dict):
     return f"<{t or 'value'}{desc}>"
 
 
-def _with_json_instruction(messages, schema) -> list[dict]:
+def _with_json_instruction(messages, schema, shape=None) -> list[dict]:
     required = schema.get("required") or []
     note = ("Answer with one JSON object only: no prose before or after it, no markdown fences, no schema. "
-            "Fill in real values. Its shape (each <...> is a placeholder for a real value):\n"
-            f"{json.dumps(sketch(schema), indent=1)}"
-            + (f"\nRequired keys: {', '.join(required)}." if required else ""))
+            "Fill in real values. "
+            + (shape or ("Its shape (each <...> is a placeholder for a real value):\n"
+                         f"{json.dumps(sketch(schema), indent=1)}"
+                         + (f"\nRequired keys: {', '.join(required)}." if required else ""))))
     if messages and messages[0]["role"] == "system":
         return [{"role": "system", "content": f"{messages[0]['content']}\n\n{note}"}, *messages[1:]]
     return [{"role": "system", "content": note}, *messages]
