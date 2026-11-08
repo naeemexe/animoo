@@ -1,0 +1,559 @@
+{
+ "scene": "On a windy afternoon a girl runs to the old stone lighthouse by the lake, waves to her grandfather in his rowboat, and then sits on a bench to watch the water.",
+ "created": "2026-11-08T04:10:10+00:00",
+ "model": "nemotron",
+ "backend": "openai",
+ "llm_seconds": [
+  7.9,
+  4.07,
+  4.12
+ ],
+ "plan": {
+  "title": "Girl at the Lighthouse",
+  "thoughts": [
+   "A girl interacts with her grandfather at a lake lighthouse on a windy afternoon. The story involves movement to the lighthouse, a wave, and a moment of rest.",
+   "Key elements: wind, lake, lighthouse, rowboat, bench. The girl starts at the cottage, moves to the lighthouse, then to the bench.",
+   "The wind and lake setting influence the actions and pacing of the beats."
+  ],
+  "time_of_day": "golden",
+  "water": true,
+  "places": [
+   {
+    "key": "cottage",
+    "what": "a small cottage near the lake",
+    "use": "stand"
+   },
+   {
+    "key": "lighthouse",
+    "what": "an old stone lighthouse by the lake",
+    "use": "stand"
+   },
+   {
+    "key": "boat",
+    "what": "a rowboat in the lake",
+    "use": "water"
+   },
+   {
+    "key": "bench",
+    "what": "a wooden bench near the lighthouse",
+    "use": "sit"
+   }
+  ],
+  "cast": [
+   {
+    "id": "girl",
+    "name": "Girl",
+    "character": "avatar_female",
+    "kid": true,
+    "starts_at": "cottage"
+   },
+   {
+    "id": "grandpa",
+    "name": "Grandpa",
+    "character": "avatar_male",
+    "kid": false,
+    "starts_at": "boat"
+   }
+  ],
+  "beats": [
+   {
+    "id": "b1",
+    "cast": "girl",
+    "action": "runs to the lighthouse",
+    "prompt": "A person runs forward quickly against the wind.",
+    "duration": 7,
+    "move_to": "lighthouse"
+   },
+   {
+    "id": "b2",
+    "cast": "girl",
+    "action": "waves to grandpa",
+    "prompt": "A person waves hello with both hands.",
+    "duration": 3,
+    "face": "boat"
+   },
+   {
+    "id": "b3",
+    "cast": "grandpa",
+    "action": "rows toward the girl",
+    "prompt": "A person rows the boat forward steadily.",
+    "duration": 5,
+    "move_to": "girl"
+   },
+   {
+    "id": "b4",
+    "cast": "girl",
+    "action": "sits on the bench",
+    "prompt": "A person sits down on a bench and leans back.",
+    "duration": 4,
+    "move_to": "bench"
+   },
+   {
+    "id": "b5",
+    "cast": "girl",
+    "action": "watches the water",
+    "prompt": "A person looks at the water with relaxed posture.",
+    "duration": 6,
+    "face": "water"
+   }
+  ],
+  "shots": [
+   {
+    "framing": "wide",
+    "subject": [
+     "girl",
+     "boat"
+    ],
+    "until": "b2"
+   },
+   {
+    "framing": "medium",
+    "subject": "girl",
+    "until": "b4"
+   },
+   {
+    "framing": "close",
+    "subject": "girl",
+    "until": "b5"
+   }
+  ]
+ },
+ "world": {
+  "thoughts": [
+   "The cottage is a NO MATCH and needs generation as it's central to the scene.",
+   "The lighthouse is a NO MATCH and must be generated to match the story's key element.",
+   "The boat can use the rowboat from the library.",
+   "The bench is available in the library."
+  ],
+  "choices": [
+   {
+    "place": "cottage",
+    "generate": {
+     "name": "wooden cottage",
+     "prompt": "a small wooden cottage with a thatched roof near a lake",
+     "size_m": 3.0,
+     "category": "buildings"
+    }
+   },
+   {
+    "place": "lighthouse",
+    "generate": {
+     "name": "stone lighthouse",
+     "prompt": "an old stone lighthouse with a red roof by the lake",
+     "size_m": 5.0,
+     "category": "buildings"
+    }
+   },
+   {
+    "place": "boat",
+    "library": "rowboat"
+   },
+   {
+    "place": "bench",
+    "library": "bench"
+   }
+  ],
+  "decor": [
+   {
+    "library": "tree-oak",
+    "count": 3,
+    "near": "edge"
+   },
+   {
+    "library": "bush-small",
+    "count": 2,
+    "near": "cottage"
+   },
+   {
+    "library": "flower-yellow",
+    "count": 3,
+    "near": "lighthouse"
+   },
+   {
+    "library": "lily-pad",
+    "count": 2,
+    "near": "boat"
+   },
+   {
+    "library": "rock-small",
+    "count": 4,
+    "near": "lighthouse"
+   },
+   {
+    "library": "tree-round",
+    "count": 1,
+    "near": "bench"
+   }
+  ]
+ },
+ "script": {
+  "version": 1,
+  "title": "Girl at the Lighthouse",
+  "scene": "On a windy afternoon a girl runs to the old stone lighthouse by the lake, waves to her grandfather in his rowboat, and then sits on a bench to watch the water.",
+  "terrain": {
+   "time_of_day": "golden",
+   "water": [
+    {
+     "shape": "pond",
+     "center": [
+      7.5,
+      8.5
+     ],
+     "radius": 4.8
+    }
+   ],
+   "paths": [
+    {
+     "points": [
+      [
+       -10.17,
+       -7.17
+      ],
+      [
+       3.6,
+       4.08
+      ],
+      [
+       -4.01,
+       -1.31
+      ],
+      [
+       3.08,
+       3.29
+      ]
+     ],
+     "width": 1.4
+    }
+   ]
+  },
+  "props": [
+   {
+    "key": "cottage",
+    "library": "wooden-cottage",
+    "position": [
+     -8.72,
+     -8.61
+    ],
+    "rotation": -45.0,
+    "generate": {
+     "prompt": "a small wooden cottage with a thatched roof near a lake",
+     "size_m": 3.0,
+     "category": "buildings"
+    }
+   },
+   {
+    "key": "boat",
+    "library": "rowboat",
+    "position": [
+     5.71,
+     6.48
+    ],
+    "rotation": -49.0
+   },
+   {
+    "key": "lighthouse",
+    "library": "stone-lighthouse",
+    "position": [
+     -5.73,
+     0.84
+    ],
+    "rotation": 141.0,
+    "generate": {
+     "prompt": "an old stone lighthouse with a red roof by the lake",
+     "size_m": 5.0,
+     "category": "buildings"
+    }
+   },
+   {
+    "key": "bench",
+    "library": "bench",
+    "position": [
+     3.48,
+     2.48
+    ],
+    "rotation": 63.0
+   },
+   {
+    "key": "tree-oak-1",
+    "library": "tree-oak",
+    "position": [
+     6.67,
+     -13.09
+    ],
+    "rotation": -165
+   },
+   {
+    "key": "tree-oak-2",
+    "library": "tree-oak",
+    "position": [
+     11.34,
+     -6.19
+    ],
+    "rotation": -60
+   },
+   {
+    "key": "tree-oak-3",
+    "library": "tree-oak",
+    "position": [
+     1.63,
+     14.59
+    ],
+    "rotation": -165
+   },
+   {
+    "key": "bush-small-4",
+    "library": "bush-small",
+    "position": [
+     -7.06,
+     -12.75
+    ],
+    "rotation": -135
+   },
+   {
+    "key": "bush-small-5",
+    "library": "bush-small",
+    "position": [
+     -11.36,
+     -9.39
+    ],
+    "rotation": 105
+   },
+   {
+    "key": "flower-yellow-6",
+    "library": "flower-yellow",
+    "position": [
+     -9.07,
+     0.43
+    ],
+    "rotation": 45
+   },
+   {
+    "key": "flower-yellow-7",
+    "library": "flower-yellow",
+    "position": [
+     -8.05,
+     3.57
+    ],
+    "rotation": 45
+   },
+   {
+    "key": "flower-yellow-8",
+    "library": "flower-yellow",
+    "position": [
+     -2.71,
+     4.44
+    ],
+    "rotation": 60
+   },
+   {
+    "key": "lily-pad-9",
+    "library": "lily-pad",
+    "position": [
+     5.76,
+     1.7
+    ],
+    "rotation": 150
+   },
+   {
+    "key": "lily-pad-10",
+    "library": "lily-pad",
+    "position": [
+     2.01,
+     5.91
+    ],
+    "rotation": -45
+   },
+   {
+    "key": "rock-small-11",
+    "library": "rock-small",
+    "position": [
+     -3.19,
+     2.62
+    ],
+    "rotation": -30
+   },
+   {
+    "key": "rock-small-12",
+    "library": "rock-small",
+    "position": [
+     -3.85,
+     3.53
+    ],
+    "rotation": -150
+   },
+   {
+    "key": "rock-small-13",
+    "library": "rock-small",
+    "position": [
+     -8.7,
+     0.86
+    ],
+    "rotation": -150
+   },
+   {
+    "key": "rock-small-14",
+    "library": "rock-small",
+    "position": [
+     -6.61,
+     5.91
+    ],
+    "rotation": -15
+   },
+   {
+    "key": "tree-round-15",
+    "library": "tree-round",
+    "position": [
+     3.1,
+     -1.79
+    ],
+    "rotation": 105
+   }
+  ],
+  "cast": [
+   {
+    "id": "girl",
+    "name": "Girl",
+    "character": "avatar_female",
+    "start": {
+     "position": [
+      -9.95,
+      -7.38
+     ],
+     "facing": 44.0
+    },
+    "scale": 0.8
+   },
+   {
+    "id": "grandpa",
+    "name": "Grandpa",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      3.6,
+      4.08
+     ],
+     "facing": 41.0
+    }
+   }
+  ],
+  "beats": [
+   {
+    "id": "girl-1",
+    "cast": "girl",
+    "start": 0.0,
+    "duration": 5.0,
+    "prompt": "A person runs forward quickly against the wind.",
+    "action": "runs to the lighthouse",
+    "to": [
+     -4.2,
+     -1.08
+    ]
+   },
+   {
+    "id": "grandpa-1",
+    "cast": "grandpa",
+    "start": 0.0,
+    "duration": 6.4,
+    "prompt": "A person walks forward.",
+    "action": "rows toward the girl",
+    "to": [
+     -3.28,
+     -0.47
+    ]
+   },
+   {
+    "id": "girl-2",
+    "cast": "girl",
+    "start": 5.0,
+    "duration": 3.0,
+    "prompt": "A person waves hello with both hands.",
+    "action": "waves to grandpa",
+    "facing": "boat"
+   },
+   {
+    "id": "grandpa-2",
+    "cast": "grandpa",
+    "start": 6.4,
+    "duration": 5.0,
+    "prompt": "A person rows the boat forward steadily.",
+    "action": "rows toward the girl",
+    "facing": "girl"
+   },
+   {
+    "id": "girl-3",
+    "cast": "girl",
+    "start": 8.0,
+    "duration": 6.2,
+    "prompt": "A person walks forward.",
+    "action": "sits on the bench",
+    "to": [
+     3.14,
+     2.15
+    ]
+   },
+   {
+    "id": "grandpa-3",
+    "cast": "grandpa",
+    "start": 11.4,
+    "duration": 8.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits"
+   },
+   {
+    "id": "girl-4",
+    "cast": "girl",
+    "start": 14.2,
+    "duration": 4.0,
+    "prompt": "A person sits down on a bench and leans back.",
+    "action": "sits on the bench",
+    "facing": "bench"
+   },
+   {
+    "id": "girl-5",
+    "cast": "girl",
+    "start": 18.2,
+    "duration": 6.0,
+    "prompt": "A person looks at the water with relaxed posture.",
+    "action": "watches the water",
+    "facing": -27.0
+   },
+   {
+    "id": "grandpa-4",
+    "cast": "grandpa",
+    "start": 19.4,
+    "duration": 4.8,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits"
+   }
+  ],
+  "shots": [
+   {
+    "id": "s1",
+    "start": 0.0,
+    "duration": 8.0,
+    "framing": "wide",
+    "subject": [
+     "girl",
+     "boat"
+    ],
+    "angle": 35
+   },
+   {
+    "id": "s2",
+    "start": 8.0,
+    "duration": 10.2,
+    "framing": "medium",
+    "subject": "girl",
+    "angle": -25
+   },
+   {
+    "id": "s3",
+    "start": 18.2,
+    "duration": 6.0,
+    "framing": "close",
+    "subject": "girl",
+    "angle": 55
+   }
+  ]
+ }
+}

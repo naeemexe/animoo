@@ -1,0 +1,24 @@
+{
+ "id": "wooden-cottage",
+ "name": "wooden-cottage",
+ "prompt": "a small wooden cottage with a thatched roof near a lake",
+ "sent_prompt": "a small wooden cottage with a thatched roof near a lake, solid chunky shapes, thick sturdy parts",
+ "seed": 0,
+ "image_key": "436e0ffd980ce788",
+ "size_m": 3.0,
+ "normalize": {
+  "normalized": true,
+  "trimmed": true,
+  "cut_fraction": 0.17,
+  "triangles_removed": 4906,
+  "size": [
+   4.58,
+   3.0,
+   4.74
+  ],
+  "vertices": 62368,
+  "triangles": 51593
+ },
+ "pod_seconds": 51.1,
+ "created": "2026-11-08T04:11:02+00:00"
+}

@@ -1,0 +1,463 @@
+{
+ "scene": "At dusk two friends sit by a campfire next to their tent. One tells a story with big arm gestures, the other laughs, then they both stand up and dance around the fire.",
+ "created": "2026-11-08T04:06:04+00:00",
+ "model": "nemotron",
+ "backend": "openai",
+ "llm_seconds": [
+  7.42,
+  2.86
+ ],
+ "plan": {
+  "title": "Campfire Stories",
+  "thoughts": [
+   "Two friends sharing a story and dancing at dusk. The campfire and tent are central locations.",
+   "The scene starts with sitting by the fire, then moves to standing and dancing.",
+   "Beats should capture storytelling, laughter, and the transition to dancing."
+  ],
+  "time_of_day": "dusk",
+  "water": false,
+  "places": [
+   {
+    "key": "campfire",
+    "what": "a crackling campfire",
+    "use": "stand"
+   },
+   {
+    "key": "tent",
+    "what": "a small camping tent",
+    "use": "stand"
+   }
+  ],
+  "cast": [
+   {
+    "id": "friend1",
+    "name": "Friend 1",
+    "character": "avatar_male",
+    "kid": false,
+    "starts_at": "campfire"
+   },
+   {
+    "id": "friend2",
+    "name": "Friend 2",
+    "character": "avatar_female",
+    "kid": false,
+    "starts_at": "campfire"
+   }
+  ],
+  "beats": [
+   {
+    "id": "b1",
+    "cast": "friend1",
+    "action": "tells a story with gestures",
+    "prompt": "A person gestures widely while speaking.",
+    "duration": 8,
+    "face": "campfire"
+   },
+   {
+    "id": "b2",
+    "cast": "friend2",
+    "action": "laughs",
+    "prompt": "A person laughs heartily.",
+    "duration": 4,
+    "face": "friend1"
+   },
+   {
+    "id": "b3",
+    "cast": "friend1",
+    "action": "stands up",
+    "prompt": "A person stands up from sitting.",
+    "duration": 3,
+    "move_to": "campfire"
+   },
+   {
+    "id": "b4",
+    "cast": "friend2",
+    "action": "stands up",
+    "prompt": "A person stands up from sitting.",
+    "duration": 3,
+    "move_to": "campfire",
+    "with": "b3"
+   },
+   {
+    "id": "b5",
+    "cast": "friend1",
+    "action": "dances around the fire",
+    "prompt": "A person dances joyfully with both arms.",
+    "duration": 6,
+    "face": "campfire"
+   },
+   {
+    "id": "b6",
+    "cast": "friend2",
+    "action": "dances around the fire",
+    "prompt": "A person dances joyfully with both arms.",
+    "duration": 6,
+    "face": "friend1",
+    "after": "b5"
+   }
+  ],
+  "shots": [
+   {
+    "framing": "wide",
+    "subject": [
+     "friend1",
+     "friend2",
+     "campfire"
+    ],
+    "until": "b2"
+   },
+   {
+    "framing": "medium",
+    "subject": [
+     "friend1",
+     "friend2"
+    ],
+    "until": "b5"
+   },
+   {
+    "framing": "close",
+    "subject": "campfire",
+    "until": "b6"
+   }
+  ]
+ },
+ "world": {
+  "thoughts": [
+   "The campfire and tent are in the library; the scene is a cozy dusk camp.",
+   "A camp setting with fire, shelter, and natural elements around."
+  ],
+  "choices": [
+   {
+    "place": "campfire",
+    "library": "campfire"
+   },
+   {
+    "place": "tent",
+    "library": "tent"
+   }
+  ],
+  "decor": [
+   {
+    "library": "tree-oak",
+    "count": 3,
+    "near": "campfire"
+   },
+   {
+    "library": "bush-large",
+    "count": 2,
+    "near": "tent"
+   },
+   {
+    "library": "flower-red",
+    "count": 3,
+    "near": "campfire"
+   },
+   {
+    "library": "rock-small",
+    "count": 4,
+    "near": "edge"
+   },
+   {
+    "library": "stump",
+    "count": 2,
+    "near": "tent"
+   },
+   {
+    "library": "lily-pad",
+    "count": 1,
+    "near": "campfire"
+   }
+  ]
+ },
+ "script": {
+  "version": 1,
+  "title": "Campfire Stories",
+  "scene": "At dusk two friends sit by a campfire next to their tent. One tells a story with big arm gestures, the other laughs, then they both stand up and dance around the fire.",
+  "terrain": {
+   "time_of_day": "dusk",
+   "paths": [
+    {
+     "points": [
+      [
+       -3.53,
+       -1.18
+      ],
+      [
+       4.36,
+       -0.93
+      ]
+     ],
+     "width": 1.4
+    }
+   ]
+  },
+  "props": [
+   {
+    "key": "campfire",
+    "library": "campfire",
+    "position": [
+     -3.03,
+     -2.7
+    ],
+    "rotation": -18.0
+   },
+   {
+    "key": "tent",
+    "library": "tent",
+    "position": [
+     5.57,
+     1.5
+    ],
+    "rotation": -153.0
+   },
+   {
+    "key": "tree-oak-1",
+    "library": "tree-oak",
+    "position": [
+     -0.75,
+     -4.16
+    ],
+    "rotation": -105
+   },
+   {
+    "key": "tree-oak-2",
+    "library": "tree-oak",
+    "position": [
+     -5.81,
+     -3.21
+    ],
+    "rotation": 0
+   },
+   {
+    "key": "tree-oak-3",
+    "library": "tree-oak",
+    "position": [
+     -4.15,
+     -6.08
+    ],
+    "rotation": -75
+   },
+   {
+    "key": "bush-large-4",
+    "library": "bush-large",
+    "position": [
+     2.22,
+     3.29
+    ],
+    "rotation": -120
+   },
+   {
+    "key": "bush-large-5",
+    "library": "bush-large",
+    "position": [
+     2.53,
+     1.48
+    ],
+    "rotation": -165
+   },
+   {
+    "key": "flower-red-6",
+    "library": "flower-red",
+    "position": [
+     -3.45,
+     1.04
+    ],
+    "rotation": 165
+   },
+   {
+    "key": "flower-red-7",
+    "library": "flower-red",
+    "position": [
+     -3.84,
+     0.56
+    ],
+    "rotation": 30
+   },
+   {
+    "key": "flower-red-8",
+    "library": "flower-red",
+    "position": [
+     -4.55,
+     -4.39
+    ],
+    "rotation": -150
+   },
+   {
+    "key": "rock-small-9",
+    "library": "rock-small",
+    "position": [
+     -10.27,
+     10.4
+    ],
+    "rotation": -60
+   },
+   {
+    "key": "rock-small-10",
+    "library": "rock-small",
+    "position": [
+     -5.27,
+     12.46
+    ],
+    "rotation": -180
+   },
+   {
+    "key": "rock-small-11",
+    "library": "rock-small",
+    "position": [
+     -7.45,
+     -9.53
+    ],
+    "rotation": -180
+   },
+   {
+    "key": "rock-small-12",
+    "library": "rock-small",
+    "position": [
+     0.83,
+     13.4
+    ],
+    "rotation": -165
+   },
+   {
+    "key": "stump-13",
+    "library": "stump",
+    "position": [
+     9.74,
+     -0.63
+    ],
+    "rotation": 90
+   },
+   {
+    "key": "stump-14",
+    "library": "stump",
+    "position": [
+     5.82,
+     -2.35
+    ],
+    "rotation": -165
+   }
+  ],
+  "cast": [
+   {
+    "id": "friend1",
+    "name": "Friend 1",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      -3.44,
+      -1.46
+     ],
+     "facing": 162.0
+    }
+   },
+   {
+    "id": "friend2",
+    "name": "Friend 2",
+    "character": "avatar_female",
+    "start": {
+     "position": [
+      -2.35,
+      -1.59
+     ],
+     "facing": -148.0
+    }
+   }
+  ],
+  "beats": [
+   {
+    "id": "friend1-1",
+    "cast": "friend1",
+    "start": 0.0,
+    "duration": 8.0,
+    "prompt": "A person gestures widely while speaking.",
+    "action": "tells a story with gestures",
+    "facing": "campfire"
+   },
+   {
+    "id": "friend2-1",
+    "cast": "friend2",
+    "start": 0.0,
+    "duration": 8.0,
+    "prompt": "A person laughs heartily.",
+    "action": "laughs",
+    "facing": "friend1"
+   },
+   {
+    "id": "friend1-2",
+    "cast": "friend1",
+    "start": 8.0,
+    "duration": 3.0,
+    "prompt": "A person stands up from sitting.",
+    "action": "stands up"
+   },
+   {
+    "id": "friend2-2",
+    "cast": "friend2",
+    "start": 8.0,
+    "duration": 9.0,
+    "prompt": "A person stands up from sitting.",
+    "action": "stands up"
+   },
+   {
+    "id": "friend1-3",
+    "cast": "friend1",
+    "start": 11.0,
+    "duration": 6.0,
+    "prompt": "A person dances joyfully with both arms.",
+    "action": "dances around the fire",
+    "facing": "campfire"
+   },
+   {
+    "id": "friend1-4",
+    "cast": "friend1",
+    "start": 17.0,
+    "duration": 6.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits"
+   },
+   {
+    "id": "friend2-3",
+    "cast": "friend2",
+    "start": 17.0,
+    "duration": 6.0,
+    "prompt": "A person dances joyfully with both arms.",
+    "action": "dances around the fire",
+    "facing": "friend1",
+    "seed": 1
+   }
+  ],
+  "shots": [
+   {
+    "id": "s1",
+    "start": 0.0,
+    "duration": 4.0,
+    "framing": "wide",
+    "subject": [
+     "friend1",
+     "friend2",
+     "campfire"
+    ],
+    "angle": 35
+   },
+   {
+    "id": "s2",
+    "start": 4.0,
+    "duration": 13.0,
+    "framing": "medium",
+    "subject": [
+     "friend1",
+     "friend2"
+    ],
+    "angle": -25
+   },
+   {
+    "id": "s3",
+    "start": 17.0,
+    "duration": 6.0,
+    "framing": "close",
+    "subject": "campfire",
+    "angle": 55
+   }
+  ]
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "id": "stone-lighthouse",
+ "name": "stone-lighthouse",
+ "prompt": "an old stone lighthouse with a red roof by the lake",
+ "sent_prompt": "an old stone lighthouse with a red roof by the lake, solid chunky shapes, thick sturdy parts",
+ "seed": 0,
+ "image_key": "f4897466c95fdb60",
+ "size_m": 5.0,
+ "normalize": {
+  "normalized": true,
+  "trimmed": false,
+  "size": [
+   3.53,
+   5.0,
+   4.09
+  ],
+  "vertices": 54783,
+  "triangles": 58365
+ },
+ "pod_seconds": 24.4,
+ "created": "2026-11-08T04:11:28+00:00"
+}

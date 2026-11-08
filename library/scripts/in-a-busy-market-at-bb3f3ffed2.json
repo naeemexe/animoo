@@ -1,0 +1,476 @@
+{
+ "scene": "In a busy market at noon, a thief grabs an apple from a fruit stall and runs off. The stall keeper shouts and chases him past the fountain, until the thief trips by the cart and gives the apple back.",
+ "created": "2026-11-08T04:03:39+00:00",
+ "model": "nemotron",
+ "backend": "openai",
+ "llm_seconds": [
+  6.87,
+  3.17
+ ],
+ "plan": {
+  "title": "Thief in the Market",
+  "thoughts": [
+   "A thief steals an apple and flees, chased by the stall keeper through a market scene, ending with a comedic trip.",
+   "Key elements: market stalls, fountain, cart, and the interaction between thief and keeper.",
+   "The sequence splits into theft, chase, and resolution via the cart."
+  ],
+  "time_of_day": "day",
+  "water": true,
+  "places": [
+   {
+    "key": "market_stall",
+    "what": "fruit stall",
+    "use": "stand"
+   },
+   {
+    "key": "fountain",
+    "what": "central fountain",
+    "use": "stand"
+   },
+   {
+    "key": "cart",
+    "what": "wagon cart",
+    "use": "stand"
+   }
+  ],
+  "cast": [
+   {
+    "id": "thief",
+    "name": "Thief",
+    "character": "avatar_male",
+    "kid": false,
+    "starts_at": "market_stall"
+   },
+   {
+    "id": "keeper",
+    "name": "Stall Keeper",
+    "character": "avatar_male",
+    "kid": false,
+    "starts_at": "market_stall"
+   }
+  ],
+  "beats": [
+   {
+    "id": "b1",
+    "cast": "thief",
+    "action": "grabs apple and runs",
+    "prompt": "A person dashes forward while holding an apple.",
+    "duration": 4,
+    "move_to": "fountain"
+   },
+   {
+    "id": "b2",
+    "cast": "keeper",
+    "action": "shouts and chases",
+    "prompt": "A person runs forward shouting.",
+    "duration": 5,
+    "move_to": "fountain"
+   },
+   {
+    "id": "b3",
+    "cast": "thief",
+    "action": "trips by cart",
+    "prompt": "A person stumbles and falls near a cart.",
+    "duration": 3,
+    "face": "cart"
+   },
+   {
+    "id": "b4",
+    "cast": "keeper",
+    "action": "reaches for apple",
+    "prompt": "A person reaches forward to grab the apple.",
+    "duration": 2,
+    "face": "thief"
+   },
+   {
+    "id": "b5",
+    "cast": "thief",
+    "action": "gives apple back",
+    "prompt": "A person hands over the apple and runs away.",
+    "duration": 3,
+    "after": "b4"
+   }
+  ],
+  "shots": [
+   {
+    "framing": "wide",
+    "subject": [
+     "thief",
+     "keeper"
+    ],
+    "until": "b2"
+   },
+   {
+    "framing": "medium",
+    "subject": "thief",
+    "until": "b3"
+   },
+   {
+    "framing": "close",
+    "subject": "thief",
+    "until": "b5"
+   }
+  ]
+ },
+ "world": {
+  "thoughts": [
+   "The market-stall, fountain, and cart are all in the library. The scene is a busy market with a thief and a chase.",
+   "A dynamic market scene: fruit stalls, a central fountain, and a wagon cart.",
+   "The thief's action and the chase require clear placement of the market-stall, fountain, and cart."
+  ],
+  "choices": [
+   {
+    "place": "market-stall",
+    "library": "market-stall"
+   },
+   {
+    "place": "fountain",
+    "library": "fountain"
+   },
+   {
+    "place": "cart",
+    "library": "cart"
+   }
+  ],
+  "decor": [
+   {
+    "library": "tree-oak",
+    "count": 5,
+    "near": "market-stall"
+   },
+   {
+    "library": "bush-large",
+    "count": 4,
+    "near": "fountain"
+   },
+   {
+    "library": "flower-yellow",
+    "count": 6,
+    "near": "cart"
+   },
+   {
+    "library": "lamp-post",
+    "count": 3,
+    "near": "market-stall"
+   },
+   {
+    "library": "crates",
+    "count": 2,
+    "near": "fountain"
+   },
+   {
+    "library": "barrel",
+    "count": 2,
+    "near": "cart"
+   }
+  ]
+ },
+ "script": {
+  "version": 1,
+  "title": "Thief in the Market",
+  "scene": "In a busy market at noon, a thief grabs an apple from a fruit stall and runs off. The stall keeper shouts and chases him past the fountain, until the thief trips by the cart and gives the apple back.",
+  "terrain": {
+   "time_of_day": "day",
+   "paths": [
+    {
+     "points": [
+      [
+       -7.19,
+       -3.29
+      ],
+      [
+       0.5,
+       0.17
+      ],
+      [
+       7.89,
+       -3.12
+      ]
+     ],
+     "width": 1.4
+    }
+   ]
+  },
+  "props": [
+   {
+    "key": "market-stall",
+    "library": "market-stall",
+    "position": [
+     -6.05,
+     -5.0
+    ],
+    "rotation": -34.0
+   },
+   {
+    "key": "fountain",
+    "library": "fountain",
+    "position": [
+     -0.29,
+     2.54
+    ],
+    "rotation": 162.0
+   },
+   {
+    "key": "cart",
+    "library": "cart",
+    "position": [
+     6.11,
+     -4.24
+    ],
+    "rotation": 58.0
+   },
+   {
+    "key": "tree-oak-1",
+    "library": "tree-oak",
+    "position": [
+     -3.81,
+     -7.1
+    ],
+    "rotation": 45
+   },
+   {
+    "key": "tree-oak-2",
+    "library": "tree-oak",
+    "position": [
+     -9.76,
+     -4.81
+    ],
+    "rotation": 75
+   },
+   {
+    "key": "tree-oak-3",
+    "library": "tree-oak",
+    "position": [
+     -7.61,
+     -8.96
+    ],
+    "rotation": 120
+   },
+   {
+    "key": "tree-oak-4",
+    "library": "tree-oak",
+    "position": [
+     -1.72,
+     -4.17
+    ],
+    "rotation": -15
+   },
+   {
+    "key": "bush-large-5",
+    "library": "bush-large",
+    "position": [
+     -3.71,
+     0.81
+    ],
+    "rotation": 165
+   },
+   {
+    "key": "bush-large-6",
+    "library": "bush-large",
+    "position": [
+     1.97,
+     5.94
+    ],
+    "rotation": -75
+   },
+   {
+    "key": "bush-large-7",
+    "library": "bush-large",
+    "position": [
+     -2.11,
+     7.0
+    ],
+    "rotation": -90
+   },
+   {
+    "key": "bush-large-8",
+    "library": "bush-large",
+    "position": [
+     3.27,
+     1.96
+    ],
+    "rotation": -150
+   },
+   {
+    "key": "flower-yellow-9",
+    "library": "flower-yellow",
+    "position": [
+     10.28,
+     -4.53
+    ],
+    "rotation": 0
+   },
+   {
+    "key": "flower-yellow-10",
+    "library": "flower-yellow",
+    "position": [
+     10.4,
+     -3.3
+    ],
+    "rotation": 135
+   },
+   {
+    "key": "flower-yellow-11",
+    "library": "flower-yellow",
+    "position": [
+     4.41,
+     -8.0
+    ],
+    "rotation": -15
+   },
+   {
+    "key": "flower-yellow-12",
+    "library": "flower-yellow",
+    "position": [
+     7.76,
+     -8.27
+    ],
+    "rotation": -150
+   },
+   {
+    "key": "flower-yellow-13",
+    "library": "flower-yellow",
+    "position": [
+     9.05,
+     -5.32
+    ],
+    "rotation": -60
+   },
+   {
+    "key": "flower-yellow-14",
+    "library": "flower-yellow",
+    "position": [
+     3.5,
+     -5.58
+    ],
+    "rotation": -180
+   },
+   {
+    "key": "barrel-15",
+    "library": "barrel",
+    "position": [
+     9.87,
+     -6.76
+    ],
+    "rotation": 135
+   },
+   {
+    "key": "barrel-16",
+    "library": "barrel",
+    "position": [
+     7.49,
+     -7.58
+    ],
+    "rotation": 90
+   }
+  ],
+  "cast": [
+   {
+    "id": "thief",
+    "name": "Thief",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      -5.56,
+      -3.32
+     ],
+     "facing": 60.0
+    }
+   },
+   {
+    "id": "keeper",
+    "name": "Stall Keeper",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      -7.02,
+      -3.54
+     ],
+     "facing": 64.0
+    }
+   }
+  ],
+  "beats": [
+   {
+    "id": "keeper1",
+    "cast": "keeper",
+    "start": 0.0,
+    "duration": 4.2,
+    "prompt": "A person runs forward shouting.",
+    "action": "shouts and chases",
+    "to": [
+     -1.44,
+     0.66
+    ]
+   },
+   {
+    "id": "thief1",
+    "cast": "thief",
+    "start": 0.0,
+    "duration": 4.1,
+    "prompt": "A person dashes forward while holding an apple.",
+    "action": "grabs apple and runs",
+    "to": [
+     0.4,
+     0.45
+    ]
+   },
+   {
+    "id": "thief2",
+    "cast": "thief",
+    "start": 4.1,
+    "duration": 3.0,
+    "prompt": "A person stumbles and falls near a cart.",
+    "action": "trips by cart",
+    "facing": "cart"
+   },
+   {
+    "id": "keeper2",
+    "cast": "keeper",
+    "start": 4.2,
+    "duration": 5.9,
+    "prompt": "A person reaches forward to grab the apple.",
+    "action": "reaches for apple",
+    "facing": "thief"
+   },
+   {
+    "id": "thief3",
+    "cast": "thief",
+    "start": 7.1,
+    "duration": 3.0,
+    "prompt": "A person hands over the apple and runs away.",
+    "action": "gives apple back",
+    "facing": "fountain"
+   }
+  ],
+  "shots": [
+   {
+    "id": "s1",
+    "start": 0.0,
+    "duration": 4.2,
+    "framing": "wide",
+    "subject": [
+     "thief",
+     "keeper"
+    ],
+    "angle": 35
+   },
+   {
+    "id": "s2",
+    "start": 4.2,
+    "duration": 2.9,
+    "framing": "medium",
+    "subject": "thief",
+    "angle": -25
+   },
+   {
+    "id": "s3",
+    "start": 7.1,
+    "duration": 3.0,
+    "framing": "close",
+    "subject": "thief",
+    "angle": 55
+   }
+  ]
+ }
+}

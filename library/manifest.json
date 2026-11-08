@@ -978,6 +978,52 @@
    "source": "generated",
    "prompt": "a small wooden fishing boat",
    "thumbnail": "props/generated/fishing-boat.png"
+  },
+  {
+   "id": "wooden-cottage",
+   "file": "props/generated/wooden-cottage.glb",
+   "category": "buildings",
+   "size": [
+    4.58,
+    3.0,
+    4.74
+   ],
+   "tags": [
+    "cottage",
+    "generated",
+    "lake",
+    "near",
+    "roof",
+    "thatched",
+    "wooden"
+   ],
+   "license": "generated: concept image by NVIDIA SANA-Sprint 1.6B (Apache-2.0; its text encoder Gemma-2-2B-IT is under the Gemma Terms of Use), image to 3D by Microsoft TRELLIS.2-4B (MIT) with BiRefNet background removal (MIT)",
+   "source": "generated",
+   "prompt": "a small wooden cottage with a thatched roof near a lake",
+   "thumbnail": "props/generated/wooden-cottage.png"
+  },
+  {
+   "id": "stone-lighthouse",
+   "file": "props/generated/stone-lighthouse.glb",
+   "category": "buildings",
+   "size": [
+    3.53,
+    5.0,
+    4.09
+   ],
+   "tags": [
+    "generated",
+    "lake",
+    "lighthouse",
+    "old",
+    "red",
+    "roof",
+    "stone"
+   ],
+   "license": "generated: concept image by NVIDIA SANA-Sprint 1.6B (Apache-2.0; its text encoder Gemma-2-2B-IT is under the Gemma Terms of Use), image to 3D by Microsoft TRELLIS.2-4B (MIT) with BiRefNet background removal (MIT)",
+   "source": "generated",
+   "prompt": "an old stone lighthouse with a red roof by the lake",
+   "thumbnail": "props/generated/stone-lighthouse.png"
   }
  ]
 }
