@@ -49,7 +49,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 31 | A | Physical rules: nothing passes through anything (characters avoid each other too), paths re-plan after edits, beats follow moved props | 2 h | done | 22, 18 |
 | 32 | A | Scene audio: the orchestrator plans ambience + a soft music bed from place, weather, time and mood (or the user's words); ElevenLabs sound effects/music when a key is set, procedural WebAudio otherwise; cached; in the WebM export | 2 h | done (procedural; ElevenLabs coded, off until `ELEVENLABS_API_KEY` is set) | 08 |
 | 12b | A | Re-record the 5 demo takes after round 3 (with audio), update `demo/SUBMISSION.md` | 0.5 h | done | 28–32 |
-| 33 | A | Motion polish: walking legs don't look broken (knees bend the right way, no pops), and each clip starts from where and how the previous one ended | 1.5 h | doing | 22 |
+| 33 | A | Motion polish: walking legs don't look broken (knees bend the right way, no pops), and each clip starts from where and how the previous one ended | 1.5 h | done | 22 |
 | 37 | A | Look round 4: small simple white flowers with no black outlines; a good sea backdrop | 1 h | done | 24, 28 |
 | 34 | A | Natural beat planning: no pointless sit → stand → sit cycles, nobody stands up for no reason, greetings fit who is seated; re-cache the demo scenes | 1.5 h | todo | 22, 33 |
 | 35 | A | Character skins: outfits, hair and body build (slim to heavy) layered on the same rigged figure, like game skins, so animation never breaks | 1.5 h | todo | 27 |
@@ -824,3 +824,25 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
   bluer sea sky. Lily pads from the lighthouse scene's decor sit on the grass outside the pond. Layouts shift a
   little in the park, forest and beach (scatter RNG order changed), so 12c re-records anyway. The Chat page's
   hand-placed `flower-red/yellow` props (`web/js/chat/set.js`) are unchanged.
+- 33: done. Cause of the "breaking" legs, measured per frame on avatar_male (knee bend signed by the hips' forward axis):
+  Kimodo plants its feet with the leg nearly straight, and its ankle targets land at 100–103 % of the VRM leg's reach
+  (FK foot 0.1–0.2 m from the target in a run). The IK clamped those legs straight (56–60 straight frames over
+  walk + run + crouch_walk vs 1–6 without IK), and on a straight leg the pole (the knee's offset from the
+  hip→target line) was noise, so the knee flipped backward (down to −22°, 57°/frame jumps; −49° and 103°/frame at
+  the park boy's stand-up → walk join). Fix in `player.js`: the hips drop (≤ 5 cm) so both targets sit within
+  99.8 % of reach, soft reach past 99.5 %, the pole is the knee's offset from the *animation's own* hip→ankle line
+  plus a small forward pull, and the IK target is eased in over 6 frames around each plant (a swinging foot follows
+  the animation). After: 0 backward frames and 0 straight-snapped frames on walk/run/crouch_walk, on `warpToPath`
+  curves at stride ×0.73/1.04/1.19, and on both park characters; planted feet within 1–4 mm of their targets.
+  Clip joins (`merge.js`): a big turn in a join was slerped between bodies facing apart, and world rotations of
+  hands/fingers flip the short arc mid-blend (104°/frame in the friend's shoulders at a 170° turn, 71–98°/frame in
+  the fingers at both wave joins). Now the turn ramps in over the blend, the crossfade is in parent-relative
+  rotations, the next clip starts at its best pose-matched frame within 0.4 s (1.0 s when chaining walks; never on
+  a path walk, its start is on the path), blends are 0.5 s (was 0.3) plus 1 s × turn/180°. Park joins now peak at
+  13–22°/frame, the same as normal finger motion (p95 12–17). Walks on any path, not only drawn ones, are chained
+  once stretched past ×1.15 (was ×1.3, drawn only), since past that the legs can't reach. Checked numerically in
+  the browser plus screenshots (park at 7.6 s, run on the characters page); console clean except the dead :8101
+  GPU health check.
+- 33: not fixed: the park boy's "walks around the bench" walk is 9.1 m straight at stride ×0.62 over 18 s
+  (walk_long picked, `pickVariant`), slow-motion looking; task 34's re-plan should look at walk timing. Remaining
+  hip-height pops at a walk → crouch join (vertical, ~0.3 m in 0.5 s) are the clips' own height change.
