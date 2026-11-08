@@ -21,12 +21,16 @@ const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 // subject; none in wide shots); size: shot size for the jump-cut rule; off: the
 // camera's angle off the subject's facing (degrees, to the chosen side).
 export const TYPES = {
-  wide: { dist: 22, h: 9, look: 0.8, blur: 0, size: 0, off: 35 },
+  // Wide shots stay low (about 14 degrees down), like a game's follow camera pulled back,
+  // not a map view from above.
+  wide: { dist: 18, h: 4.5, look: 0.9, blur: 0, size: 0, off: 35 },
   medium: { dist: 7.5, h: 2.4, look: 1.05, blur: 3.5, size: 1, off: 30 },
   close: { dist: 3.4, h: 1.65, look: 1.4, blur: 6, size: 2, off: 22 },
   side: { dist: 7, h: 1.3, look: 1.0, blur: 3.5, size: 1, off: 90 },
   low: { dist: 5.2, h: 0.4, look: 1.35, blur: 4.5, size: 1.5, off: 28 },
   ots: { dist: 1.9, h: 1.75, look: 1.35, blur: 6.5, size: 2, off: 0 },
+  // Leading a walker: ahead of them at eye level, looking back at their face, moving with them.
+  front: { dist: 5.2, h: 1.7, look: 1.15, blur: 3.5, size: 1, off: 14 },
 };
 // Indoors (task 25) the camera works like a set camera in a real room: eye
 // level, horizontal moves (dolly in, pull out, truck sideways), two-shots from
@@ -226,8 +230,8 @@ export class DirectorCamera {
       case 'dolly': dist *= 1.22 - 0.3 * u; break; // push in
       case 'pull': dist *= 0.9 + 0.3 * u; break; // pull out
       case 'orbit': az += (shot.orbit ?? 18) * RAD * (u - 0.5) * 2; break;
-      case 'crane': h = h * (1.9 - 0.9 * u) + 2 * (1 - u); break; // crane down
-      case 'rise': h = h * (1 + 0.8 * u) + 2 * u; dist *= 1 + 0.25 * u; break; // crane up and out
+      case 'crane': h = h * (1.35 - 0.35 * u) + 0.8 * (1 - u); break; // a gentle crane down
+      case 'rise': h = h * (1 + 0.3 * u) + 0.8 * u; dist *= 1 + 0.2 * u; break; // up and out, a little
     }
     const flat = Math.sqrt(Math.max(dist * dist - (h - look.y) ** 2, dist * dist * 0.25));
     const pos = new THREE.Vector3(s.x + Math.sin(az) * flat, h, s.z + Math.cos(az) * flat);
@@ -426,7 +430,9 @@ export class DirectorCamera {
         if (near.length) subject = [subject[0], ...near];
       }
       const first = i === 0, closing = i === segs.length - 1 && segs.length > 2 && split;
-      if (first || closing) subject = all;
+      const walkers = acting.filter((b) => b.kind === 'walk' || b.kind === 'run').map((b) => b.cast);
+      if (first && walkers.length && (k === 'walk' || k === 'run')) subject = walkers; // opening on a walk: frame the walkers
+      else if (first || closing) subject = all;
       // Partner for an over-the-shoulder: another visible character nearby.
       let partner = null;
       if (subject.length === 1) {
@@ -452,10 +458,11 @@ export class DirectorCamera {
         else if (k === 'gesture') prefs = partner ? [['ots', 'dolly'], ['behind', 'static'], ['close', 'dolly'], ['side', 'static']] : [['close', 'dolly'], ['medium', 'static'], ['side', 'truck']];
         else if (k === 'sit') prefs = [['side', 'truck'], ['ots', 'static'], ['behind', 'static'], ['medium', 'dolly']];
         else prefs = [['medium', 'dolly'], ['side', 'static'], ['close', 'static']];
-      } else if (first) prefs = [['wide', 'crane']];
+      } else if (first) prefs = k === 'walk' || k === 'run' ? [['front', 'static'], ['side', 'static'], ['wide', 'crane']] : [['wide', 'crane']]; // opening on a walk: lead it
       else if (closing) prefs = [['wide', 'rise']];
-      else if (k === 'run') prefs = [['low', 'static'], ['side', 'static'], ['medium', 'pull']];
-      else if (k === 'walk') prefs = [['side', 'static'], ['medium', 'pull'], ['low', 'static']];
+      // Moving: lead them from the front, then track alongside on the next cut (split rotates).
+      else if (k === 'run') prefs = [['front', 'static'], ['side', 'static'], ['low', 'static'], ['medium', 'pull']];
+      else if (k === 'walk') prefs = [['front', 'static'], ['side', 'static'], ['medium', 'pull'], ['low', 'static']];
       else if (k === 'dance') prefs = [['low', 'orbit'], ['medium', 'orbit'], ['close', 'static']];
       else if (k === 'gesture') prefs = partner ? [['ots', 'dolly'], ['close', 'dolly'], ['medium', 'static']] : [['close', 'dolly'], ['medium', 'static'], ['low', 'static']];
       else if (k === 'sit') prefs = [['medium', 'orbit'], ['close', 'static'], ['side', 'static']];
@@ -466,7 +473,7 @@ export class DirectorCamera {
         prefs.push(['medium', 'static'], ['side', 'static'], ['wide', 'static']);
       } else {
         if (subject.length > 1) prefs = prefs.filter(([t]) => t !== 'ots').map(([t, m]) => [t === 'close' ? 'medium' : t, m]).concat([['medium', 'orbit'], ['wide', 'static']]);
-        prefs.push(['medium', 'static'], ['wide', 'static']);
+        prefs.push(['medium', 'static'], ['side', 'static'], ['wide', 'static']);
       }
 
       // The subject's facing (or travel direction while it moves).
@@ -484,6 +491,9 @@ export class DirectorCamera {
         // No jump cut: same subject, same size, close angle.
         const sameSubj = prev && [].concat(prev.subject).sort().join() === [...subject].sort().join();
         if (prev && sameSubj && prev.type === type && !first) continue;
+        // The same action goes on across a cut (a long walk): change the kind of shot (front, then side).
+        const act = main ? `${main.cast} ${main.beat.action ?? main.kind}` : 'the scene';
+        if (prev && prev.type === type && prev.action === act && act !== 'the scene') continue;
         // Faces, not backs: only wide and side shots may swing far around.
         const offs = [0, 20, -20, 40, -40, 60, -60, ...(type === 'wide' || type === 'side' || this.room ? [90, -90, 130, -130, 180] : [])];
         for (const off of offs) {
