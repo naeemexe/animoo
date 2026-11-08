@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Set up the GPU box: TRELLIS.2 (image -> 3D) and Kimodo (text -> motion).
+# Set up the GPU box: TRELLIS.2 (image -> 3D), Kimodo (text -> motion) and
+# SANA-Sprint (text -> concept image).
 #
 # Safe to re-run. The container disk (/) is wiped on every pod reset; the
 # volume (/workspace) is not. So code + venvs live on / and are rebuilt by this
@@ -9,6 +10,7 @@
 #   bash gpu/setup.sh            # everything
 #   bash gpu/setup.sh trellis    # one part
 #   bash gpu/setup.sh kimodo
+#   bash gpu/setup.sh image
 set -euo pipefail
 
 export HF_HOME=/workspace/hf                  # HF login + model weights persist here
@@ -85,9 +87,22 @@ setup_kimodo() {
   log "Kimodo ready (weights download on first load)"
 }
 
+setup_image() {
+  local V=/opt/venvs/image
+  log "SANA-Sprint venv"
+  [ -d $V ] || python3 -m venv --system-site-packages $V    # reuse the image's torch 2.8 + cu128
+  $V/bin/pip install -q -U pip wheel setuptools
+  $V/bin/pip install -q "diffusers==0.35.2" "transformers==4.57.1" accelerate sentencepiece \
+      protobuf pillow fastapi "uvicorn[standard]" httpx
+  log "SANA-Sprint weights (Apache-2.0; text encoder is Gemma-2-2B-IT, Gemma Terms of Use)"
+  $V/bin/python -c "from huggingface_hub import snapshot_download as s; s('${SANA_MODEL:-Efficient-Large-Model/Sana_Sprint_1.6B_1024px_diffusers}')"
+  log "SANA-Sprint ready"
+}
+
 case $PART in
   trellis) setup_trellis ;;
   kimodo)  setup_kimodo ;;
-  all)     setup_kimodo; setup_trellis ;;
-  *) echo "usage: $0 [all|trellis|kimodo]"; exit 1 ;;
+  image)   setup_image ;;
+  all)     setup_kimodo; setup_trellis; setup_image ;;
+  *) echo "usage: $0 [all|trellis|kimodo|image]"; exit 1 ;;
 esac
