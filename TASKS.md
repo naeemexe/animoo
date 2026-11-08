@@ -51,7 +51,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 12b | A | Re-record the 5 demo takes after round 3 (with audio), update `demo/SUBMISSION.md` | 0.5 h | done | 28–32 |
 | 33 | A | Motion polish: walking legs don't look broken (knees bend the right way, no pops), and each clip starts from where and how the previous one ended | 1.5 h | done | 22 |
 | 37 | A | Look round 4: small simple white flowers with no black outlines; a good sea backdrop | 1 h | done | 24, 28 |
-| 34 | A | Natural beat planning: no pointless sit → stand → sit cycles, nobody stands up for no reason, greetings fit who is seated; re-cache the demo scenes | 1.5 h | doing | 22, 33 |
+| 34 | A | Natural beat planning: no pointless sit → stand → sit cycles, nobody stands up for no reason, greetings fit who is seated; re-cache the demo scenes | 1.5 h | done | 22, 33 |
 | 35 | A | Character skins: outfits, hair and body build (slim to heavy) layered on the same rigged figure, like game skins, so animation never breaks | 1.5 h | done | 27 |
 | 36 | A | More cast + background NPCs: scenes with 3+ people; city/park/restaurant get background extras on ambient loops (walk, sit, talk, work) | 1.5 h | todo | 31, 35 |
 | 12c | A | Finalize: re-record the 5 demo takes after round 4, update `demo/SUBMISSION.md`, `docs/STATUS.md` and a short README | 0.5 h | todo | 33–37 |
@@ -871,3 +871,37 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
 - 35: not done: the outfit can't change the mesh (the male's hoodie stays a hoodie in a "suit", the female's tank top
   in a winter coat); a heavy build's arms can graze the widened torso in arm-down idles; UV-space patterns follow
   VRoid's UV islands, so stripes/bands can run at angles on some pieces. The apron is a flat card.
+- 34 (2026-11-08): done. `natural_beats()` in `server/agents/movie.py` runs at the end of `repair_plan()`, so it fixes
+  new plans and every cached plan on replay. Each character carries a posture (stand / sit / down after a fall) through
+  its beats. `scene_postures()` counts the sit-downs and stand-ups the scene text gives each cast member (clauses split
+  on commas/and/then; a verb belongs to the nearest cast mention before it, else the clause's carried-over subject;
+  he/she resolve by gender, they/both/"two friends" to everyone). A sit-down or stand-up with no budget is dropped
+  (or made into the action in the current posture), a walk always gets a stand-up first, getting up after a fall is
+  always allowed. Seated characters' beats become "A person sits and …" (a seated wave maps to `sit_bench_talk` unless
+  a live clip for that prompt is cached; the GPU is down). A scene that starts with someone sitting starts them seated
+  (`sit_*_idle`, snapped onto the seat) instead of a sit-down clip; a plan whose first beat is "stands up from the grass"
+  gets a seated start inserted when the scene has them sitting. "Stands up and waves back" is split into stand-up +
+  wave. A second greeting to the same person becomes talk. Dropped beats' reactions re-anchor (two talks → `with`).
+  "Waves back" with the same prompt no longer gets merged into `with` (it follows the wave). Layout's `idle()` no
+  longer stretches a wave into a 10 s wait. The orchestrator prompt now states the posture rules.
+- 34: walk timing (33's note): chaining a walk past ×1.15 now extends with the variant that best fits the remaining
+  length (park: 2× walk_long at stride ×0.62 over ~18 s → ×1.05, film 30.4 → 22.4 s). `syncReactions()` now also
+  matches a reply planned right after the gesture, and keeps its planned gap from the gesture's real start (0.6 s only
+  for replies planned together).
+- 34: re-plans (2 hosted Nemotron calls each): park, city street, restaurant re-cached. Beach and lamplighter were
+  re-planned too but the old caches were restored: the new beach plan had the fisherman wave first (the scene says she
+  does), the new lamplighter plan asked for an uncached Kimodo clip ("reaches up and lights a lantern", GPU down) and
+  its world turned the window into a rock. Their old plans already read naturally under the repair. Beat lists now:
+  park: boy sits on grass 0–3.5 → stands up → walks 7.1–17.3 → waves 17.3; friend waits → waves back 20.0 (23.0 s).
+  City: man seated 0–9.8 → stands up → waves back 13.5 → talks 15.5; woman walks 0–9.4 → waves 9.4 → waits → talks
+  16.1 (20.7 s; before: woman sat down for no reason, man sat back down). Restaurant: man seated throughout; woman
+  walks in, waves 3.6, sits down 6.6; both talk 10.6, both laugh 15.6 (19.6 s). Beach: fisherman carries crate, waits;
+  girl digs, waves 4.0; he waves back 7.1 (11.0 s). Lamplighter: walks, walks, lights lantern 10.5, waves 13.6; girl
+  waves back 16.6 (20.8 s). Checked in the page (offline motion port): timelines read as above, hips heights confirm
+  seated (0.59–0.64 m) vs standing (0.9+), one screenshot per scene; console only the dead :9 port errors. The other 8
+  cached scenes were checked as text (all lay out and validate; campfire friends start seated, city park, market,
+  fisherman-at-sunrise unchanged).
+- 34: not done: the city's man stands up 3.4 s after her wave ends (his seated wait covers her walk; the director
+  doesn't pull a reaction earlier when a walk ends early). The lamplighter's last shot (ots on the girl at 16.6–20.8 s)
+  mostly shows a blurred foreground tree, not the girl. Scene-text parsing is regex-level: a scene that names a
+  character only by a word not in its id/name ("the old one") falls back to the "*" budget.
