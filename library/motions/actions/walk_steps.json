@@ -1,0 +1,11 @@
+{
+ "id": "walk_steps",
+ "file": "motions/actions/walk_steps.bvh",
+ "prompt": "A person takes a few steps forward and stops.",
+ "duration": 2.5,
+ "root": "path",
+ "generated": "2026-11-08T01:48:42",
+ "kimodo_seconds": 2.8,
+ "post_processing": true,
+ "seed": 0
+}

@@ -1,0 +1,11 @@
+{
+ "id": "jump",
+ "file": "motions/actions/jump.bvh",
+ "prompt": "A person jumps up in place.",
+ "duration": 2.5,
+ "root": "pinned",
+ "generated": "2026-11-08T01:49:07",
+ "kimodo_seconds": 2.7,
+ "post_processing": true,
+ "seed": 0
+}

@@ -1,0 +1,18 @@
+{
+ "id": "stand_up_chair",
+ "file": "motions/actions/stand_up_chair.bvh",
+ "prompt": "A person sits on a chair, then slowly stands up.",
+ "duration": 6,
+ "root": "free",
+ "cut": "rise",
+ "min_s": 1.8,
+ "generated": "2026-11-08T01:50:32",
+ "kimodo_seconds": 0.2,
+ "post_processing": true,
+ "seed": 0,
+ "from_frame": 59,
+ "to_frame": 128,
+ "seconds": 2.3,
+ "rise_s": 0.9,
+ "time_scale": 2.0
+}

@@ -1,0 +1,11 @@
+{
+ "id": "crouch_walk",
+ "file": "motions/actions/crouch_walk.bvh",
+ "prompt": "A person sneaks forward in a low crouch.",
+ "duration": 6,
+ "root": "path",
+ "generated": "2026-11-08T01:49:05",
+ "kimodo_seconds": 4.1,
+ "post_processing": true,
+ "seed": 0
+}

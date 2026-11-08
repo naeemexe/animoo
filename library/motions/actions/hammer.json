@@ -1,0 +1,11 @@
+{
+ "id": "hammer",
+ "file": "motions/actions/hammer.bvh",
+ "prompt": "A person hammers a nail, building something.",
+ "duration": 5,
+ "root": "pinned",
+ "generated": "2026-11-08T01:49:32",
+ "kimodo_seconds": 3.7,
+ "post_processing": true,
+ "seed": 0
+}

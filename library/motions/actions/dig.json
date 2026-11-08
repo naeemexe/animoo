@@ -1,0 +1,11 @@
+{
+ "id": "dig",
+ "file": "motions/actions/dig.bvh",
+ "prompt": "A person digs the ground with a shovel.",
+ "duration": 5,
+ "root": "pinned",
+ "generated": "2026-11-08T01:49:28",
+ "kimodo_seconds": 3.7,
+ "post_processing": true,
+ "seed": 0
+}

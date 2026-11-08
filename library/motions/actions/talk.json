@@ -1,0 +1,11 @@
+{
+ "id": "talk",
+ "file": "motions/actions/talk.bvh",
+ "prompt": "A person stands and talks, gesturing with both hands.",
+ "duration": 5,
+ "root": "pinned",
+ "generated": "2026-11-08T01:49:11",
+ "kimodo_seconds": 3.8,
+ "post_processing": true,
+ "seed": 0
+}

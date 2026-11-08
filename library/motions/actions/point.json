@@ -1,0 +1,11 @@
+{
+ "id": "point",
+ "file": "motions/actions/point.bvh",
+ "prompt": "A person points straight ahead with their right arm.",
+ "duration": 3,
+ "root": "pinned",
+ "generated": "2026-11-08T01:49:14",
+ "kimodo_seconds": 3.2,
+ "post_processing": true,
+ "seed": 0
+}

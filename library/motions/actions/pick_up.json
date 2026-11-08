@@ -1,0 +1,11 @@
+{
+ "id": "pick_up",
+ "file": "motions/actions/pick_up.bvh",
+ "prompt": "A person bends down and picks something up from the ground.",
+ "duration": 3.5,
+ "root": "pinned",
+ "generated": "2026-11-08T01:49:24",
+ "kimodo_seconds": 3.4,
+ "post_processing": true,
+ "seed": 0
+}

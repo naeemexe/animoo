@@ -1,0 +1,11 @@
+{
+ "id": "laugh",
+ "file": "motions/actions/laugh.bvh",
+ "prompt": "A person laughs heartily.",
+ "duration": 3,
+ "root": "pinned",
+ "generated": "2026-11-08T01:49:18",
+ "kimodo_seconds": 3.2,
+ "post_processing": true,
+ "seed": 0
+}

@@ -1,0 +1,11 @@
+{
+ "id": "push",
+ "file": "motions/actions/push.bvh",
+ "prompt": "A person pushes a heavy object in front of them with both hands.",
+ "duration": 4,
+ "root": "pinned",
+ "generated": "2026-11-08T01:49:41",
+ "kimodo_seconds": 3.4,
+ "post_processing": true,
+ "seed": 0
+}

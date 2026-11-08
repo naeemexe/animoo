@@ -1,0 +1,11 @@
+{
+ "id": "wave",
+ "file": "motions/actions/wave.bvh",
+ "prompt": "A person waves hello with their right hand.",
+ "duration": 3,
+ "root": "pinned",
+ "generated": "2026-11-08T01:49:11",
+ "kimodo_seconds": 0.1,
+ "post_processing": true,
+ "seed": 0
+}

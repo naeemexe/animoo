@@ -1,0 +1,11 @@
+{
+ "id": "idle",
+ "file": "motions/actions/idle.bvh",
+ "prompt": "A person stands still, breathing calmly and looking around.",
+ "duration": 6,
+ "root": "pinned",
+ "generated": "2026-11-08T01:48:39",
+ "kimodo_seconds": 4.2,
+ "post_processing": true,
+ "seed": 0
+}

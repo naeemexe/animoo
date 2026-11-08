@@ -1,0 +1,11 @@
+{
+ "id": "stretch",
+ "file": "motions/actions/stretch.bvh",
+ "prompt": "A person stretches their arms up over their head.",
+ "duration": 4,
+ "root": "pinned",
+ "generated": "2026-11-08T01:49:21",
+ "kimodo_seconds": 3.4,
+ "post_processing": true,
+ "seed": 0
+}

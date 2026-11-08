@@ -1,0 +1,11 @@
+{
+ "id": "dance",
+ "file": "motions/actions/dance.bvh",
+ "prompt": "A person dances happily.",
+ "duration": 6,
+ "root": "free",
+ "generated": "2026-11-08T01:49:45",
+ "kimodo_seconds": 4.3,
+ "post_processing": true,
+ "seed": 0
+}

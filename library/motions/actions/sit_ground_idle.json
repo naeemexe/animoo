@@ -1,0 +1,15 @@
+{
+ "id": "sit_ground_idle",
+ "file": "motions/actions/sit_ground_idle.bvh",
+ "prompt": "A person sits down on the ground and rests.",
+ "duration": 8,
+ "root": "pinned",
+ "cut": "seated",
+ "generated": "2026-11-08T01:50:32",
+ "kimodo_seconds": 0.2,
+ "post_processing": true,
+ "seed": 0,
+ "from_frame": 65,
+ "to_frame": 239,
+ "seconds": 5.8
+}

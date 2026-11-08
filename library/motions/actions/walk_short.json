@@ -1,0 +1,11 @@
+{
+ "id": "walk_short",
+ "file": "motions/actions/walk_short.bvh",
+ "prompt": "A person walks forward.",
+ "duration": 3.5,
+ "root": "path",
+ "generated": "2026-11-08T01:48:42",
+ "kimodo_seconds": 0.2,
+ "post_processing": true,
+ "seed": 0
+}

@@ -1,0 +1,11 @@
+{
+ "id": "punch",
+ "file": "motions/actions/punch.bvh",
+ "prompt": "A person punches forward with their right fist.",
+ "duration": 2.5,
+ "root": "pinned",
+ "generated": "2026-11-08T01:49:35",
+ "kimodo_seconds": 2.7,
+ "post_processing": true,
+ "seed": 0
+}

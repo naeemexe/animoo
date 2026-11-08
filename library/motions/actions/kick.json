@@ -1,0 +1,11 @@
+{
+ "id": "kick",
+ "file": "motions/actions/kick.bvh",
+ "prompt": "A person kicks forward with their right leg.",
+ "duration": 2.5,
+ "root": "pinned",
+ "generated": "2026-11-08T01:49:37",
+ "kimodo_seconds": 2.7,
+ "post_processing": true,
+ "seed": 0
+}

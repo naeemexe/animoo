@@ -1,0 +1,15 @@
+{
+ "id": "sit_ground",
+ "file": "motions/actions/sit_ground.bvh",
+ "prompt": "A person sits down on the ground.",
+ "duration": 4,
+ "root": "free",
+ "cut": "until_seated",
+ "generated": "2026-11-08T01:50:32",
+ "kimodo_seconds": 0.1,
+ "post_processing": true,
+ "seed": 0,
+ "from_frame": 0,
+ "to_frame": 66,
+ "seconds": 2.2
+}

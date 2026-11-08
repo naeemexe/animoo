@@ -1,0 +1,15 @@
+{
+ "id": "sit_bench_talk",
+ "file": "motions/actions/sit_bench_talk.bvh",
+ "prompt": "A person sits down on a bench and talks, gesturing with their hands.",
+ "duration": 8,
+ "root": "pinned",
+ "cut": "seated",
+ "generated": "2026-11-08T01:50:32",
+ "kimodo_seconds": 0.2,
+ "post_processing": true,
+ "seed": 0,
+ "from_frame": 52,
+ "to_frame": 239,
+ "seconds": 6.23
+}

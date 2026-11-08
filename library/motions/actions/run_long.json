@@ -1,0 +1,11 @@
+{
+ "id": "run_long",
+ "file": "motions/actions/run_long.bvh",
+ "prompt": "A person runs forward.",
+ "duration": 8,
+ "root": "path",
+ "generated": "2026-11-08T01:49:01",
+ "kimodo_seconds": 5.1,
+ "post_processing": true,
+ "seed": 0
+}

@@ -1,0 +1,18 @@
+{
+ "id": "stand_up_ground",
+ "file": "motions/actions/stand_up_ground.bvh",
+ "prompt": "A person sits on the ground, then slowly gets up and stands.",
+ "duration": 7,
+ "root": "free",
+ "cut": "rise",
+ "min_s": 2.0,
+ "generated": "2026-11-08T01:50:32",
+ "kimodo_seconds": 0.2,
+ "post_processing": true,
+ "seed": 0,
+ "from_frame": 43,
+ "to_frame": 125,
+ "seconds": 2.73,
+ "rise_s": 1.33,
+ "time_scale": 1.5
+}

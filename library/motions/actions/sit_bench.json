@@ -1,0 +1,15 @@
+{
+ "id": "sit_bench",
+ "file": "motions/actions/sit_bench.bvh",
+ "prompt": "A person sits down on a bench and rests.",
+ "duration": 5,
+ "root": "free",
+ "cut": "until_seated",
+ "generated": "2026-11-08T01:50:31",
+ "kimodo_seconds": 0.3,
+ "post_processing": true,
+ "seed": 0,
+ "from_frame": 0,
+ "to_frame": 73,
+ "seconds": 2.43
+}
