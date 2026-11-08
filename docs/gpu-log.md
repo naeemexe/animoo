@@ -1,15 +1,25 @@
 # GPU log
 
-## Current box
+## Current box: Brev (since 2026-11-07, about 9:30 pm)
 
 | | |
 |---|---|
-| Provider | RunPod. Brev credits were waiting on team setup, so we started here. |
-| Pod | `continental_coffee_goat` (id `0xmixn78r2549v`), A40 48 GB, $0.60/hr |
-| SSH | `ssh root@194.68.245.46 -p 22149 -i ~/.ssh/id_ed25519`. **The port changes whenever the pod resets**, so check the RunPod console under Connect. |
-| Image | `runpod/pytorch:1.5.0-cu1281-torch280-ubuntu2404` (torch 2.8, CUDA 12.8, Python 3.12) |
-| Storage | Global volume `framed-models` mounted at `/workspace`, $0.09/GB per month plus IOPS. It survives pod resets and deletion. The 50 GB container disk at `/` is wiped on every reset. |
-| Hugging Face | Logged in as `naeemexe`, with the token stored in `/workspace/hf`. **Always `export HF_HOME=/workspace/hf`** so the login and model weights persist. Access to gated Llama-3-8B-Instruct is confirmed. |
+| Provider | NVIDIA Brev, paid from the $60 hackathon credit (code redeemed 2026-11-07) |
+| Instance | `framed-gpu` (id `urz6lbhpd`), MassedCompute **1x A100 SXM4 80 GB**, 160 GB RAM, 16 CPU, 1 TB SSD, **$1.66/hr** |
+| Important | **It can't be stopped, only deleted, and it bills until then.** Delete it after the demo (`brev delete framed-gpu`). If the credit runs out, Brev deletes it. |
+| SSH | `ssh framed-gpu` (the alias comes from `brev login` + `brev refresh`; user `shadeform`) |
+| OS | Ubuntu 22.04, Python 3.10. `gpu/setup.sh` bootstraps it (CUDA 12.8, torch 2.8 cu128, g++-11, cmake) |
+| Paths | the same as on RunPod: code in `/opt/app`, venvs in `/opt/venvs`, weights and logs in `/workspace` (a normal disk here) |
+| Hugging Face | logged in as `naeemexe` (`HF_HOME=/workspace/hf`); access to Llama-3 and DINOv3 confirmed |
+| Tunnel | `bash gpu/tunnel.sh` (defaults to `framed-gpu`) |
+
+Checked on Brev: motion takes 4.1 s for a 4 s clip; text → image → 3D prop took 145 s on the first call
+(models loading); GPU memory is 24 of 80 GB with all three servers idle.
+
+## Previous box: RunPod (stopped 2026-11-07)
+
+Pod `continental_coffee_goat` (A40) is **stopped** ($0/hr). Its global volume `framed-models` still
+bills for storage; delete the pod and the volume in the RunPod console once Brev has proven itself.
 
 Servers (run on the pod, bound to localhost; reach them with `bash gpu/tunnel.sh`):
 - Motion server (Kimodo `kimodo-soma-rp-v1.2`) on **8101**. Starting it the first time
@@ -44,3 +54,4 @@ Notes:
 | 2026-11-07 | ~0.35 | ~$0.21 | SANA-Sprint image server (:8103) installed; 5 sample images and one windmill GLB via /generate-prop |
 | 2026-11-07 | ~0.05 | ~$0.03 | Task 11: one /generate-prop windmill (64 s) plus a cache hit. The pod was already running for other work and was left running. |
 | 2026-11-07 | ~0.7 | ~$0.42 | Task 06a: tried Kimodo with the text encoder on the CPU (OOM at the 50 GB container RAM cap, then 2x slower), installed vLLM and downloaded Nemotron Nano 9B, then dropped it for hosted Nemotron. Kimodo is back on the GPU; motion (4.5 s), TRELLIS.2 and /generate-prop (68 s) checked. The pod was left running. |
+| 2026-11-07 | ~0.7 | ~$1.20 | Brev A100: setup and smoke tests; RunPod stopped |
