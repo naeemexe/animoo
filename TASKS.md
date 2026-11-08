@@ -36,7 +36,13 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 17 | A | Time of day + weather: day/dusk/night lighting with glowing lamps and windows at night, plus rain/snow/fog. The orchestrator sets it from the prompt | 2 h | done | 15 |
 | 18 | A | Edit mode: select, move/rotate/scale, duplicate, delete, replace with a library item, regenerate a prop on the GPU | 3 h | todo | 14 |
 | 19 | A | Camera paths: draw a keyframed camera path between two timestamps in edit mode; it overrides the director for that span | 2.5 h | todo | 16, 18 |
-| 21 | A | Full pipeline check + optimization: load times, GLB sizes, caching, LLM call budget, GPU memory, bug bash | 2 h | doing | 13–17 |
+| 21 | A | Full pipeline check + optimization: load times, GLB sizes, caching, LLM call budget, GPU memory, bug bash | 2 h | done (session closed early: export width, snow ground, shot defaults, 2 scenes cached; timing table not written) | 13–17 |
+| 22 | A | Motion control: a game-style action library (cached clips) plus position control: paths around props, facing, gestures aimed at a target, consistent heights | 3 h | todo | 14, 16 |
+| 23 | A | Look fixes: intentional depth of field, stable shadows, thinner outlines on small props, less blocky props, no visible circular world edge | 1.5 h | todo | 15 |
+| 24 | A | Scene variety: city, sea/beach, park sets (not only forest), one cached scene each | 2 h | todo | 15, 22 |
+| 25 | A | Interiors: room and restaurant sets, with an interior camera (eye level, horizontal moves, two-shots, over-the-shoulder; never above the roof) | 2 h | todo | 16, 24 |
+| 26 | A | Spoken dialogue: Nemotron writes cinematic lines per character; ElevenLabs voices them; talk gesture + timeline sync | 2 h | waiting (needs `ELEVENLABS_API_KEY` in `.env`) | 22 |
+| 27 | A | Story-driven characters: cast built from the story (look, outfit colors, height, age) instead of the two fixed VRMs | 2.5 h | todo | 22 |
 
 **Cut rule.** If it's 6:00 am and task 09 isn't working, demo the Chat page plus a
 Movie page with one generated world and the sample clips. A finished small demo
@@ -92,6 +98,13 @@ run TRELLIS.2, normalize scale and pivot, `toonify()` it, and save it to
 license used.
 
 **Order after 08:** 13 (quick) → 08b → 14 → 15 → 16 → 17 → 12 (demo, which must be recorded before the 12:00 pm deadline) → 18 → 19 → 21.
+
+**Order from round 2 (2026-11-08, 01:45):** 22 → 23 → 24 → 25 → 26 (once the key is in `.env`) → **12 at 9:00 am** → 27 → 18 → 19.
+22 first because most round-2 notes are motion and position problems, and every later scene depends on it.
+
+**Efficiency rule for every session from now on (the Mac overheats):** verify with one cached scene and a few screenshots at fixed `?t=` times.
+Don't re-run whole movies or record WebMs in a loop; record only in task 12. Stop the dev server and close browser tabs when done.
+Don't regenerate a cached scene unless the task changes the script format.
 Before the deadline, work only on what improves the demo; 18–19 can continue after it.
 
 **13 Chat cleanup.** Remove the mock's canned greeting and the "Hi Mira!" / "Show me a squat" chips. Mira greets in her own words from Nemotron, and the mock is used only when the LLM is down, with that shown clearly.
@@ -113,6 +126,23 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
 **20 (moved to Later).** The paint-over look is only safe for the far backdrop, which is covered in 15. See Later.
 
 **21 Full check + optimization.** Time every step of a fresh prompt, shrink slow loads, confirm the cache hit paths, fix the bugs found, and update `docs/STATUS.md`.
+
+**22 Motion control.** Like a game (GTA-style): characters don't wander by their own clip root motion; the scene controls where they are.
+(a) *Action library:* a fixed set of looping/one-shot clips generated once with Kimodo and cached in `library/motions/` with their prompts: idle, walk, run, jump, talk, wave, point, sit, stand up (slow, from the ground and from a chair), crouch walk, pick up, dig, build/hammer, punch, kick, push. The motion agent maps each beat to a library action and only asks Kimodo live for moves outside it (push-ups, moonwalk), which are then cached too.
+(b) *Position control:* in-place clips driven along a path; the path is planned on a grid around prop footprints (A* or steering), so nobody walks through the bench.
+(c) *Facing and targets:* talk/wave/point turn the character to face the target character or prop first; pointing aims the arm at the target; partners in a conversation face each other and stand at a talking distance on the same side.
+(d) *Heights:* both characters normalized into 1.65–1.8 m (no big height gap) unless the story asks for a child.
+*Done when* the park-bench scene shows: a walk that goes around the bench, a wave toward the other character who is facing back, and a stand-up from the ground that takes about 1.5 s or more. Screenshots at fixed times prove each.
+
+**23 Look fixes.** Depth of field follows the shot: focus on the subject of the current shot, blur only in close and medium shots, none or little in wide shots, no random blur. Shadows don't jitter (snap the shadow camera to texels, fit it to the set). Outline width scales with object size, so small props get thin lines. Props look less blocky (smooth normals where faceting is harsh, more geometry for generated props if cheap). The world doesn't read as a small circular island: extend the ground and scatter past the camera's view, or hide the edge with terrain and fog.
+
+**24 Scene variety.** The world agent and fill know at least city street, sea/beach/harbor, park and forest: ground material, scatter, backdrop ring and prop sets per biome (Kenney kits first, generate the rest). One cached scene each.
+
+**25 Interiors.** A room set (walls, floor, ceiling or open top hidden from camera, windows, furniture) for "in a room" and "in a restaurant". Interior camera rules: eye-level, horizontal dolly/truck, two-shot from the side, over-the-shoulder, from behind one character; no crane or sky shots, and the camera stays inside the walls. One cached scene each.
+
+**26 Spoken dialogue.** The orchestrator (Nemotron) writes short, cinematic lines per character in the script; the server calls ElevenLabs TTS (one voice per character), caches audio in `library/audio/` with the text; the timeline plays the audio and the talk action (22) runs for its duration. ElevenLabs is only TTS, so Nemotron stays the only LLM.
+
+**27 Story-driven characters.** The cast agent reads the story and sets each character's look: base model, height, outfit and hair colors, maybe accessories. Start with recoloring and scaling the VRMs (cheap), then more base VRMs; a text-to-rigged-character model is a stretch.
 
 ## Later
 

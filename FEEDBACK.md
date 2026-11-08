@@ -30,4 +30,18 @@ into a task in `TASKS.md`.
 - Day/night and weather changes (see the day/night city reference) → 17
 - Paint-over technique (blocks → AI paints over a screenshot → project it back; also works for interiors) → Later (backdrop only, in 15)
 
--
+### Round 2 (2026-11-08, 01:45): turned into tasks 22–27 in TASKS.md
+- Generate characters from the story instead of the two built-in models → 27
+- Blur looks random, not intentional → 23
+- Objects are too blocky → 23
+- ElevenLabs voices for cinematic lines the characters speak → 26
+- Not only forest: test city, sea, park → 24
+- The world is a limited circular area → 23
+- Character heights are too different → 22
+- Characters pass through the bench instead of going around it; control position, don't let clips move them → 22
+- Interactions face the wrong way (says hi while the girl is on the other side; looks somewhere else instead of at the boy); pointing needs a direction → 22
+- Shadows jitter → 23
+- 2D outlines on small items are too thick → 23
+- Standing up from the ground is too fast → 22
+- Game-style action library (walk, jump, talk, wave, dig, build, pick up, punch, kick, crouch walk) reused everywhere; generate only unusual moves (push-ups, moonwalk) → 22
+- Interior scenes (room, restaurant) with an inside camera that moves horizontally, two-shots, from behind one character → 25
