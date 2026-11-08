@@ -20,7 +20,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 04 | A | Library: the old project's VRMs, props and sample BVHs, plus a CC0 low-poly kit and `manifest.json` | 1.5 h | done | 01 |
 | 05 | A | Characters: load VRMs, retarget Kimodo BVH, play a clip, planted feet | 2.5 h | done | 04 |
 | 06a | B | Self-host Nemotron Nano 9B v2 (FP8) on the pod with vLLM (:8104, OpenAI-compatible, tool calling) | 1 h | dropped: use OpenRouter / OpenCode Zen instead | — |
-| 06 | A | Nemotron client + agent loop on the server (tool calling, streamed steps) | 1.5 h | todo | 06a (or `NVIDIA_API_KEY`) |
+| 06 | A | Nemotron client + agent loop on the server (tool calling, streamed steps), via OpenCode's free Nemotron now and swappable to NVIDIA's API later | 1.5 h | todo | — |
 | 07 | B | Text → concept image for props (pick a model, add an endpoint) | 1.5 h | done | 03 |
 | 08 | A | Movie: the orchestrator splits a scene into shots and beats, and the world agent builds the set | 3 h | todo | 04, 06 |
 | 09a | A | Movie page UI with a mocked scene script: agent log, world build from script, per-character timeline, play, export WebM | 2.5 h | done | 04, 05 |
@@ -51,11 +51,9 @@ cleanly. Compare `tmp/walk_true.bvh` against `tmp/walk_false.bvh`.
 
 **06a Self-hosted Nemotron.** No sponsor key yet, so run `nvidia/NVIDIA-Nemotron-Nano-9B-v2-FP8` (10 GB, not gated) under vLLM on the pod, bound to localhost:8104 with an OpenAI-compatible API and tool calling, and add it to `serve.sh`, `tunnel.sh` and `setup.sh`. To make room, run Kimodo with `TEXT_ENCODER_DEVICE=cpu` (about 13 GB of VRAM freed). *Done when* a chat completion with a tool definition returns a correct tool call through the tunnel, and Kimodo and TRELLIS.2 still work.
 
-**06 Nemotron.** The server talks to an OpenAI-compatible base URL from `.env`: `NEMOTRON_BASE_URL` defaults to `http://localhost:8104/v1` (the self-hosted pod model), or to `https://integrate.api.nvidia.com/v1` when `NVIDIA_API_KEY` is set. Pick the
-Nemotron model that handles tool calling best and record it in
-`docs/decisions.md`. A generic agent loop takes tools and streams each step to
-the browser over SSE. *Done when* a test agent calls a dummy tool correctly
-and the steps show up in the page.
+**06 Nemotron.** There's no API key, so for now Nemotron runs through the locally installed **OpenCode CLI** (upgraded to 1.19.5; the free tier needs 1.18 or newer). Checked on 2026-11-07:
+`opencode run --format json -m opencode/nemotron-3.5-lightning-free "..."` returns text. Calling `https://opencode.ai/inference/openai/v1` directly is refused (free models only work through the OpenCode client). `opencode serve` starts, but a `POST /session/{id}/message` test hung, so try it again or use `opencode run`. Models available: `nemotron-3.5-lightning-free` (fast), `nemotron-3.5-super-vl-free` (vision, for a future self-check), `nemotron-3-super-free` and `nemotron-3-ultra-free`.
+Build `server/llm.py` with one interface, `complete(messages, json_schema=None) -> text/JSON`, and these backends: `opencode` (the default: a custom no-tools agent defined in a project `opencode.json`, or the serve API with tools off and our own system prompt), `nvidia` (`NVIDIA_API_KEY` + `https://integrate.api.nvidia.com/v1`) and `openai` (any `NEMOTRON_BASE_URL` + key). `LLM_BACKEND` in `.env` picks one, so switching to the sponsor's key later is one `.env` line. The agent loop does tool calling with our own JSON protocol, so it works on every backend, and streams each step to the browser over SSE. Move `/api/chat` onto it. *Done when* a test agent calls a dummy tool correctly through OpenCode Nemotron, the steps stream into the page, and Chat replies come from Nemotron (`source: nemotron`).
 
 **07 Concept images.** Turn "a red wooden windmill, low-poly storybook style,
 plain background" into a clean single-object image. *Done when* five prompts
