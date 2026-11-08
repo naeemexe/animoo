@@ -14,7 +14,7 @@ A new main session should read this first, then `TASKS.md`.
 | Chat page: Mira talks (browser voice) and demonstrates Kimodo moves | done (10); replies from Nemotron when the limit allows |
 | Prop generation: text → SANA image → TRELLIS.2 → normalized GLB in `library/` | done (07, 11) |
 | Nemotron client + agent loop (JSON tool calls, SSE) | done (06) |
-| Orchestrator + world agent (new prompt → new world and motion) | done (08), 2 Nemotron calls per movie, cached in `library/scripts/` |
+| Orchestrator + world agent (new prompt → new world and motion) | done (08), 2 Nemotron calls per movie (hosted, about 5 s in all, 08b), cached in `library/scripts/` |
 
 ## How to run
 
@@ -38,7 +38,8 @@ open http://localhost:8000               # Movie | Chat
   motion and director agents and Chat use `nvidia/nemotron-3.5-lightning-30b-a3b` (about 1.3 s; it reasons by default).
   The fallback chain is: hosted NVIDIA → self-hosted **Nemotron Nano 9B v2** on the Brev box (vLLM `:8104`,
   model `nemotron`, about 0.7 s, no limit; `bash /opt/app/serve.sh start llm`) → OpenCode free tier → mock.
-  Per-agent routing is **not built yet** (task 08b): today every call goes to the self-hosted Nano 9B (`.env`). Regenerate the NVIDIA key after the hackathon (it was shared in chat).
+  Per-agent routing is built (08b): `complete(..., agent=...)`, models from `LLM_MODEL_<AGENT>` in `.env`, hosted reasoning off
+  (`LLM_THINK_<AGENT>=1` turns it on; slow). `LLM_BACKEND=off` forces the mock. `/health` → `config.llm` shows routes and recent calls. Regenerate the NVIDIA key after the hackathon (it was shared in chat).
 
 ## Next
 

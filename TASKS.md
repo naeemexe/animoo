@@ -23,7 +23,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 06 | A | Nemotron client + agent loop on the server (tool calling, streamed steps), via OpenCode's free Nemotron now and swappable to NVIDIA's API later | 1.5 h | done (free tier rate-limits after ~30 calls: get a key for 08) | — |
 | 07 | B | Text → concept image for props (pick a model, add an endpoint) | 1.5 h | done | 03 |
 | 08 | A | Movie: the orchestrator splits a scene into shots and beats, and the world agent builds the set | 3 h | done | 04, 06 |
-| 08b | A | Per-agent Nemotron routing (hosted super-vl-120b for orchestrator, lightning-30b for world/chat) with the fallback chain hosted → self-hosted Nano 9B → OpenCode → mock; re-cache the four test scenes | 1 h | doing | 08 |
+| 08b | A | Per-agent Nemotron routing (hosted super-vl-120b for orchestrator, lightning-30b for world/chat) with the fallback chain hosted → self-hosted Nano 9B → OpenCode → mock; re-cache the four test scenes | 1 h | done | 08 |
 | 09a | A | Movie page UI with a mocked scene script: agent log, world build from script, per-character timeline, play, export WebM | 2.5 h | done | 04, 05 |
 | 09b | A | Movie: wire the real agents in, motion agent generates clips on the pod, director merges | 1.5 h | done (with 08: real agents over SSE, Kimodo clips, merge, export) | 08, 09a |
 | 10 | A | Chat page: a character talks (Nemotron + browser voice) and demonstrates moves | 2 h | done (mock replies; live Nemotron path untested) | 05, 06 |
@@ -331,3 +331,13 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
   user gesture, so the first line may be text-only until the user interacts. Not checked by ear.
 - 13: `?say=` must come before the hash (`/?say=show+me+a+squat#chat`). Navigating to the same URL that
   differs only in the hash doesn't reload the page, so a "reload" that way runs stale JS.
+- 08b (2026-11-08): with reasoning on, the hosted super-vl-120b took 30–70 s per plan and once spent
+  all 7000 tokens thinking (empty answer, fell to Nano 9B). Reasoning is off by default now (3 s per plan);
+  `LLM_THINK_ORCHESTRATOR=1` turns it back on.
+- 08b: the new caches still have layout oddities for 14/16: the fisherman's "walks out of the hut" plays
+  twice (the move_to split repeats the prompt) and the kid idles 8 s twice; at the campfire the friends
+  stand up at different times and walk about 6 s to their dance spots; in the market the keeper stops at
+  the fountain and never reaches the cart, so the apple is handed back to nobody; in the lighthouse scene
+  grandpa has no beats (he sits in the rowboat for the whole film).
+- 08b: the `animo-world-server` launch config moved to :8002 because :8000 and :8001 already had
+  uvicorn servers running (both `--reload`, so they picked up the changes too).
