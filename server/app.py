@@ -14,6 +14,9 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+
+from .chat import chat_reply
 
 ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
@@ -51,6 +54,22 @@ def health() -> dict:
             "asset_url": os.getenv("ASSET_URL", "http://localhost:8102"),
         },
     }
+
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage]
+
+
+# The Chat page: {messages} -> {reply, demonstrate: null | {prompt, duration}, source}.
+# Plain `def` so the blocking Nemotron call runs in the thread pool.
+@app.post("/api/chat")
+def chat(req: ChatRequest) -> dict:
+    return chat_reply([m.model_dump() for m in req.messages])
 
 
 # The asset library (props, characters, motions, manifest.json).
