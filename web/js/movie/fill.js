@@ -941,6 +941,22 @@ export async function fillWorld(stage, script, set, { seed = 11 } = {}) {
       ...Object.entries(smallIds).map(([id, p]) => instanced(id, p)),
     );
   }
+  // The world agent's decor flowers and grass tufts (library props with teal
+  // stems and ink) give way to the fill's own: white flower clumps and soft
+  // tufts where they stood. Props a beat names (picks the flowers) stay.
+  const named = JSON.stringify(script.beats ?? []);
+  const libOf = Object.fromEntries((script.props ?? []).map((p) => [p.key, p.library]));
+  const decorFlowers = [], decorGrass = [];
+  for (const obj of set.children) {
+    const lib = libOf[obj.name];
+    if (!obj.userData.prop || !/^(flower-(red|yellow)|grass-tuft)$/.test(lib ?? '') || named.includes(`"${obj.name}"`)) continue;
+    obj.visible = false;
+    const { x, z } = obj.position;
+    if (lib === 'grass-tuft') for (let k = 0; k < 3; k++) decorGrass.push([x + (rng() - 0.5) * 0.6, z + (rng() - 0.5) * 0.6, rng() * 6.28, 0.9 + rng() * 0.5]);
+    else if (!snowy) for (let k = 0; k < 3; k++) decorFlowers.push([x + (rng() - 0.5) * 0.8, z + (rng() - 0.5) * 0.8, rng() * 6.28, 0.85 + rng() * 0.35]);
+  }
+  counts.flowers += decorFlowers.length;
+  jobs.push(wildflowers(decorFlowers, rng), grassTufts(decorGrass, rng));
   const groups = await Promise.all(jobs.map((j) => j.catch((err) => { console.warn('fill:', err.message); return null; })));
   for (const g of groups) if (g) fill.add(g);
   // Flowers stay out of the ink's normal pass too: against a wall or curb
