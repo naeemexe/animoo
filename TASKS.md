@@ -20,7 +20,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 04 | A | Library: the old project's VRMs, props and sample BVHs, plus a CC0 low-poly kit and `manifest.json` | 1.5 h | done | 01 |
 | 05 | A | Characters: load VRMs, retarget Kimodo BVH, play a clip, planted feet | 2.5 h | done | 04 |
 | 06 | A | Nemotron client + agent loop on the server (tool calling, streamed steps) | 1.5 h | waiting | `NVIDIA_API_KEY` in `.env` |
-| 07 | B | Text → concept image for props (pick a model, add an endpoint) | 1.5 h | doing | 03 |
+| 07 | B | Text → concept image for props (pick a model, add an endpoint) | 1.5 h | done | 03 |
 | 08 | A | Movie: the orchestrator splits a scene into shots and beats, and the world agent builds the set | 3 h | todo | 04, 06 |
 | 09 | A | Movie: the motion agent makes clips, the director merges them on a timeline, play and export | 3 h | todo | 05, 08 |
 | 10 | A | Chat page: a character talks (Nemotron + browser voice) and demonstrates moves | 2 h | todo | 05, 06 |
@@ -135,3 +135,17 @@ license used.
   doesn't answer `/health`, because it handles one job at a time. Pre-generate demo props.
 - 03: the pod's SSH sometimes times out for a minute, so retry before assuming the
   pod is down. `bash /opt/app/serve.sh status` on the pod shows both servers.
+- 07: the image server on :8103 runs NVIDIA SANA-Sprint 1.6B (Apache-2.0; its text encoder is
+  Gemma-2-2B-IT under the Gemma Terms of Use). `POST /generate-image {prompt, seed}` returns a PNG
+  in about 1.7 s, and `POST /generate-prop {prompt}` returns a GLB in about 45 s. Both return an
+  `X-Image-Key` header, and `GET /image/{key}.png` fetches the image again. Images and their
+  prompts are cached in `/workspace/cache/images/{key}.png|.json`. The house style is added to the
+  prompt unless `raw: true`. Samples and a screenshot of the windmill GLB are in `tmp/07/`.
+- 07: SANA ignores negatives ("no base, no grass"), and naming them seems to make them appear, so
+  the style prompt is worded positively. Even so, most props come with a small ground slab or grass
+  disc, because "low-poly game asset" pulls them in strongly. TRELLIS keeps it in the mesh (the
+  windmill GLB has one). Task 11 should trim or accept it, or try another seed.
+- 07: the windmill's thin lattice sails come out of TRELLIS.2 as rough spikes. For props with
+  thin parts, ask for "solid, chunky" versions in the prompt (task 11).
+- 07: diffusers 0.35 ignores `dtype=` and silently loads in fp32, so keep `torch_dtype=`. Apply
+  fp8 layerwise casting before `.to("cuda")`, or loading peaks at about 17 GiB.

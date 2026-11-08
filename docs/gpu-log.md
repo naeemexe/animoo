@@ -17,7 +17,12 @@ Servers (run on the pod, bound to localhost; reach them with `bash gpu/tunnel.sh
   It uses about 16 GB of VRAM, and a 5 s clip takes about 4 s to generate.
 - Asset server (TRELLIS.2-4B) on **8102**: about 47 s per prop at quality 512, about 220 s at
   1024_cascade. Background removal uses BiRefNet, not the gated RMBG-2.0.
-- Start, stop or check both with `bash /opt/app/serve.sh start|stop|status` (copy `gpu/` to `/opt/app`).
+- Image server (NVIDIA SANA-Sprint 1.6B, Apache-2.0; its Gemma-2-2B-IT text encoder is under
+  the Gemma Terms of Use, and neither repo is gated) on **8103**: about 0.6 s per 1024² image on the GPU,
+  about 1.7 s end to end, because the PNG is written to the volume. Weights are stored in fp8 and computed
+  in bf16, so it holds 5.1 GiB and peaks at 6.7 GiB (7.6 GiB for the process). `/generate-prop` chains to
+  TRELLIS.2 and takes about 45 s. Loading takes about 2 minutes.
+- Start, stop or check all three with `bash /opt/app/serve.sh start|stop|status` (copy `gpu/` to `/opt/app`).
 - Port 8001 belongs to the pod's own nginx, so don't use it.
 
 Notes:
@@ -36,3 +41,4 @@ Notes:
 | 2026-11-07 | ~0.6 | ~$0.35 | Pod created, GPU smoke test, volume attached, HF login |
 | 2026-11-07 | ~1.0 | ~$0.60 | Kimodo installed and serving; TRELLIS.2 build started |
 | 2026-11-07 | ~1.5 | ~$0.90 | TRELLIS.2 built and serving; Kimodo and TRELLIS.2 smoke tests pass |
+| 2026-11-07 | ~0.35 | ~$0.21 | SANA-Sprint image server (:8103) installed; 5 sample images and one windmill GLB via /generate-prop |
