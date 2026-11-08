@@ -822,6 +822,7 @@ DAP = re.compile(r"\b(daps?|fist[- ]?bumps?|bumps? fists)\b|\bdabs?\b.*\b(with|e
 DAP_PROMPT = "A person gives a fist bump, reaching one fist forward."
 TALKING = re.compile(r"\b(talk\w*|chat\w*|convers\w*|speak\w*)\b", re.I)
 TALK_PROMPT = "A person talks, gesturing with both hands."
+DOCKLIKE = re.compile(r"dock|pier|jetty")  # platforms over the water (boats are sat in, so they stay)
 SIDE_BY_SIDE = 0.9  # m between two people walking together (hips)
 
 
@@ -1541,6 +1542,7 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
 
     # Props for places.
     props = []
+    shore_only: set[str] = set()  # water places left without their prop
     for k in order:
         p = places[k]
         if p.get("setting") and plan.get("biome") == "city":
@@ -1552,7 +1554,12 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
                 props.append({"key": f"{k}-chair{j + 1}", "library": "chair", "position": _pt(pt),
                               "rotation": _r(((face + 180) % 360) - 180, 0)})
             continue
-        for j, (pt, face) in enumerate(p.get("seats") or [(p["center"], rot)]):
+        if p["use"] == "water" and water and DOCKLIKE.search(p["library"]):
+            # A dock or jetty: the cast stands or sits on the shore at its foot, never on it, so the
+            # platform only stands in the water in front of them, blocking the view. Leave it out.
+            shore_only.add(k)
+            notes.append(f"{k}: no {p['library']} prop (the cast uses the shore in front of the water)")
+        for j, (pt, face) in enumerate([] if k in shore_only else p.get("seats") or [(p["center"], rot)]):
             prop = {"key": k if j == 0 else f"{k}-{j + 1}", "library": p["library"], "position": _pt(pt),
                     "rotation": _r(((face + 180) % 360) - 180, 0)}
             if p.get("generate"):
@@ -1911,6 +1918,9 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
             x["seed"] = seen[k]
         seen[k] = seen.get(k, 0) + 1
 
+    for x in beats:  # a place left without a prop: face the spot where it would be (the water)
+        if x.get("facing") in shore_only:
+            x["facing"] = _pt(places[x["facing"]]["center"])
     beats.sort(key=lambda x: (x["start"], x["cast"]))
     notes += tag_motions(beats)
     if sum(1 for _ in beats) > 16:
