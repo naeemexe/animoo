@@ -37,6 +37,7 @@ import json
 import os
 import re
 import subprocess
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -205,20 +206,51 @@ def flatten(messages: list[dict]) -> str:
     return "\n\n".join(out)
 
 
+# When the free tier refuses ("Free usage limit reached"), OpenCode retries
+# quietly for minutes. The refusal shows up in its log on stderr within about a
+# second, so the call is killed then, and OpenCode is skipped for
+# OPENCODE_COOLDOWN_S so callers (Chat) fall back at once instead of waiting.
+LIMIT_MARK = "Free usage limit reached"
+_cooldown_until = 0.0
+
+
 def _opencode(messages, m, timeout) -> str:
+    global _cooldown_until
+    if time.time() < _cooldown_until:
+        raise LLMError(f"OpenCode free tier is rate-limited; retrying in {_cooldown_until - time.time():.0f}s")
     binary = os.getenv("OPENCODE_BIN") or str(OPENCODE_BIN_DEFAULT)
-    cmd = [binary, "run", "--pure", "--format", "json", "-m", m, flatten(messages)]
+    cmd = [binary, "run", "--pure", "--print-logs", "--log-level", "WARN", "--format", "json", "-m", m,
+           flatten(messages)]
     try:
         # stdin must be closed: with an open pipe, `opencode run` waits on it forever.
-        proc = subprocess.run(cmd, cwd=_opencode_dir(), stdin=subprocess.DEVNULL, capture_output=True,
-                              text=True, timeout=timeout)
+        proc = subprocess.Popen(cmd, cwd=_opencode_dir(), stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE, text=True)
     except FileNotFoundError:
         raise LLMError(f"OpenCode CLI not found at {binary}") from None
+    limited = threading.Event()
+
+    def watch_stderr():  # read only for the limit marker; the log is never stored or printed
+        for line in proc.stderr:
+            if LIMIT_MARK in line:
+                limited.set()
+                proc.kill()
+
+    watcher = threading.Thread(target=watch_stderr, daemon=True)
+    watcher.start()
+    try:
+        stdout, _ = proc.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
-        # A refused request (e.g. the free tier's limit) retries quietly until killed.
+        proc.kill()
+        proc.communicate()
         raise LLMError(f"opencode timed out after {timeout:.0f}s") from None
+    finally:
+        watcher.join(timeout=1)
+    if limited.is_set():
+        cool = float(os.getenv("OPENCODE_COOLDOWN_S") or 120)
+        _cooldown_until = time.time() + cool
+        raise LLMError(f"OpenCode free tier is rate-limited ({LIMIT_MARK}); skipping it for {cool:.0f}s")
     texts, errors, tools = [], [], []
-    for line in proc.stdout.splitlines():
+    for line in stdout.splitlines():
         try:
             ev = json.loads(line)
         except ValueError:
@@ -233,7 +265,7 @@ def _opencode(messages, m, timeout) -> str:
     if tools:
         print(f"[llm] opencode: the model tried tools {tools} (all rejected)")
     if not texts:
-        why = errors[0] if errors else (proc.stderr.strip().splitlines() or [f"exit {proc.returncode}"])[-1][:300]
+        why = errors[0] if errors else f"exit {proc.returncode}"
         raise LLMError(f"opencode returned no text ({why})")
     return "\n".join(texts)
 
