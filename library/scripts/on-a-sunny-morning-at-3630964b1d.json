@@ -1,0 +1,484 @@
+{
+ "scene": "On a sunny morning at the beach harbor, a fisherman carries a crate along the dock to his rowboat, a girl digs in the sand by the palm trees, then she waves to him and he waves back.",
+ "created": "2026-11-08T08:22:22+00:00",
+ "model": "nvidia/nemotron-3.5-super-vl-120b-a12b + nvidia/nemotron-3.5-lightning-30b-a3b",
+ "backend": "nvidia",
+ "llm_calls": [
+  {
+   "agent": "orchestrator",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+   "ok": true,
+   "seconds": 2.17
+  },
+  {
+   "agent": "world",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+   "ok": true,
+   "seconds": 2.57
+  }
+ ],
+ "llm_seconds": [
+  2.17,
+  2.57
+ ],
+ "plan": {
+  "title": "Harbor Morning",
+  "thoughts": [
+   "Two characters: a fisherman and a girl on a sunny morning at the beach harbor.",
+   "Places: the dock, the rowboat, and the sand by the palm trees.",
+   "The fisherman carries the crate to the rowboat; the girl digs in the sand, waves to him, and he waves back."
+  ],
+  "time_of_day": "sunrise",
+  "biome": "sea",
+  "weather": "clear",
+  "water": true,
+  "places": [
+   {
+    "key": "dock",
+    "what": "a wooden dock at the harbor",
+    "use": "stand"
+   },
+   {
+    "key": "rowboat",
+    "what": "a rowboat at the water's edge",
+    "use": "water"
+   },
+   {
+    "key": "sand",
+    "what": "sand by the palm trees",
+    "use": "stand"
+   }
+  ],
+  "cast": [
+   {
+    "id": "fisherman",
+    "name": "Fisherman",
+    "character": "avatar_male",
+    "kid": false,
+    "starts_at": "dock"
+   },
+   {
+    "id": "girl",
+    "name": "Girl",
+    "character": "avatar_female",
+    "kid": true,
+    "starts_at": "sand"
+   }
+  ],
+  "beats": [
+   {
+    "id": "b1",
+    "cast": "fisherman",
+    "action": "carries crate to rowboat",
+    "prompt": "A person walks forward carrying a crate.",
+    "duration": 6,
+    "move_to": "rowboat"
+   },
+   {
+    "id": "b2",
+    "cast": "girl",
+    "action": "digs in sand",
+    "prompt": "A person digs in the sand with both hands.",
+    "duration": 5
+   },
+   {
+    "id": "b3",
+    "cast": "girl",
+    "action": "waves to fisherman",
+    "prompt": "A person waves hello with their right hand.",
+    "duration": 3,
+    "face": "fisherman"
+   },
+   {
+    "id": "b4",
+    "cast": "fisherman",
+    "action": "waves back",
+    "prompt": "A person waves back with their right hand.",
+    "duration": 3,
+    "face": "girl",
+    "after": "b3"
+   }
+  ]
+ },
+ "world": {
+  "thoughts": [
+   "The fisherman, crate, dock, rowboat, sand, palm trees, girl and waves form a beach harbor scene.",
+   "A sunny harbor: dock, rowboat, crate, palm trees, sand, a girl digging and waving."
+  ],
+  "choices": [
+   {
+    "place": "dock",
+    "library": "dock"
+   },
+   {
+    "place": "rowboat",
+    "library": "rowboat"
+   },
+   {
+    "place": "crate",
+    "library": "crate"
+   },
+   {
+    "place": "palm-tree",
+    "library": "palm-tree"
+   },
+   {
+    "place": "sand",
+    "generate": {
+     "name": "sand pit",
+     "prompt": "a small pile of golden sand at the harbor edge",
+     "size_m": 3.0,
+     "category": "nature"
+    }
+   },
+   {
+    "place": "well",
+    "generate": {
+     "name": "stone well",
+     "prompt": "a round stone village well with a little wooden roof",
+     "size_m": 2.5,
+     "category": "village"
+    }
+   }
+  ],
+  "decor": [
+   {
+    "library": "palm-tree",
+    "count": 3,
+    "near": "edge"
+   },
+   {
+    "library": "rock-large",
+    "count": 2,
+    "near": "edge"
+   },
+   {
+    "library": "crate",
+    "count": 2,
+    "near": "dock"
+   },
+   {
+    "library": "rowboat",
+    "count": 1,
+    "near": "water's edge"
+   },
+   {
+    "library": "lily-pad",
+    "count": 2,
+    "near": "water's edge"
+   },
+   {
+    "library": "flower-yellow",
+    "count": 3,
+    "near": "sand"
+   }
+  ]
+ },
+ "script": {
+  "version": 1,
+  "title": "Harbor Morning",
+  "scene": "On a sunny morning at the beach harbor, a fisherman carries a crate along the dock to his rowboat, a girl digs in the sand by the palm trees, then she waves to him and he waves back.",
+  "terrain": {
+   "time_of_day": "sunrise",
+   "weather": "clear",
+   "biome": "sea",
+   "water": [
+    {
+     "shape": "pond",
+     "center": [
+      7.5,
+      8.5
+     ],
+     "radius": 4.8
+    }
+   ],
+   "paths": [
+    {
+     "points": [
+      [
+       3.6,
+       4.08
+      ],
+      [
+       -4.01,
+       -1.31
+      ],
+      [
+       1.67,
+       7.62
+      ]
+     ],
+     "width": 1.4
+    }
+   ]
+  },
+  "props": [
+   {
+    "key": "dock",
+    "library": "dock",
+    "position": [
+     5.25,
+     5.95
+    ],
+    "rotation": 41.0
+   },
+   {
+    "key": "sand",
+    "library": "sand-pit",
+    "position": [
+     -2.73,
+     -2.91
+    ],
+    "rotation": -39.0,
+    "generate": {
+     "prompt": "a small pile of golden sand at the harbor edge",
+     "size_m": 3.0,
+     "category": "nature"
+    }
+   },
+   {
+    "key": "rowboat",
+    "library": "rowboat",
+    "position": [
+     4.83,
+     8.1
+    ],
+    "rotation": -9.0
+   },
+   {
+    "key": "palm-tree-1",
+    "library": "palm-tree",
+    "position": [
+     -6.39,
+     -11.39
+    ],
+    "rotation": -120
+   },
+   {
+    "key": "palm-tree-2",
+    "library": "palm-tree",
+    "position": [
+     7.66,
+     -9.45
+    ],
+    "rotation": 0
+   },
+   {
+    "key": "palm-tree-3",
+    "library": "palm-tree",
+    "position": [
+     0.85,
+     -11.7
+    ],
+    "rotation": 0
+   },
+   {
+    "key": "rock-large-4",
+    "library": "rock-large",
+    "position": [
+     12.62,
+     -4.47
+    ],
+    "rotation": 105
+   },
+   {
+    "key": "rock-large-5",
+    "library": "rock-large",
+    "position": [
+     -11.4,
+     -4.56
+    ],
+    "rotation": 0
+   },
+   {
+    "key": "crate-6",
+    "library": "crate",
+    "position": [
+     5.7,
+     0.93
+    ],
+    "rotation": -150
+   },
+   {
+    "key": "crate-7",
+    "library": "crate",
+    "position": [
+     4.34,
+     1.04
+    ],
+    "rotation": 165
+   },
+   {
+    "key": "rowboat-8",
+    "library": "rowboat",
+    "position": [
+     7.63,
+     -1.61
+    ],
+    "rotation": 60
+   },
+   {
+    "key": "lily-pad-9",
+    "library": "lily-pad",
+    "position": [
+     7.65,
+     1.64
+    ],
+    "rotation": 135
+   },
+   {
+    "key": "lily-pad-10",
+    "library": "lily-pad",
+    "position": [
+     -1.36,
+     -7.28
+    ],
+    "rotation": 120
+   },
+   {
+    "key": "flower-yellow-11",
+    "library": "flower-yellow",
+    "position": [
+     -5.29,
+     -0.21
+    ],
+    "rotation": -105
+   },
+   {
+    "key": "flower-yellow-12",
+    "library": "flower-yellow",
+    "position": [
+     0.09,
+     -0.74
+    ],
+    "rotation": -90
+   },
+   {
+    "key": "flower-yellow-13",
+    "library": "flower-yellow",
+    "position": [
+     1.1,
+     -4.93
+    ],
+    "rotation": 90
+   }
+  ],
+  "cast": [
+   {
+    "id": "fisherman",
+    "name": "Fisherman",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      3.6,
+      4.08
+     ],
+     "facing": -29.0
+    },
+    "scale": 0.876
+   },
+   {
+    "id": "girl",
+    "name": "Girl",
+    "character": "avatar_female",
+    "start": {
+     "position": [
+      -3.83,
+      -1.55
+     ],
+     "facing": 141.0
+    },
+    "scale": 0.883
+   }
+  ],
+  "beats": [
+   {
+    "id": "fisherman-1",
+    "cast": "fisherman",
+    "start": 0.0,
+    "duration": 3.6,
+    "prompt": "A person walks forward carrying a crate.",
+    "action": "carries crate to rowboat",
+    "to": [
+     4.83,
+     8.1
+    ],
+    "motion": "walk"
+   },
+   {
+    "id": "girl-1",
+    "cast": "girl",
+    "start": 0.0,
+    "duration": 5.0,
+    "prompt": "A person digs in the sand with both hands.",
+    "action": "digs in sand",
+    "facing": "sand",
+    "motion": "dig"
+   },
+   {
+    "id": "fisherman-2",
+    "cast": "fisherman",
+    "start": 3.6,
+    "duration": 4.4,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits",
+    "facing": "girl",
+    "motion": "idle"
+   },
+   {
+    "id": "girl-2",
+    "cast": "girl",
+    "start": 5.0,
+    "duration": 6.0,
+    "prompt": "A person waves hello with their right hand.",
+    "action": "waves to fisherman",
+    "facing": "fisherman",
+    "motion": "wave"
+   },
+   {
+    "id": "fisherman-3",
+    "cast": "fisherman",
+    "start": 8.0,
+    "duration": 3.0,
+    "prompt": "A person waves back with their right hand.",
+    "action": "waves back",
+    "facing": "girl",
+    "motion": "wave"
+   }
+  ],
+  "shots": [
+   {
+    "id": "s1",
+    "start": 0.0,
+    "duration": 3.67,
+    "framing": "wide",
+    "subject": [
+     "fisherman",
+     "girl"
+    ],
+    "angle": 35
+   },
+   {
+    "id": "s2",
+    "start": 3.67,
+    "duration": 3.66,
+    "framing": "medium",
+    "subject": "fisherman",
+    "angle": -25
+   },
+   {
+    "id": "s3",
+    "start": 7.33,
+    "duration": 3.67,
+    "framing": "wide",
+    "subject": [
+     "fisherman",
+     "girl"
+    ],
+    "angle": 55
+   }
+  ]
+ }
+}

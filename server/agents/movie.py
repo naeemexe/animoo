@@ -494,8 +494,9 @@ BIOME_DECOR = {
 }
 # Decor that doesn't belong in a biome (the fill adds the city's buildings itself).
 NOT_IN = {"city": re.compile(r"^(tree|pine|bush|rock|flower|mushroom|grass|stump|log|house|wooden-cottage|city-)"),
-          "sea": re.compile(r"^(mushroom|stump|house|wooden-cottage|city-)"),
+          "sea": re.compile(r"^(mushroom|stump|house|wooden-cottage|city-|lily|flower)"),
           "park": re.compile(r"^(mushroom|stump|log|rock|city-)")}
+SETTING = re.compile(r"\b(street|road|sidewalk|square|plaza|path|park|lawn|beach|shore)\b", re.I)
 HOUSE_PART = re.compile(r"\b(window|door|doorstep|porch|balcony|room)\b", re.I)
 TOWN = re.compile(r"\b(village|street|town|houses?|cottages?|alley|square)\b", re.I)
 
@@ -537,6 +538,18 @@ def repair_world(raw: dict, plan: dict, manifest: dict, scene: str = "") -> tupl
         if houses and HOUSE_PART.search(f"{pl['key']} {pl['what']}") and c["library"] not in houses:
             fixes.append(f"{pl['key']}: {c['library']} → {houses[0]} (a {pl['key']} belongs to a house)")
             by_place[pl["key"]] = {"library": houses[0]}
+    big = {p["id"] for p in manifest["props"] if p.get("category") in ("city", "buildings")}
+    for pl in plan["places"]:
+        c = by_place[pl["key"]]
+        # The setting itself ("the street", "a park path") is no building: the fill makes it; a lamp marks the spot.
+        if SETTING.search(f"{pl['key']} {pl['what']}") and c["library"] in big and "lantern-post" in ids \
+                and not re.search(r"\b(shop|cafe|house|building|store|home)\b", pl["what"], re.I):
+            fixes.append(f"{pl['key']}: {c['library']} → lantern-post (the {pl['key']} is the set itself)")
+            by_place[pl["key"]] = {"library": "lantern-post"}
+        # A library prop named exactly like the place wins over a stand-in (hedge → hedge, not a pine).
+        elif pl["key"] in ids and pl["key"] not in c["library"] and not c.get("generate"):
+            fixes.append(f"{pl['key']}: {c['library']} → {pl['key']} (the library has one)")
+            by_place[pl["key"]] = {"library": pl["key"]}
     seats = {p["id"] for p in manifest["props"] if "seat" in p.get("tags", [])}
     for pl in plan["places"]:  # a seat must be something to sit on (a log stack is too tall)
         c = by_place[pl["key"]]
