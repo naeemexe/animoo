@@ -25,7 +25,7 @@ bootstrap() {
       cuda-toolkit-12-8 python3-venv python3-dev build-essential git
   fi
   if ! command -v cmake >/dev/null || ! command -v g++ >/dev/null; then
-    $SUDO apt-get install -y -qq g++ build-essential cmake ninja-build libgl1 libglib2.0-0 ffmpeg
+    $SUDO apt-get install -y -qq g++ g++-12 build-essential cmake ninja-build libgl1 libglib2.0-0 ffmpeg
   fi
   if ! python3 -c "import torch" 2>/dev/null; then
     echo "=== installing torch 2.8 (cu128) system-wide ==="
@@ -128,10 +128,20 @@ setup_image() {
   log "SANA-Sprint ready"
 }
 
+setup_llm() {
+  local V=/opt/venvs/vllm
+  log "vLLM + Nemotron Nano 9B v2 (self-hosted, no key, no rate limit)"
+  [ -d $V ] || python3 -m venv $V
+  $V/bin/pip install -q -U pip && $V/bin/pip install -q vllm
+  $V/bin/python -c "from huggingface_hub import snapshot_download as s; s('nvidia/NVIDIA-Nemotron-Nano-9B-v2')"
+  log "Nemotron ready (bash serve.sh start llm)"
+}
+
 case $PART in
   trellis) setup_trellis ;;
   kimodo)  setup_kimodo ;;
   image)   setup_image ;;
+  llm)     setup_llm ;;
   all)     setup_kimodo; setup_trellis; setup_image ;;
   *) echo "usage: $0 [all|trellis|kimodo|image]"; exit 1 ;;
 esac
