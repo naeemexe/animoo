@@ -1,0 +1,508 @@
+{
+ "scene": "two guy walking by the river and standing one points at the water and other then kinda gets excited then the keep walking\nChange: change it to night time",
+ "created": "2026-11-08T16:36:27+00:00",
+ "model": "nvidia/nemotron-3.5-super-vl-120b-a12b + nvidia/nemotron-3.5-lightning-30b-a3b",
+ "backend": "nvidia",
+ "llm_calls": 0,
+ "llm_seconds": [
+  4.19,
+  2.12
+ ],
+ "plan": {
+  "title": "Two guys by the river",
+  "thoughts": [
+   "Two male characters walking together along the riverbank.",
+   "Places: the river path where they walk and the riverside spot where they stop.",
+   "One points at the water, the other reacts excitedly, then they continue walking together."
+  ],
+  "time_of_day": "night",
+  "biome": "sea",
+  "weather": "clear",
+  "water": true,
+  "audio": {
+   "ambience": {
+    "prompt": "A calm river at golden hour with gentle water lapping, distant birdsong, and a soft breeze through the reeds.",
+    "layers": {
+     "waves": 0.5,
+     "birds": 0.4,
+     "wind": 0.3
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow acoustic guitar and ambient pads, gentle and hopeful, no drums, no vocals.",
+    "mood": "hopeful"
+   }
+  },
+  "places": [
+   {
+    "key": "river_path",
+    "what": "a path along the river",
+    "use": "stand"
+   },
+   {
+    "key": "riverside",
+    "what": "a spot by the river's edge",
+    "use": "stand"
+   }
+  ],
+  "cast": [
+   {
+    "id": "guy1",
+    "name": "Guy 1",
+    "character": "avatar_male",
+    "kid": false,
+    "starts_at": "river_path",
+    "look": {
+     "height_m": 1.75,
+     "top": "blue",
+     "bottom": "khaki",
+     "hair": "brown",
+     "skin": "light",
+     "accessory": "none",
+     "outfit": "casual",
+     "build": "average"
+    }
+   },
+   {
+    "id": "guy2",
+    "name": "Guy 2",
+    "character": "avatar_male",
+    "kid": false,
+    "starts_at": "river_path",
+    "look": {
+     "height_m": 1.8,
+     "top": "red",
+     "bottom": "navy",
+     "hair": "black",
+     "skin": "tan",
+     "accessory": "cap",
+     "outfit": "casual",
+     "build": "sturdy"
+    }
+   }
+  ],
+  "beats": [
+   {
+    "id": "b1",
+    "cast": "guy1",
+    "action": "walks beside guy2 along the river",
+    "do": "walk",
+    "duration": 6,
+    "move_to": "riverside"
+   },
+   {
+    "id": "b2",
+    "cast": "guy2",
+    "action": "walks beside guy1 along the river",
+    "do": "walk",
+    "duration": 6,
+    "move_to": "riverside",
+    "with": "b1"
+   },
+   {
+    "id": "b3",
+    "cast": "guy1",
+    "action": "points at the water",
+    "do": "point",
+    "duration": 3,
+    "face": "riverside"
+   },
+   {
+    "id": "b4",
+    "cast": "guy2",
+    "action": "gets excited",
+    "do": "cheer",
+    "duration": 4,
+    "face": "guy1",
+    "after": "b3"
+   },
+   {
+    "id": "b5",
+    "cast": "guy1",
+    "action": "continues walking along the river",
+    "do": "walk",
+    "duration": 5,
+    "move_to": "river_path"
+   },
+   {
+    "id": "b6",
+    "cast": "guy2",
+    "action": "continues walking beside guy1",
+    "do": "walk",
+    "duration": 5,
+    "move_to": "river_path",
+    "with": "b5"
+   }
+  ]
+ },
+ "world": {
+  "thoughts": [
+   "The river-path with its stand signpost and wooden bridge sets the forest scene.",
+   "A golden hour forest river: oak trees, bushes, yellow flowers and lily pads on the water."
+  ],
+  "choices": [
+   {
+    "place": "river-path",
+    "library": "signpost"
+   },
+   {
+    "place": "bridge-wood",
+    "library": "bridge-wood"
+   },
+   {
+    "place": "well",
+    "generate": {
+     "name": "stone well",
+     "prompt": "a round stone village well with a little wooden roof",
+     "size_m": 2.5,
+     "category": "village"
+    }
+   }
+  ],
+  "decor": [
+   {
+    "library": "tree-oak",
+    "count": 4,
+    "near": "edge"
+   },
+   {
+    "library": "bush",
+    "count": 3,
+    "near": "cottage"
+   },
+   {
+    "library": "flower-yellow",
+    "count": 3,
+    "near": "bench"
+   },
+   {
+    "library": "lily-pad",
+    "count": 2,
+    "near": "jetty"
+   }
+  ]
+ },
+ "script": {
+  "version": 1,
+  "title": "Two guys by the river",
+  "scene": "two guy walking by the river and standing one points at the water and other then kinda gets excited then the keep walking",
+  "terrain": {
+   "time_of_day": "golden",
+   "weather": "clear",
+   "biome": "forest",
+   "water": [
+    {
+     "shape": "pond",
+     "center": [
+      7.5,
+      8.5
+     ],
+     "radius": 4.8
+    }
+   ]
+  },
+  "props": [
+   {
+    "key": "river-path",
+    "library": "signpost",
+    "position": [
+     -3.07,
+     -2.49
+    ],
+    "rotation": -39.0
+   },
+   {
+    "key": "tree-oak-1",
+    "library": "tree-oak",
+    "position": [
+     -11.33,
+     7.83
+    ],
+    "rotation": 90
+   },
+   {
+    "key": "tree-oak-2",
+    "library": "tree-oak",
+    "position": [
+     10.42,
+     -9.48
+    ],
+    "rotation": -45
+   },
+   {
+    "key": "tree-oak-3",
+    "library": "tree-oak",
+    "position": [
+     -0.9,
+     -13.68
+    ],
+    "rotation": -75
+   },
+   {
+    "key": "tree-oak-4",
+    "library": "tree-oak",
+    "position": [
+     -11.58,
+     2.03
+    ],
+    "rotation": -30
+   },
+   {
+    "key": "bush-5",
+    "library": "bush",
+    "position": [
+     0.95,
+     -12.14
+    ],
+    "rotation": 165
+   },
+   {
+    "key": "bush-6",
+    "library": "bush",
+    "position": [
+     -6.97,
+     -0.99
+    ],
+    "rotation": -90
+   },
+   {
+    "key": "bush-7",
+    "library": "bush",
+    "position": [
+     -3.77,
+     -6.78
+    ],
+    "rotation": -30
+   },
+   {
+    "key": "flower-yellow-8",
+    "library": "flower-yellow",
+    "position": [
+     6.69,
+     -6.17
+    ],
+    "rotation": -30
+   },
+   {
+    "key": "flower-yellow-9",
+    "library": "flower-yellow",
+    "position": [
+     0.55,
+     -3.69
+    ],
+    "rotation": 15
+   },
+   {
+    "key": "flower-yellow-10",
+    "library": "flower-yellow",
+    "position": [
+     2.87,
+     2.59
+    ],
+    "rotation": -30
+   },
+   {
+    "key": "lily-pad-11",
+    "library": "lily-pad",
+    "position": [
+     -1.14,
+     -2.87
+    ],
+    "rotation": -150
+   },
+   {
+    "key": "lily-pad-12",
+    "library": "lily-pad",
+    "position": [
+     -9.18,
+     4.09
+    ],
+    "rotation": 150
+   }
+  ],
+  "cast": [
+   {
+    "id": "guy1",
+    "name": "Guy 1",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      -4.72,
+      4.31
+     ],
+     "facing": 166.0
+    },
+    "scale": 0.871,
+    "look": {
+     "top": "#2f5fb0",
+     "bottom": "#b5a46e",
+     "hair": "#5a3a22",
+     "skin": "#efc9ab",
+     "outfit": "casual"
+    }
+   },
+   {
+    "id": "guy2",
+    "name": "Guy 2",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      -5.61,
+      4.17
+     ],
+     "facing": 171.0
+    },
+    "scale": 0.896,
+    "look": {
+     "top": "#c8352e",
+     "bottom": "#23305e",
+     "hair": "#1d1a1c",
+     "skin": "#c48a5e",
+     "accessory": "cap",
+     "outfit": "casual",
+     "build": "sturdy"
+    }
+   }
+  ],
+  "beats": [
+   {
+    "id": "guy1-1",
+    "cast": "guy1",
+    "start": 0.0,
+    "duration": 4.8,
+    "prompt": "A person walks forward.",
+    "action": "walks beside guy2 along the river",
+    "to": [
+     -3.83,
+     -1.55
+    ],
+    "motion": "walk"
+   },
+   {
+    "id": "guy2-1",
+    "cast": "guy2",
+    "start": 0.0,
+    "duration": 4.8,
+    "prompt": "A person walks forward.",
+    "action": "walks beside guy1 along the river",
+    "to": [
+     -4.72,
+     -1.68
+    ],
+    "seed": 1,
+    "motion": "walk"
+   },
+   {
+    "id": "guy1-2",
+    "cast": "guy1",
+    "start": 4.8,
+    "duration": 7.0,
+    "prompt": "A person points straight ahead with their right arm.",
+    "action": "points at the water",
+    "facing": "river-path",
+    "motion": "point"
+   },
+   {
+    "id": "guy2-2",
+    "cast": "guy2",
+    "start": 4.8,
+    "duration": 3.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits",
+    "motion": "idle"
+   },
+   {
+    "id": "guy2-3",
+    "cast": "guy2",
+    "start": 7.8,
+    "duration": 4.0,
+    "prompt": "A person cheers with both arms raised.",
+    "action": "gets excited",
+    "facing": "guy1",
+    "motion": "cheer"
+   },
+   {
+    "id": "guy1-3",
+    "cast": "guy1",
+    "start": 11.8,
+    "duration": 5.0,
+    "prompt": "A person walks forward.",
+    "action": "continues walking along the river",
+    "facing": "river-path",
+    "motion": "walk"
+   },
+   {
+    "id": "guy2-4",
+    "cast": "guy2",
+    "start": 11.8,
+    "duration": 2.5,
+    "prompt": "A person walks forward.",
+    "action": "continues walking beside guy1",
+    "to": [
+     -2.83,
+     -1.3
+    ],
+    "motion": "walk"
+   },
+   {
+    "id": "guy2-5",
+    "cast": "guy2",
+    "start": 14.3,
+    "duration": 2.5,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits",
+    "motion": "idle"
+   }
+  ],
+  "shots": [
+   {
+    "id": "s1",
+    "start": 0.0,
+    "duration": 5.6,
+    "framing": "wide",
+    "subject": [
+     "guy1",
+     "guy2"
+    ],
+    "angle": 35
+   },
+   {
+    "id": "s2",
+    "start": 5.6,
+    "duration": 5.6,
+    "framing": "medium",
+    "subject": "guy1",
+    "angle": -25
+   },
+   {
+    "id": "s3",
+    "start": 11.2,
+    "duration": 5.6,
+    "framing": "wide",
+    "subject": [
+     "guy1",
+     "guy2"
+    ],
+    "angle": 55
+   }
+  ],
+  "audio": {
+   "ambience": {
+    "prompt": "A calm river at golden hour with gentle water lapping, distant birdsong, and a soft breeze through the reeds.",
+    "layers": {
+     "waves": 0.5,
+     "birds": 0.4,
+     "wind": 0.3
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow acoustic guitar and ambient pads, gentle and hopeful, no drums, no vocals.",
+    "mood": "hopeful"
+   },
+   "volume": 0.25,
+   "source": "nemotron"
+  }
+ },
+ "revised_from": "two guy walking by the river and standing one points at the water and other then kinda gets excited then the keep walking",
+ "request": "change it to night time"
+}

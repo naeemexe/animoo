@@ -1,0 +1,14 @@
+{
+ "kind": "ambience",
+ "prompt": "Town street ambience with distant traffic, footsteps on pavement, and soft chatter in the late afternoon.",
+ "endpoint": "/v1/sound-generation",
+ "body": {
+  "model_id": "eleven_text_to_sound_v2",
+  "loop": true,
+  "duration_seconds": 22,
+  "prompt_influence": 0.35
+ },
+ "bytes": 353218,
+ "seconds": 6.7,
+ "created": "2026-11-08T17:12:22+00:00"
+}

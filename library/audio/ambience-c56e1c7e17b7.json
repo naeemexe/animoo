@@ -1,0 +1,14 @@
+{
+ "kind": "ambience",
+ "prompt": "A quiet dock at sunrise with gentle waves lapping against the wood and distant seagulls calling.",
+ "endpoint": "/v1/sound-generation",
+ "body": {
+  "model_id": "eleven_text_to_sound_v2",
+  "loop": true,
+  "duration_seconds": 22,
+  "prompt_influence": 0.35
+ },
+ "bytes": 353218,
+ "seconds": 4.3,
+ "created": "2026-11-08T16:40:50+00:00"
+}

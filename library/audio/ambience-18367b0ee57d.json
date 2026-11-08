@@ -1,0 +1,14 @@
+{
+ "kind": "ambience",
+ "prompt": "A quiet seaside at golden hour with gentle waves lapping the shore and distant seagulls.",
+ "endpoint": "/v1/sound-generation",
+ "body": {
+  "model_id": "eleven_text_to_sound_v2",
+  "loop": true,
+  "duration_seconds": 22,
+  "prompt_influence": 0.35
+ },
+ "bytes": 353218,
+ "seconds": 4.4,
+ "created": "2026-11-08T17:06:24+00:00"
+}

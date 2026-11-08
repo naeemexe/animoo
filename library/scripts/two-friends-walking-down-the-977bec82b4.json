@@ -1,0 +1,399 @@
+{
+ "scene": "two friends walking down the town streetsn then stand and talking.\nChange: then they start walking again and gets into their room and sit down",
+ "part_text": "then they start walking again and gets into their room and sit down",
+ "previous": "two friends walking down the town streetsn then stand and talking.",
+ "request": "then they start walking again and gets into their room and sit down",
+ "plan": {
+  "title": "Back in the room",
+  "thoughts": [
+   "Two friends continue walking together into their room.",
+   "They arrive at the room and sit down to rest.",
+   "Same two friends from the previous part, same looks, new place: their room."
+  ],
+  "time_of_day": "golden",
+  "biome": "room",
+  "weather": "clear",
+  "water": false,
+  "audio": {
+   "ambience": {
+    "prompt": "A quiet room in the late afternoon with soft distant street sounds.",
+    "layers": {
+     "birds": 0.3,
+     "traffic": 0.2
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow warm acoustic guitar and felt piano, gentle and sparse, no drums, no vocals.",
+    "mood": "calm"
+   }
+  },
+  "places": [
+   {
+    "key": "street",
+    "what": "a town street",
+    "use": "stand"
+   },
+   {
+    "key": "room",
+    "what": "their room",
+    "use": "stand"
+   }
+  ],
+  "cast": [
+   {
+    "id": "friend1",
+    "name": "Friend 1",
+    "character": "avatar_male",
+    "kid": false,
+    "starts_at": "street",
+    "look": {
+     "height_m": 1.75,
+     "top": "navy",
+     "bottom": "khaki",
+     "hair": "brown",
+     "skin": "light",
+     "accessory": "none",
+     "outfit": "casual",
+     "build": "average"
+    }
+   },
+   {
+    "id": "friend2",
+    "name": "Friend 2",
+    "character": "avatar_female",
+    "kid": false,
+    "starts_at": "street",
+    "look": {
+     "height_m": 1.68,
+     "top": "red",
+     "bottom": "navy",
+     "hair": "blonde",
+     "skin": "light",
+     "accessory": "glasses",
+     "outfit": "casual",
+     "build": "slim"
+    }
+   }
+  ],
+  "beats": [
+   {
+    "id": "b1",
+    "cast": "friend1",
+    "action": "walks into the room beside friend2",
+    "do": "walk",
+    "duration": 6,
+    "move_to": "room",
+    "with": "b2"
+   },
+   {
+    "id": "b2",
+    "cast": "friend2",
+    "action": "walks into the room beside friend1",
+    "do": "walk",
+    "duration": 6,
+    "move_to": "room",
+    "with": "b1"
+   },
+   {
+    "id": "b3",
+    "cast": "friend1",
+    "action": "sits down in the room",
+    "do": "sit",
+    "duration": 4
+   },
+   {
+    "id": "b4",
+    "cast": "friend2",
+    "action": "sits down in the room",
+    "do": "sit",
+    "duration": 4
+   }
+  ]
+ },
+ "world": {
+  "thoughts": [
+   "The room is their cozy living space with furniture.",
+   "They sit on the sofa and armchair facing the coffee-table by the fireplace."
+  ],
+  "choices": [
+   {
+    "place": "room",
+    "library": "furniture"
+   },
+   {
+    "place": "armchair",
+    "library": "armchair"
+   },
+   {
+    "place": "sofa",
+    "library": "sofa"
+   },
+   {
+    "place": "coffee-table",
+    "library": "coffee-table"
+   },
+   {
+    "place": "fireplace",
+    "library": "fireplace"
+   }
+  ],
+  "decor": [
+   {
+    "library": "rug",
+    "count": 1,
+    "near": "room"
+   },
+   {
+    "library": "potted-plant",
+    "count": 1,
+    "near": "room"
+   },
+   {
+    "library": "bookshelf",
+    "count": 1,
+    "near": "room"
+   },
+   {
+    "library": "floor-lamp",
+    "count": 1,
+    "near": "room"
+   }
+  ]
+ },
+ "created": "2026-11-08T17:13:01+00:00",
+ "llm_calls": 2,
+ "script": {
+  "version": 1,
+  "title": "Back in the room",
+  "scene": "two friends walking down the town streetsn then stand and talking.\nChange: then they start walking again and gets into their room and sit down",
+  "terrain": {
+   "time_of_day": "golden",
+   "weather": "clear",
+   "biome": "room",
+   "paths": [
+    {
+     "points": [
+      [
+       -1.5,
+       -0.5
+      ],
+      [
+       1.84,
+       -0.4
+      ]
+     ],
+     "width": 1.4
+    }
+   ]
+  },
+  "props": [
+   {
+    "key": "street",
+    "library": "potted-plant",
+    "position": [
+     -1.07,
+     -1.77
+    ],
+    "rotation": -18.0
+   },
+   {
+    "key": "room",
+    "library": "armchair",
+    "position": [
+     2.49,
+     0.9
+    ],
+    "rotation": -153.0
+   },
+   {
+    "key": "room-2",
+    "library": "armchair",
+    "position": [
+     1.51,
+     1.39
+    ],
+    "rotation": -153.0
+   },
+   {
+    "key": "rug-1",
+    "library": "rug",
+    "position": [
+     3.64,
+     3.04
+    ],
+    "rotation": -130.0
+   },
+   {
+    "key": "potted-plant-2",
+    "library": "potted-plant",
+    "position": [
+     4.71,
+     1.41
+    ],
+    "rotation": -107.0
+   },
+   {
+    "key": "bookshelf-3",
+    "library": "bookshelf",
+    "position": [
+     4.37,
+     0.3
+    ],
+    "rotation": -94.0
+   },
+   {
+    "key": "floor-lamp-4",
+    "library": "floor-lamp",
+    "position": [
+     4.05,
+     -0.43
+    ],
+    "rotation": -84.0
+   }
+  ],
+  "cast": [
+   {
+    "id": "friend1",
+    "name": "Friend 1",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      -1.4,
+      -0.78
+     ],
+     "facing": 83.0
+    },
+    "scale": 0.871,
+    "look": {
+     "top": "#23305e",
+     "bottom": "#b5a46e",
+     "hair": "#5a3a22",
+     "skin": "#efc9ab",
+     "outfit": "casual"
+    }
+   },
+   {
+    "id": "friend2",
+    "name": "Friend 2",
+    "character": "avatar_female",
+    "start": {
+     "position": [
+      -1.08,
+      -1.62
+     ],
+     "facing": 69.0
+    },
+    "scale": 1.091,
+    "look": {
+     "top": "#c8352e",
+     "bottom": "#23305e",
+     "hair": "#e0c070",
+     "skin": "#efc9ab",
+     "accessory": "glasses",
+     "outfit": "casual",
+     "build": "slim"
+    }
+   }
+  ],
+  "beats": [
+   {
+    "id": "friend1-1",
+    "cast": "friend1",
+    "start": 0.0,
+    "duration": 3.5,
+    "prompt": "A person walks forward.",
+    "action": "walks into the room beside friend2",
+    "to": [
+     2.38,
+     0.68
+    ],
+    "motion": "walk"
+   },
+   {
+    "id": "friend2-1",
+    "cast": "friend2",
+    "start": 0.0,
+    "duration": 3.5,
+    "prompt": "A person walks forward.",
+    "action": "walks into the room beside friend1",
+    "to": [
+     2.7,
+     -0.16
+    ],
+    "seed": 1,
+    "motion": "walk"
+   },
+   {
+    "id": "friend1-2",
+    "cast": "friend1",
+    "start": 3.5,
+    "duration": 4.0,
+    "prompt": "A person sits down on a bench and rests.",
+    "action": "sits down in the room",
+    "facing": -153.0,
+    "motion": "sit_bench"
+   },
+   {
+    "id": "friend2-2",
+    "cast": "friend2",
+    "start": 3.5,
+    "duration": 4.0,
+    "prompt": "A person sits down on a bench and rests.",
+    "action": "sits down in the room",
+    "facing": -153.0,
+    "seed": 1,
+    "motion": "sit_bench"
+   }
+  ],
+  "shots": [
+   {
+    "id": "s1",
+    "start": 0.0,
+    "duration": 2.5,
+    "framing": "wide",
+    "subject": [
+     "friend1",
+     "friend2"
+    ],
+    "angle": 35
+   },
+   {
+    "id": "s2",
+    "start": 2.5,
+    "duration": 2.5,
+    "framing": "medium",
+    "subject": "friend1",
+    "angle": -25
+   },
+   {
+    "id": "s3",
+    "start": 5.0,
+    "duration": 2.5,
+    "framing": "wide",
+    "subject": [
+     "friend1",
+     "friend2"
+    ],
+    "angle": 55
+   }
+  ],
+  "audio": {
+   "ambience": {
+    "prompt": "A quiet room in the late afternoon with soft distant street sounds.",
+    "layers": {
+     "birds": 0.3,
+     "traffic": 0.2,
+     "wind": 0.08
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow warm acoustic guitar and felt piano, gentle and sparse, no drums, no vocals.",
+    "mood": "calm"
+   },
+   "volume": 0.25,
+   "source": "nemotron"
+  },
+  "previous": "two friends walking down the town streetsn then stand and talking.",
+  "part_text": "then they start walking again and gets into their room and sit down"
+ }
+}

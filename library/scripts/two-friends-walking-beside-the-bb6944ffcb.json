@@ -1,0 +1,480 @@
+{
+ "scene": "two friends walking beside the sea then stop and talks with each other smiles\nChange: change it to night time",
+ "created": "2026-11-08T17:06:34+00:00",
+ "model": "nvidia/nemotron-3.5-super-vl-120b-a12b + nvidia/nemotron-3.5-lightning-30b-a3b",
+ "backend": "nvidia",
+ "llm_calls": 0,
+ "llm_seconds": [
+  5.4,
+  3.1
+ ],
+ "plan": {
+  "title": "Two friends by the sea",
+  "thoughts": [
+   "Two friends walk side by side along the seaside, then stop and talk and smile.",
+   "Places: the seaside path where they start and a bench by the water where they stop.",
+   "They walk together, arrive at the bench, sit, then talk and smile at each other."
+  ],
+  "time_of_day": "night",
+  "biome": "sea",
+  "weather": "clear",
+  "water": true,
+  "audio": {
+   "ambience": {
+    "prompt": "A quiet seaside at golden hour with gentle waves lapping the shore and distant seagulls.",
+    "layers": {
+     "waves": 0.7,
+     "birds": 0.3
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow acoustic guitar and ambient pads, gentle and warm, no drums, no vocals.",
+    "mood": "warm"
+   }
+  },
+  "places": [
+   {
+    "key": "seaside",
+    "what": "a seaside path",
+    "use": "stand"
+   },
+   {
+    "key": "bench",
+    "what": "a wooden bench by the sea",
+    "use": "sit"
+   }
+  ],
+  "cast": [
+   {
+    "id": "friend1",
+    "name": "Friend 1",
+    "character": "avatar_male",
+    "kid": false,
+    "starts_at": "seaside",
+    "look": {
+     "height_m": 1.75,
+     "top": "navy",
+     "bottom": "khaki",
+     "hair": "brown",
+     "skin": "light",
+     "accessory": "none",
+     "outfit": "casual",
+     "build": "average"
+    }
+   },
+   {
+    "id": "friend2",
+    "name": "Friend 2",
+    "character": "avatar_female",
+    "kid": false,
+    "starts_at": "seaside",
+    "look": {
+     "height_m": 1.65,
+     "top": "white",
+     "bottom": "blue",
+     "hair": "blonde",
+     "skin": "light",
+     "accessory": "none",
+     "outfit": "casual",
+     "build": "slim"
+    }
+   }
+  ],
+  "beats": [
+   {
+    "id": "b1",
+    "cast": "friend1",
+    "action": "walks beside friend2 along the seaside",
+    "do": "walk",
+    "duration": 6,
+    "move_to": "bench"
+   },
+   {
+    "id": "b2",
+    "cast": "friend2",
+    "action": "walks beside friend1 along the seaside",
+    "do": "walk",
+    "duration": 6,
+    "move_to": "bench",
+    "with": "b1"
+   },
+   {
+    "id": "b3",
+    "cast": "friend1",
+    "action": "sits down on the bench",
+    "do": "sit",
+    "duration": 4
+   },
+   {
+    "id": "b4",
+    "cast": "friend2",
+    "action": "sits down on the bench",
+    "do": "sit",
+    "duration": 4,
+    "after": "b3"
+   },
+   {
+    "id": "b5",
+    "cast": "friend1",
+    "action": "talks with friend2",
+    "do": "talk",
+    "duration": 5,
+    "face": "friend2"
+   },
+   {
+    "id": "b6",
+    "cast": "friend2",
+    "action": "talks with friend1",
+    "do": "talk",
+    "duration": 5,
+    "face": "friend1",
+    "after": "b5"
+   },
+   {
+    "id": "b7",
+    "cast": "friend1",
+    "action": "smiles at friend2",
+    "do": "idle",
+    "duration": 3,
+    "face": "friend2",
+    "after": "b6"
+   },
+   {
+    "id": "b8",
+    "cast": "friend2",
+    "action": "smiles at friend1",
+    "do": "idle",
+    "duration": 3,
+    "face": "friend1",
+    "after": "b7"
+   }
+  ]
+ },
+ "world": {
+  "thoughts": [
+   "The signpost and bench are in the library; the jetty is a small dock for a seaside path.",
+   "A golden hour sea-side scene with a bench, driftwood, and a distant lighthouse."
+  ],
+  "choices": [
+   {
+    "place": "signpost",
+    "library": "signpost"
+   },
+   {
+    "place": "bench",
+    "library": "bench"
+   },
+   {
+    "place": "jetty",
+    "generate": {
+     "name": "dock-small",
+     "prompt": "a small wooden dock extending into the sea",
+     "size_m": 3,
+     "category": "water"
+    }
+   },
+   {
+    "place": "lighthouse",
+    "generate": {
+     "name": "stone lighthouse",
+     "prompt": "a tall stone lighthouse with a red roof",
+     "size_m": 25,
+     "category": "buildings"
+    }
+   }
+  ],
+  "decor": [
+   {
+    "library": "bush-small",
+    "count": 2,
+    "near": "bench"
+   },
+   {
+    "library": "flower-yellow",
+    "count": 3,
+    "near": "bench"
+   },
+   {
+    "library": "rock-large",
+    "count": 2,
+    "near": "edge"
+   },
+   {
+    "library": "lily-pad",
+    "count": 2,
+    "near": "jetty"
+   }
+  ]
+ },
+ "script": {
+  "version": 1,
+  "title": "Two friends by the sea",
+  "scene": "two friends walking beside the sea then stop and talks with each other smiles",
+  "terrain": {
+   "time_of_day": "golden",
+   "weather": "clear",
+   "biome": "sea",
+   "water": [
+    {
+     "shape": "pond",
+     "center": [
+      7.5,
+      8.5
+     ],
+     "radius": 4.8
+    }
+   ]
+  },
+  "props": [
+   {
+    "key": "seaside",
+    "library": "signpost",
+    "position": [
+     -3.07,
+     -2.49
+    ],
+    "rotation": -39.0
+   },
+   {
+    "key": "bench",
+    "library": "bench",
+    "position": [
+     -1.7,
+     -0.63
+    ],
+    "rotation": -54.0
+   },
+   {
+    "key": "bush-small-1",
+    "library": "bush-small",
+    "position": [
+     -2.75,
+     3.28
+    ],
+    "rotation": -45
+   },
+   {
+    "key": "bush-small-2",
+    "library": "bush-small",
+    "position": [
+     -5.16,
+     2.06
+    ],
+    "rotation": 30
+   },
+   {
+    "key": "rock-large-3",
+    "library": "rock-large",
+    "position": [
+     -8.15,
+     -12.32
+    ],
+    "rotation": -165
+   },
+   {
+    "key": "rock-large-4",
+    "library": "rock-large",
+    "position": [
+     1.29,
+     -12.75
+    ],
+    "rotation": -135
+   }
+  ],
+  "cast": [
+   {
+    "id": "friend1",
+    "name": "Friend 1",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      -3.83,
+      -1.55
+     ],
+     "facing": 112.0
+    },
+    "scale": 0.871,
+    "look": {
+     "top": "#23305e",
+     "bottom": "#b5a46e",
+     "hair": "#5a3a22",
+     "skin": "#efc9ab",
+     "outfit": "casual"
+    }
+   },
+   {
+    "id": "friend2",
+    "name": "Friend 2",
+    "character": "avatar_female",
+    "start": {
+     "position": [
+      -3.66,
+      -2.43
+     ],
+     "facing": 79.0
+    },
+    "scale": 1.071,
+    "look": {
+     "top": "#f2f0ea",
+     "bottom": "#2f5fb0",
+     "hair": "#e0c070",
+     "skin": "#efc9ab",
+     "outfit": "casual",
+     "build": "slim"
+    }
+   }
+  ],
+  "beats": [
+   {
+    "id": "friend1-1",
+    "cast": "friend1",
+    "start": 0.0,
+    "duration": 2.5,
+    "prompt": "A person walks forward.",
+    "action": "walks beside friend2 along the seaside",
+    "to": [
+     -1.48,
+     -1.1
+    ],
+    "motion": "walk"
+   },
+   {
+    "id": "friend2-1",
+    "cast": "friend2",
+    "start": 0.0,
+    "duration": 2.5,
+    "prompt": "A person walks forward.",
+    "action": "walks beside friend1 along the seaside",
+    "to": [
+     -1.31,
+     -1.98
+    ],
+    "seed": 1,
+    "motion": "walk"
+   },
+   {
+    "id": "friend1-2",
+    "cast": "friend1",
+    "start": 2.5,
+    "duration": 5.0,
+    "prompt": "A person talks, gesturing with both hands.",
+    "action": "talks with friend2",
+    "facing": "friend2",
+    "motion": "talk"
+   },
+   {
+    "id": "friend2-2",
+    "cast": "friend2",
+    "start": 2.5,
+    "duration": 5.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits",
+    "facing": "friend1",
+    "motion": "idle"
+   },
+   {
+    "id": "friend1-3",
+    "cast": "friend1",
+    "start": 7.5,
+    "duration": 5.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits",
+    "facing": "friend2",
+    "seed": 1,
+    "motion": "idle"
+   },
+   {
+    "id": "friend2-3",
+    "cast": "friend2",
+    "start": 7.5,
+    "duration": 5.0,
+    "prompt": "A person talks, gesturing with both hands.",
+    "action": "talks with friend1",
+    "facing": "friend1",
+    "seed": 1,
+    "motion": "talk"
+   },
+   {
+    "id": "friend1-4",
+    "cast": "friend1",
+    "start": 12.5,
+    "duration": 6.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "smiles at friend2",
+    "facing": "friend2",
+    "motion": "idle"
+   },
+   {
+    "id": "friend2-4",
+    "cast": "friend2",
+    "start": 12.5,
+    "duration": 3.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits",
+    "facing": "friend1",
+    "motion": "idle"
+   },
+   {
+    "id": "friend2-5",
+    "cast": "friend2",
+    "start": 15.5,
+    "duration": 3.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "smiles at friend1",
+    "facing": "friend1",
+    "seed": 1,
+    "motion": "idle"
+   }
+  ],
+  "shots": [
+   {
+    "id": "s1",
+    "start": 0.0,
+    "duration": 6.17,
+    "framing": "wide",
+    "subject": [
+     "friend1",
+     "friend2"
+    ],
+    "angle": 35
+   },
+   {
+    "id": "s2",
+    "start": 6.17,
+    "duration": 6.16,
+    "framing": "medium",
+    "subject": "friend1",
+    "angle": -25
+   },
+   {
+    "id": "s3",
+    "start": 12.33,
+    "duration": 6.17,
+    "framing": "wide",
+    "subject": [
+     "friend1",
+     "friend2"
+    ],
+    "angle": 55
+   }
+  ],
+  "audio": {
+   "ambience": {
+    "prompt": "A quiet seaside at golden hour with gentle waves lapping the shore and distant seagulls.",
+    "layers": {
+     "waves": 0.7,
+     "birds": 0.3,
+     "wind": 0.25
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow acoustic guitar and ambient pads, gentle and warm, no drums, no vocals.",
+    "mood": "warm"
+   },
+   "volume": 0.25,
+   "source": "nemotron"
+  }
+ },
+ "revised_from": "two friends walking beside the sea then stop and talks with each other smiles",
+ "request": "change it to night time"
+}

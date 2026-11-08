@@ -1,0 +1,14 @@
+{
+ "kind": "ambience",
+ "prompt": "Ambient soundscape in a quiet forest village at night: soft rain, a gentle breeze, night crickets. Seamless loop, natural, no music, no voices.",
+ "endpoint": "/v1/sound-generation",
+ "body": {
+  "model_id": "eleven_text_to_sound_v2",
+  "loop": true,
+  "duration_seconds": 22,
+  "prompt_influence": 0.35
+ },
+ "bytes": 353218,
+ "seconds": 4.5,
+ "created": "2026-11-08T17:10:32+00:00"
+}

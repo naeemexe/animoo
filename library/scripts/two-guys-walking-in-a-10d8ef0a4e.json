@@ -1,0 +1,525 @@
+{
+ "scene": "two guys walking in a city street while talking to each other then the stop in front of a shop . dabs each other and one guy leaves\nChange: make it night time",
+ "created": "2026-11-08T16:38:22+00:00",
+ "model": "nvidia/nemotron-3.5-super-vl-120b-a12b + nvidia/nemotron-3.5-lightning-30b-a3b",
+ "backend": "nvidia",
+ "llm_calls": 0,
+ "llm_seconds": [
+  5.65,
+  2.75
+ ],
+ "plan": {
+  "title": "Two guys on a city street",
+  "thoughts": [
+   "Two male characters walk side by side down a city street while talking.",
+   "They stop in front of a shop, fist bump, then one guy leaves the scene.",
+   "City street by day with traffic ambience and a soft hopeful instrumental bed."
+  ],
+  "time_of_day": "night",
+  "biome": "city",
+  "weather": "clear",
+  "water": false,
+  "audio": {
+   "ambience": {
+    "prompt": "A busy city street by day: distant traffic, car horns, footsteps on pavement and faint chatter.",
+    "layers": {
+     "traffic": 0.7,
+     "birds": 0.2,
+     "murmur": 0.4
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow hopeful instrumental bed with gentle piano and light strings, no drums, no vocals.",
+    "mood": "hopeful"
+   }
+  },
+  "places": [
+   {
+    "key": "street",
+    "what": "a city street",
+    "use": "stand"
+   },
+   {
+    "key": "shop",
+    "what": "a storefront on the street",
+    "use": "stand"
+   }
+  ],
+  "cast": [
+   {
+    "id": "guy1",
+    "name": "Guy 1",
+    "character": "avatar_male",
+    "kid": false,
+    "starts_at": "street",
+    "look": {
+     "height_m": 1.78,
+     "top": "navy",
+     "bottom": "khaki",
+     "hair": "brown",
+     "skin": "light",
+     "accessory": "none",
+     "outfit": "casual",
+     "build": "average"
+    }
+   },
+   {
+    "id": "guy2",
+    "name": "Guy 2",
+    "character": "avatar_male",
+    "kid": false,
+    "starts_at": "street",
+    "look": {
+     "height_m": 1.72,
+     "top": "gray",
+     "bottom": "blue",
+     "hair": "black",
+     "skin": "tan",
+     "accessory": "cap",
+     "outfit": "casual",
+     "build": "slim"
+    }
+   }
+  ],
+  "beats": [
+   {
+    "id": "b1",
+    "cast": "guy1",
+    "action": "walks down the street talking",
+    "do": "walk",
+    "duration": 6,
+    "move_to": "shop",
+    "with": "b2"
+   },
+   {
+    "id": "b2",
+    "cast": "guy2",
+    "action": "walks down the street talking beside guy1",
+    "do": "walk",
+    "duration": 6,
+    "move_to": "shop",
+    "with": "b1"
+   },
+   {
+    "id": "b3",
+    "cast": "guy1",
+    "action": "stops in front of the shop",
+    "do": "idle",
+    "duration": 3,
+    "face": "guy2"
+   },
+   {
+    "id": "b4",
+    "cast": "guy2",
+    "action": "stops beside guy1 in front of the shop",
+    "do": "idle",
+    "duration": 3,
+    "face": "guy1",
+    "with": "b3"
+   },
+   {
+    "id": "b5",
+    "cast": "guy1",
+    "action": "fist bumps guy2",
+    "do": "fist_bump",
+    "duration": 3,
+    "face": "guy2",
+    "with": "b6"
+   },
+   {
+    "id": "b6",
+    "cast": "guy2",
+    "action": "fist bumps guy1",
+    "do": "fist_bump",
+    "duration": 3,
+    "face": "guy1",
+    "with": "b5"
+   },
+   {
+    "id": "b7",
+    "cast": "guy2",
+    "action": "leaves the scene",
+    "do": "walk",
+    "duration": 5,
+    "leave": true
+   }
+  ]
+ },
+ "world": {
+  "thoughts": [
+   "The two guys walk on the street, stop at the shop, dab, and one leaves.",
+   "A city street with a shop front and city props."
+  ],
+  "choices": [
+   {
+    "place": "street",
+    "library": "city-building-low"
+   },
+   {
+    "place": "shop",
+    "library": "market-stall"
+   },
+   {
+    "place": "dab",
+    "generate": {
+     "name": "dab",
+     "prompt": "a dabbing gesture",
+     "size_m": 0.5,
+     "category": "vehicles"
+    }
+   },
+   {
+    "place": "leaving",
+    "generate": {
+     "name": "guy-leaving",
+     "prompt": "a person walking away",
+     "size_m": 1.8,
+     "category": "vehicles"
+    }
+   }
+  ],
+  "decor": [
+   {
+    "library": "tree-oak",
+    "count": 2,
+    "near": "edge"
+   },
+   {
+    "library": "bush",
+    "count": 3,
+    "near": "street"
+   },
+   {
+    "library": "flower-yellow",
+    "count": 3,
+    "near": "shop"
+   },
+   {
+    "library": "lantern-post",
+    "count": 2,
+    "near": "street"
+   },
+   {
+    "library": "crate",
+    "count": 2,
+    "near": "shop"
+   },
+   {
+    "library": "bench",
+    "count": 1,
+    "near": "street"
+   }
+  ]
+ },
+ "script": {
+  "version": 1,
+  "title": "Two guys on a city street",
+  "scene": "two guys walking in a city street while talking to each other then the stop in front of a shop . dabs each other and one guy leaves",
+  "terrain": {
+   "time_of_day": "day",
+   "weather": "clear",
+   "biome": "city",
+   "paths": [
+    {
+     "points": [
+      [
+       -3.53,
+       -1.18
+      ],
+      [
+       4.36,
+       -0.93
+      ]
+     ],
+     "width": 1.4
+    }
+   ]
+  },
+  "props": [
+   {
+    "key": "shop",
+    "library": "market-stall",
+    "position": [
+     5.27,
+     0.9
+    ],
+    "rotation": -153.0
+   },
+   {
+    "key": "lantern-post-1",
+    "library": "lantern-post",
+    "position": [
+     16.65,
+     4.0
+    ],
+    "rotation": 0
+   },
+   {
+    "key": "lantern-post-2",
+    "library": "lantern-post",
+    "position": [
+     -4.0,
+     16.65
+    ],
+    "rotation": 90
+   },
+   {
+    "key": "crate-3",
+    "library": "crate",
+    "position": [
+     15.4,
+     14.0
+    ],
+    "rotation": 0
+   },
+   {
+    "key": "crate-4",
+    "library": "crate",
+    "position": [
+     -14.0,
+     15.4
+    ],
+    "rotation": 90
+   },
+   {
+    "key": "bench-5",
+    "library": "bench",
+    "position": [
+     15.5,
+     0.0
+    ],
+    "rotation": 0.0
+   }
+  ],
+  "cast": [
+   {
+    "id": "guy1",
+    "name": "Guy 1",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      -3.44,
+      -1.46
+     ],
+     "facing": 86.0
+    },
+    "scale": 0.886,
+    "look": {
+     "top": "#23305e",
+     "bottom": "#b5a46e",
+     "hair": "#5a3a22",
+     "skin": "#efc9ab",
+     "outfit": "casual"
+    }
+   },
+   {
+    "id": "guy2",
+    "name": "Guy 2",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      -3.35,
+      -2.36
+     ],
+     "facing": 84.0
+    },
+    "scale": 0.856,
+    "look": {
+     "top": "#8a8a8f",
+     "bottom": "#2f5fb0",
+     "hair": "#1d1a1c",
+     "skin": "#c48a5e",
+     "accessory": "cap",
+     "outfit": "casual",
+     "build": "slim"
+    }
+   }
+  ],
+  "beats": [
+   {
+    "id": "guy1-1",
+    "cast": "guy1",
+    "start": 0.0,
+    "duration": 6.2,
+    "prompt": "A person walks forward.",
+    "action": "walks down the street talking",
+    "to": [
+     4.49,
+     -0.66
+    ],
+    "motion": "walk"
+   },
+   {
+    "id": "guy2-1",
+    "cast": "guy2",
+    "start": 0.0,
+    "duration": 6.2,
+    "prompt": "A person walks forward.",
+    "action": "walks down the street talking beside guy1",
+    "to": [
+     4.58,
+     -1.56
+    ],
+    "seed": 1,
+    "motion": "walk"
+   },
+   {
+    "id": "guy1-2",
+    "cast": "guy1",
+    "start": 6.2,
+    "duration": 3.0,
+    "prompt": "A person talks, gesturing with both hands.",
+    "action": "talks to guy2",
+    "facing": "guy2",
+    "motion": "talk"
+   },
+   {
+    "id": "guy2-2",
+    "cast": "guy2",
+    "start": 6.2,
+    "duration": 3.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits",
+    "facing": "guy1",
+    "motion": "idle"
+   },
+   {
+    "id": "guy1-3",
+    "cast": "guy1",
+    "start": 9.2,
+    "duration": 3.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits",
+    "facing": "guy2",
+    "seed": 1,
+    "motion": "idle"
+   },
+   {
+    "id": "guy2-3",
+    "cast": "guy2",
+    "start": 9.2,
+    "duration": 3.0,
+    "prompt": "A person talks, gesturing with both hands.",
+    "action": "talks to guy1",
+    "facing": "guy1",
+    "seed": 1,
+    "motion": "talk"
+   },
+   {
+    "id": "guy1-4",
+    "cast": "guy1",
+    "start": 12.2,
+    "duration": 3.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "stops in front of the shop",
+    "facing": "guy2",
+    "seed": 2,
+    "motion": "idle"
+   },
+   {
+    "id": "guy2-4",
+    "cast": "guy2",
+    "start": 12.2,
+    "duration": 3.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "stops beside guy1 in front of the shop",
+    "facing": "guy1",
+    "seed": 3,
+    "motion": "idle"
+   },
+   {
+    "id": "guy1-5",
+    "cast": "guy1",
+    "start": 15.2,
+    "duration": 3.0,
+    "prompt": "A person gives a fist bump, reaching one fist forward.",
+    "action": "fist bumps guy2",
+    "facing": "guy2",
+    "motion": "fist_bump"
+   },
+   {
+    "id": "guy2-5",
+    "cast": "guy2",
+    "start": 15.2,
+    "duration": 3.0,
+    "prompt": "A person gives a fist bump, reaching one fist forward.",
+    "action": "fist bumps guy1",
+    "facing": "guy1",
+    "seed": 1,
+    "motion": "fist_bump"
+   },
+   {
+    "id": "guy1-6",
+    "cast": "guy1",
+    "start": 18.2,
+    "duration": 6.9,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits",
+    "motion": "idle"
+   },
+   {
+    "id": "guy2-6",
+    "cast": "guy2",
+    "start": 18.2,
+    "duration": 6.9,
+    "prompt": "A person walks forward.",
+    "action": "leaves the scene",
+    "to": [
+     13.54,
+     -0.65
+    ],
+    "motion": "walk"
+   }
+  ],
+  "shots": [
+   {
+    "id": "s1",
+    "start": 0.0,
+    "duration": 8.37,
+    "framing": "wide",
+    "subject": [
+     "guy1",
+     "guy2"
+    ],
+    "angle": 35
+   },
+   {
+    "id": "s2",
+    "start": 8.37,
+    "duration": 8.36,
+    "framing": "medium",
+    "subject": "guy1",
+    "angle": -25
+   },
+   {
+    "id": "s3",
+    "start": 16.73,
+    "duration": 8.37,
+    "framing": "wide",
+    "subject": [
+     "guy1",
+     "guy2"
+    ],
+    "angle": 55
+   }
+  ],
+  "audio": {
+   "ambience": {
+    "prompt": "A busy city street by day: distant traffic, car horns, footsteps on pavement and faint chatter.",
+    "layers": {
+     "traffic": 0.7,
+     "murmur": 0.4,
+     "birds": 0.2
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow hopeful instrumental bed with gentle piano and light strings, no drums, no vocals.",
+    "mood": "hopeful"
+   },
+   "volume": 0.25,
+   "source": "nemotron"
+  }
+ },
+ "revised_from": "two guys walking in a city street while talking to each other then the stop in front of a shop . dabs each other and one guy leaves",
+ "request": "make it night time"
+}

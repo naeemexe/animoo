@@ -1,0 +1,14 @@
+{
+ "kind": "ambience",
+ "prompt": "A quiet room inside a building with soft distant street noise and gentle room tone.",
+ "endpoint": "/v1/sound-generation",
+ "body": {
+  "model_id": "eleven_text_to_sound_v2",
+  "loop": true,
+  "duration_seconds": 22,
+  "prompt_influence": 0.35
+ },
+ "bytes": 353218,
+ "seconds": 4.8,
+ "created": "2026-11-08T17:01:53+00:00"
+}

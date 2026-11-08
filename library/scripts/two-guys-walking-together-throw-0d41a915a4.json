@@ -1,0 +1,520 @@
+{
+ "scene": "two guys walking together throw city streets and stop in front of a coffee shop. talks to each other",
+ "created": "2026-11-08T16:47:42+00:00",
+ "model": "nvidia/nemotron-3.5-super-vl-120b-a12b + nvidia/nemotron-3.5-lightning-30b-a3b",
+ "backend": "nvidia",
+ "llm_calls": [
+  {
+   "agent": "orchestrator",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+   "ok": true,
+   "seconds": 4.05
+  },
+  {
+   "agent": "world",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+   "ok": true,
+   "seconds": 2.16
+  }
+ ],
+ "llm_seconds": [
+  4.05,
+  2.16
+ ],
+ "plan": {
+  "title": "Two guys walk to a coffee shop",
+  "thoughts": [
+   "Two male friends walking side by side along city streets.",
+   "They stop in front of a coffee shop and talk to each other.",
+   "City daytime setting with street ambience and soft music."
+  ],
+  "time_of_day": "day",
+  "biome": "city",
+  "weather": "clear",
+  "water": false,
+  "audio": {
+   "ambience": {
+    "prompt": "City streets during the day with distant traffic, footsteps, and light chatter.",
+    "layers": {
+     "traffic": 0.5,
+     "birds": 0.2,
+     "murmur": 0.3
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow instrumental bed with acoustic guitar and light piano, no drums, no vocals.",
+    "mood": "calm"
+   }
+  },
+  "places": [
+   {
+    "key": "street",
+    "what": "a city street",
+    "use": "stand"
+   },
+   {
+    "key": "coffee_shop",
+    "what": "a coffee shop",
+    "use": "stand"
+   }
+  ],
+  "cast": [
+   {
+    "id": "guy1",
+    "name": "Guy 1",
+    "character": "avatar_male",
+    "kid": false,
+    "starts_at": "street",
+    "look": {
+     "height_m": 1.75,
+     "top": "navy",
+     "bottom": "khaki",
+     "hair": "brown",
+     "skin": "light",
+     "accessory": "none",
+     "outfit": "casual",
+     "build": "average"
+    }
+   },
+   {
+    "id": "guy2",
+    "name": "Guy 2",
+    "character": "avatar_male",
+    "kid": false,
+    "starts_at": "street",
+    "look": {
+     "height_m": 1.7,
+     "top": "gray",
+     "bottom": "black",
+     "hair": "black",
+     "skin": "tan",
+     "accessory": "cap",
+     "outfit": "casual",
+     "build": "slim"
+    }
+   }
+  ],
+  "beats": [
+   {
+    "id": "b1",
+    "cast": "guy1",
+    "action": "walks along the street beside guy2",
+    "do": "walk",
+    "duration": 8,
+    "move_to": "coffee_shop"
+   },
+   {
+    "id": "b2",
+    "cast": "guy2",
+    "action": "walks along the street beside guy1",
+    "do": "walk",
+    "duration": 8,
+    "move_to": "coffee_shop",
+    "with": "b1"
+   },
+   {
+    "id": "b3",
+    "cast": "guy1",
+    "action": "stops in front of the coffee shop",
+    "do": "idle",
+    "duration": 3
+   },
+   {
+    "id": "b4",
+    "cast": "guy2",
+    "action": "stops in front of the coffee shop",
+    "do": "idle",
+    "duration": 3,
+    "after": "b3"
+   },
+   {
+    "id": "b5",
+    "cast": "guy1",
+    "action": "talks to guy2",
+    "do": "talk",
+    "duration": 5,
+    "face": "guy2"
+   },
+   {
+    "id": "b6",
+    "cast": "guy2",
+    "action": "answers guy1",
+    "do": "talk",
+    "duration": 5,
+    "face": "guy1",
+    "after": "b5"
+   }
+  ]
+ },
+ "world": {
+  "thoughts": [
+   "The city street has tall buildings and a coffee shop stand. Two characters walk and stop at the shop.",
+   "A city coffee shop scene with street furniture and a bench for the characters to stand by."
+  ],
+  "choices": [
+   {
+    "place": "street",
+    "library": "city-building-low"
+   },
+   {
+    "place": "coffee-shop",
+    "library": "market-stall"
+   },
+   {
+    "place": "bench",
+    "library": "bench"
+   },
+   {
+    "place": "well",
+    "generate": {
+     "name": "stone well",
+     "prompt": "a round stone village well with a little wooden roof",
+     "size_m": 2.5,
+     "category": "village"
+    }
+   }
+  ],
+  "decor": [
+   {
+    "library": "tree-oak",
+    "count": 2,
+    "near": "edge"
+   },
+   {
+    "library": "bush",
+    "count": 3,
+    "near": "cottage"
+   },
+   {
+    "library": "flower-yellow",
+    "count": 3,
+    "near": "bench"
+   },
+   {
+    "library": "lily-pad",
+    "count": 2,
+    "near": "jetty"
+   }
+  ]
+ },
+ "script": {
+  "version": 1,
+  "title": "Two guys walk to a coffee shop",
+  "scene": "two guys walking together throw city streets and stop in front of a coffee shop. talks to each other",
+  "terrain": {
+   "time_of_day": "day",
+   "weather": "clear",
+   "biome": "city",
+   "paths": [
+    {
+     "points": [
+      [
+       -3.53,
+       -1.18
+      ],
+      [
+       4.36,
+       -0.93
+      ]
+     ],
+     "width": 1.4
+    }
+   ]
+  },
+  "props": [
+   {
+    "key": "coffee-shop",
+    "library": "market-stall",
+    "position": [
+     5.27,
+     0.9
+    ],
+    "rotation": -153.0
+   },
+   {
+    "key": "lantern-post-1",
+    "library": "lantern-post",
+    "position": [
+     16.65,
+     4.0
+    ],
+    "rotation": 0
+   },
+   {
+    "key": "lantern-post-2",
+    "library": "lantern-post",
+    "position": [
+     -4.0,
+     16.65
+    ],
+    "rotation": 90
+   },
+   {
+    "key": "lantern-post-3",
+    "library": "lantern-post",
+    "position": [
+     -16.65,
+     -4.0
+    ],
+    "rotation": 0
+   },
+   {
+    "key": "lantern-post-4",
+    "library": "lantern-post",
+    "position": [
+     4.0,
+     -16.65
+    ],
+    "rotation": 90
+   },
+   {
+    "key": "bench-5",
+    "library": "bench",
+    "position": [
+     15.5,
+     0.0
+    ],
+    "rotation": 0.0
+   },
+   {
+    "key": "bench-6",
+    "library": "bench",
+    "position": [
+     0.0,
+     15.5
+    ],
+    "rotation": -90.0
+   },
+   {
+    "key": "hedge-7",
+    "library": "hedge",
+    "position": [
+     15.6,
+     8.0
+    ],
+    "rotation": 0
+   },
+   {
+    "key": "hedge-8",
+    "library": "hedge",
+    "position": [
+     -8.0,
+     15.6
+    ],
+    "rotation": 90
+   },
+   {
+    "key": "hedge-9",
+    "library": "hedge",
+    "position": [
+     -15.6,
+     -8.0
+    ],
+    "rotation": 0
+   },
+   {
+    "key": "crate-10",
+    "library": "crate",
+    "position": [
+     15.4,
+     14.0
+    ],
+    "rotation": 0
+   },
+   {
+    "key": "crate-11",
+    "library": "crate",
+    "position": [
+     -14.0,
+     15.4
+    ],
+    "rotation": 90
+   }
+  ],
+  "cast": [
+   {
+    "id": "guy1",
+    "name": "Guy 1",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      -3.44,
+      -1.46
+     ],
+     "facing": 86.0
+    },
+    "scale": 0.871,
+    "look": {
+     "top": "#23305e",
+     "bottom": "#b5a46e",
+     "hair": "#5a3a22",
+     "skin": "#efc9ab",
+     "outfit": "casual"
+    }
+   },
+   {
+    "id": "guy2",
+    "name": "Guy 2",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      -3.35,
+      -2.36
+     ],
+     "facing": 84.0
+    },
+    "scale": 0.846,
+    "look": {
+     "top": "#8a8a8f",
+     "bottom": "#22222a",
+     "hair": "#1d1a1c",
+     "skin": "#c48a5e",
+     "accessory": "cap",
+     "outfit": "casual",
+     "build": "slim"
+    }
+   }
+  ],
+  "beats": [
+   {
+    "id": "guy1-1",
+    "cast": "guy1",
+    "start": 0.0,
+    "duration": 6.2,
+    "prompt": "A person walks forward.",
+    "action": "walks along the street beside guy2",
+    "to": [
+     4.49,
+     -0.66
+    ],
+    "motion": "walk"
+   },
+   {
+    "id": "guy2-1",
+    "cast": "guy2",
+    "start": 0.0,
+    "duration": 6.2,
+    "prompt": "A person walks forward.",
+    "action": "walks along the street beside guy1",
+    "to": [
+     4.58,
+     -1.56
+    ],
+    "seed": 1,
+    "motion": "walk"
+   },
+   {
+    "id": "guy1-2",
+    "cast": "guy1",
+    "start": 6.2,
+    "duration": 3.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "stops in front of the coffee shop",
+    "facing": "coffee-shop",
+    "motion": "idle"
+   },
+   {
+    "id": "guy2-2",
+    "cast": "guy2",
+    "start": 6.2,
+    "duration": 3.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits",
+    "seed": 1,
+    "motion": "idle"
+   },
+   {
+    "id": "guy1-3",
+    "cast": "guy1",
+    "start": 9.2,
+    "duration": 5.0,
+    "prompt": "A person talks, gesturing with both hands.",
+    "action": "talks to guy2",
+    "facing": "guy2",
+    "motion": "talk"
+   },
+   {
+    "id": "guy2-3",
+    "cast": "guy2",
+    "start": 9.2,
+    "duration": 5.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "stops in front of the coffee shop",
+    "facing": "coffee-shop",
+    "motion": "idle"
+   },
+   {
+    "id": "guy1-4",
+    "cast": "guy1",
+    "start": 14.2,
+    "duration": 5.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits",
+    "facing": "guy2",
+    "seed": 1,
+    "motion": "idle"
+   },
+   {
+    "id": "guy2-4",
+    "cast": "guy2",
+    "start": 14.2,
+    "duration": 5.0,
+    "prompt": "A person talks, gesturing with both hands.",
+    "action": "answers guy1",
+    "facing": "guy1",
+    "seed": 1,
+    "motion": "talk"
+   }
+  ],
+  "shots": [
+   {
+    "id": "s1",
+    "start": 0.0,
+    "duration": 6.4,
+    "framing": "wide",
+    "subject": [
+     "guy1",
+     "guy2"
+    ],
+    "angle": 35
+   },
+   {
+    "id": "s2",
+    "start": 6.4,
+    "duration": 6.4,
+    "framing": "medium",
+    "subject": "guy1",
+    "angle": -25
+   },
+   {
+    "id": "s3",
+    "start": 12.8,
+    "duration": 6.4,
+    "framing": "wide",
+    "subject": [
+     "guy1",
+     "guy2"
+    ],
+    "angle": 55
+   }
+  ],
+  "audio": {
+   "ambience": {
+    "prompt": "City streets during the day with distant traffic, footsteps, and light chatter.",
+    "layers": {
+     "traffic": 0.5,
+     "murmur": 0.3,
+     "birds": 0.2
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow instrumental bed with acoustic guitar and light piano, no drums, no vocals.",
+    "mood": "calm"
+   },
+   "volume": 0.25,
+   "source": "nemotron"
+  }
+ }
+}
