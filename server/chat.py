@@ -1,12 +1,14 @@
 """Chat replies for the Chat page: POST /api/chat.
 
     {messages: [{role: "user" | "assistant", content}]}
-      -> {reply, demonstrate: null | {prompt, duration}, source: "nemotron" | "mock", seconds}
+      -> {reply, demonstrate: null | {prompt, duration}, source: "nemotron" | "mock", seconds,
+          error?: "why Nemotron wasn't used"}
 
-Nemotron writes the reply through `server.llm.complete()` (whichever backend
-`.env` picks; OpenCode's free Nemotron by default), as JSON checked against
-REPLY_SCHEMA. If that call fails, a small rule-based mock answers (greetings,
-"show me ..." -> demonstrate), so the page never goes silent.
+Empty `messages` asks for Mira's opening line: she greets the user in her own
+words. Nemotron writes every reply through `server.llm.complete()` (whichever
+backend `.env` picks), as JSON checked against REPLY_SCHEMA. Only if that call
+fails does a small rule-based mock answer ("show me ..." -> demonstrate), with
+source "mock" and the error, so the page can say Nemotron is offline.
 """
 
 import re
@@ -38,6 +40,13 @@ Rules for "demonstrate":
 - "duration" is in seconds, between 2 and 10; most single moves need 4 to 6.
 - When you demonstrate, "reply" says what you are about to do plus one useful tip.
 """
+
+
+# The opening turn: Mira speaks first, so the model gets this stage direction
+# as the user turn (it is never shown or stored in the page's history).
+ARRIVAL = ("(Stage direction, not spoken by anyone: a visitor has just walked up to you in the village. "
+           "Greet them in your own words, in one or two short sentences, and invite them to talk or to ask "
+           "you to show them a movement. Vary it; don't use a stock phrase. demonstrate is null.)")
 
 
 # ---- the real call ---------------------------------------------------------
@@ -122,25 +131,9 @@ def mock_reply(messages: list[dict]) -> dict:
             return {"reply": f"Let me try {thing} for you. Watch closely.",
                     "demonstrate": {"prompt": f"A person demonstrates {thing}.", "duration": 5}}
 
-    if re.search(r"\b(hi|hello|hey|good (morning|afternoon|evening)|howdy)\b", low):
-        return {"reply": "Hello there! I'm Mira. Ask me anything, or ask me to show you a move, like a squat.",
-                "demonstrate": None}
-    if re.search(r"\b(who are you|your name)\b", low):
-        return {"reply": "I'm Mira. I live in this little storybook village, and I love showing people how to move.",
-                "demonstrate": None}
-    if re.search(r"\b(what can you do|help)\b", low):
-        return {"reply": "I can chat with you, and I can show you moves with my whole body. Try saying, show me a lunge.",
-                "demonstrate": None}
-    if re.search(r"\b(thanks|thank you)\b", low):
-        return {"reply": "You're very welcome! Want to try another move?", "demonstrate": None}
-    if re.search(r"\b(bye|goodbye|see you)\b", low):
-        return {"reply": "Goodbye! Come back to the village any time.", "demonstrate": None}
-    if last.endswith("?"):
-        return {"reply": "That's a lovely question. My real brain, Nemotron, isn't connected yet, so I can't answer "
-                         "it properly, but I can show you moves. Try, show me a squat.",
-                "demonstrate": None}
-    return {"reply": "I hear you! While my full brain is still on its way, I'm best at showing moves. "
-                     "Ask me to show you a squat or a dance.",
+    # No small talk in the mock: the page labels this reply as the offline fallback.
+    return {"reply": "Nemotron is offline right now, so I can't really talk. "
+                     "I can still demonstrate a move if you ask me to show you one.",
             "demonstrate": None}
 
 
@@ -149,12 +142,16 @@ def mock_reply(messages: list[dict]) -> dict:
 def chat_reply(messages: list[dict]) -> dict:
     messages = [{"role": m["role"], "content": str(m["content"])} for m in messages
                 if m.get("role") in ("user", "assistant") and m.get("content")][-20:]
+    # Opening line (no history), or a history that starts with Mira's greeting:
+    # the model sees the stage direction as the first user turn.
+    prompt = messages if messages and messages[0]["role"] == "user" else [{"role": "user", "content": ARRIVAL}, *messages]
     t0 = time.perf_counter()
     try:
-        out = _nemotron(messages)
+        out = _nemotron(prompt)
         if out["reply"]:
             return {**out, "source": "nemotron", "seconds": round(time.perf_counter() - t0, 2)}
-        print("[chat] Nemotron gave an empty reply; using the mock")
+        error = "Nemotron gave an empty reply"
     except llm.LLMError as err:
-        print(f"[chat] Nemotron failed ({err}); using the mock")
-    return {**mock_reply(messages), "source": "mock", "seconds": round(time.perf_counter() - t0, 2)}
+        error = f"Nemotron failed: {err}"
+    print(f"[chat] {error}; using the mock")
+    return {**mock_reply(messages), "source": "mock", "error": error, "seconds": round(time.perf_counter() - t0, 2)}
