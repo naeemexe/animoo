@@ -14,7 +14,7 @@ A new main session should read this first, then `TASKS.md`.
 | Chat page: Mira talks (browser voice) and demonstrates Kimodo moves | done (10); replies from Nemotron when the limit allows |
 | Prop generation: text → SANA image → TRELLIS.2 → normalized GLB in `library/` | done (07, 11) |
 | Nemotron client + agent loop (JSON tool calls, SSE) | done (06) |
-| Orchestrator + world agent (new prompt → new world and motion) | **in progress (08)** |
+| Orchestrator + world agent (new prompt → new world and motion) | done (08), 2 Nemotron calls per movie, cached in `library/scripts/` |
 
 ## How to run
 
@@ -38,10 +38,10 @@ open http://localhost:8000               # Movie | Chat
   motion and director agents and Chat use `nvidia/nemotron-3.5-lightning-30b-a3b` (about 1.3 s; it reasons by default).
   The fallback chain is: hosted NVIDIA → self-hosted **Nemotron Nano 9B v2** on the Brev box (vLLM `:8104`,
   model `nemotron`, about 0.7 s, no limit; `bash /opt/app/serve.sh start llm`) → OpenCode free tier → mock.
-  Per-agent routing is being added in task 08. Regenerate the NVIDIA key after the hackathon (it was shared in chat).
+  Per-agent routing is **not built yet** (task 08b): today every call goes to the self-hosted Nano 9B (`.env`). Regenerate the NVIDIA key after the hackathon (it was shared in chat).
 
 ## Next
 
-Follow the order in `TASKS.md`: 08 → 13 → 14 → 15 → 16 → 17 → **12 (record the demo before noon)** → 18 → 19 → 21.
+Follow the order in `TASKS.md`: 13 → 08b → 14 → 15 → 16 → 17 → **12 (record the demo before noon)** → 18 → 19 → 21.
 User feedback lives in `FEEDBACK.md` (round 1 became tasks 13–21).
 One session per task (`WORKFLOW.md`); Remote Control is on by default for new sessions.

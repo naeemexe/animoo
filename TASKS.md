@@ -23,6 +23,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 06 | A | Nemotron client + agent loop on the server (tool calling, streamed steps), via OpenCode's free Nemotron now and swappable to NVIDIA's API later | 1.5 h | done (free tier rate-limits after ~30 calls: get a key for 08) | — |
 | 07 | B | Text → concept image for props (pick a model, add an endpoint) | 1.5 h | done | 03 |
 | 08 | A | Movie: the orchestrator splits a scene into shots and beats, and the world agent builds the set | 3 h | done | 04, 06 |
+| 08b | A | Per-agent Nemotron routing (hosted super-vl-120b for orchestrator, lightning-30b for world/chat) with the fallback chain hosted → self-hosted Nano 9B → OpenCode → mock; re-cache the four test scenes | 1 h | todo | 08 |
 | 09a | A | Movie page UI with a mocked scene script: agent log, world build from script, per-character timeline, play, export WebM | 2.5 h | done | 04, 05 |
 | 09b | A | Movie: wire the real agents in, motion agent generates clips on the pod, director merges | 1.5 h | done (with 08: real agents over SSE, Kimodo clips, merge, export) | 08, 09a |
 | 10 | A | Chat page: a character talks (Nemotron + browser voice) and demonstrates moves | 2 h | done (mock replies; live Nemotron path untested) | 05, 06 |
@@ -90,10 +91,12 @@ run TRELLIS.2, normalize scale and pivot, `toonify()` it, and save it to
 **12 Demo.** The video plays from cached assets only. List every model and
 license used.
 
-**Order after 08:** 13 (quick) → 14 → 15 → 16 → 17 → 12 (demo, which must be recorded before the 12:00 pm deadline) → 18 → 19 → 21.
+**Order after 08:** 13 (quick) → 08b → 14 → 15 → 16 → 17 → 12 (demo, which must be recorded before the 12:00 pm deadline) → 18 → 19 → 21.
 Before the deadline, work only on what improves the demo; 18–19 can continue after it.
 
 **13 Chat cleanup.** Remove the mock's canned greeting and the "Hi Mira!" / "Show me a squat" chips. Mira greets in her own words from Nemotron, and the mock is used only when the LLM is down, with that shown clearly.
+
+**08b Per-agent routing.** `llm.complete()` takes an agent name; `.env` maps agent → model (orchestrator and self-check: `nvidia/nemotron-3.5-super-vl-120b-a12b`; world, motion, director, chat: `nvidia/nemotron-3.5-lightning-30b-a3b`) on the `nvidia` backend, and on error or rate limit falls to the self-hosted Nano 9B (:8104), then OpenCode, then mock. The log and `/health` show which model answered each call. Re-run the four scenes in `library/scripts/` with `fresh=1` and keep the new caches. *Done when* the market plan has the thief grab the apple first and the keeper never "reaches for" it, the campfire friends start seated, and `/health` shows calls on the hosted models.
 
 **14 Scale + placement.** Characters are 1.6–1.8 m; props use `size` from the manifest (generated props get a sensible `size_m` per category, since the fishing boat came out 10 m long because size was applied to height). Everything sits on the ground. Layout code keeps props off paths and away from characters' walk lines, and characters start and end where the script says (next to "the well", on "the dock"). *Done when* the three test scenes look right in screenshots, with no floating, sinking, giant or tiny items.
 
@@ -313,6 +316,7 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
 - 08: "slow" walks fall short: several walk beats hit the director's ×1.35 stretch limit even at 0.85 m/s. Measure
   Kimodo's "walks forward slowly" distance. In the fisherman film the director camera stood behind the dock, which
   filled the frame (fixed shot angles in `camera.js`, 09a).
+- 08 review (main session, 2026-11-07 late): the four cached scenes replay; the market film builds its set, plays 10.1 s with 3 shots, no console errors. Per-agent routing from `docs/STATUS.md` was not built: `llm.py` has one backend, so every cached plan is Nano 9B. Market plan: the keeper "reaches for apple" and the thief "hands over the apple and runs away"; campfire: friend2 "stands up from sitting" for 9 s, then stands still while friend1 dances. → 08b.
 - 08: one "the scene script is invalid" console error remains in the pane's log. It was raised during the campfire run
   that hit the duplicate-beat-id bug (fixed); the browser pane keeps the log across navigations, so I couldn't prove
   it isn't from the later check of all four cached scenes, though none of those runs logged an error in the agent log.
