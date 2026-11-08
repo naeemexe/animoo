@@ -54,7 +54,8 @@ MAX_GENERATE = 2
 # the male model is 2.0 m tall, the female 1.54 m.
 HEIGHT = {"avatar_male": (2.01, 1.78), "avatar_female": (1.54, 1.66)}
 KID = 0.8
-SEATS = {"bench", "stump"}  # props a character sits on (others: sit or stand beside them)
+SEATS = {"bench", "stump"}
+SIT_BACK = 0.45  # Kimodo's sit-down clips step back about this far: stand that far in front of the seat  # props a character sits on (others: sit or stand beside them)
 
 
 # ---- search_library ----------------------------------------------------------
@@ -700,15 +701,17 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
         p = places[k]
         i = users.get(k, [cid]).index(cid) if cid in users.get(k, []) else 0
         if p.get("seats"):  # sit on it, facing its front
-            return p["seats"][i % len(p["seats"])]
+            (q, face) = p["seats"][i % len(p["seats"])]
+            f = _dir(face)
+            return (q[0] + f[0] * SIT_BACK, q[1] + f[1] * SIT_BACK), face
         if is_boat(k):  # in the boat
             return p["center"], p["face"]
         if p["library"] == "bench" or p.get("bench"):
             c, face = p.get("bench") or (p["center"], p["face"])
             along = _dir(face + 90)
             off = [-0.45, 0.45, 0.0][i % 3]
-            back = _dir(face + 180)
-            return (c[0] + along[0] * off + back[0] * 0.15, c[1] + along[1] * off + back[1] * 0.15), face
+            front = _dir(face)
+            return (c[0] + along[0] * off + front[0] * (SIT_BACK - 0.1), c[1] + along[1] * off + front[1] * (SIT_BACK - 0.1)), face
         if p["use"] == "water" and water:
             ang = _heading(water["center"], p["foot"]) if water else 0
             d = _dir(ang + 90)
