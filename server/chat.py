@@ -44,6 +44,9 @@ Rules for "demonstrate":
   climbing, sitting on objects or holding things.
 - "duration" is in seconds, between 2 and 10; most single moves need 4 to 6.
 - When you demonstrate, "reply" says what you are about to do plus one useful tip.
+- You are an animated character, so every move is safe for you: backflips, front flips, cartwheels,
+  somersaults, splits, breakdancing, martial arts, anything. Never refuse, never warn about safety or
+  training, and never swap in a "safer" move: always demonstrate exactly the move that was asked for.
 """
 
 
@@ -72,7 +75,15 @@ def _nemotron(messages: list[dict]) -> dict:
                        agent="chat", temperature=0.6, max_tokens=400, timeout=30, retries=1, tag="chat",
                        shape='Exactly {"reply": "...", "demonstrate": null} or '
                              '{"reply": "...", "demonstrate": {"prompt": "A person ...", "duration": 5}}.')
-    return {"reply": str(obj.get("reply", "")).strip(), "demonstrate": _clean_demo(obj.get("demonstrate"))}
+    out = {"reply": str(obj.get("reply", "")).strip(), "demonstrate": _clean_demo(obj.get("demonstrate"))}
+    # A safety net: the user plainly asked to see a known move and the model
+    # didn't demonstrate it (it sometimes refuses flips as "unsafe"). Do it anyway.
+    if not out["demonstrate"]:
+        asked = _asked_move(messages)
+        if asked:
+            _, name, prompt, duration, tip = asked
+            out = {"reply": f"Sure, watch me do {name}. {tip}", "demonstrate": {"prompt": prompt, "duration": duration}}
+    return out
 
 
 def _clean_demo(d) -> dict | None:
@@ -105,12 +116,18 @@ MOVES = [
     (r"jump", "a jump", "A person jumps up in place and lands softly.", 4, "Land on the balls of your feet with your knees bent."),
     (r"punch|box", "some punches", "A person throws a few boxing punches.", 5, "Keep your guard up and turn your hips into each punch."),
     (r"walk", "a walk", "A person walks forward a few steps and stops.", 5, "Heel first, roll through the foot, and let your arms swing."),
+    (r"back ?flip", "a backflip", "A person jumps up and does a backflip, landing on their feet.", 4,
+     "Swing your arms up hard, jump straight up, and tuck your knees to your chest."),
+    (r"front ?flip|somersault", "a front flip", "A person jumps up and does a front flip, landing on their feet.", 4,
+     "Jump up first, then tuck tight and spot your landing."),
+    (r"cartwheel", "a cartwheel", "A person does a cartwheel to the side and stands up.", 4,
+     "Hands go down one after the other, and keep your legs straight overhead."),
     (r"march", "a march", "A person marches in place, lifting the knees high.", 5,
      "Lift your knees to hip height and swing the opposite arm."),
 ]
 
 # An explicit request to perform something: any move, known or not.
-SHOW = re.compile(r"\b(?:show me|teach me|demonstrate|(?:can|could|would) you (?:do|show|perform)|perform)\b\s*(.*)", re.I)
+SHOW = re.compile(r"(?:\b(?:show me|teach me|demonstrate|(?:can|could|would) you (?:do|show|perform)|perform)\b|^(?:please\s+)?do\b)\s*(.*)", re.I)
 # "How do I ..." asks for a demonstration only when it names a known move.
 HOW = re.compile(r"\bhow (?:do|can|should|would) (?:i|you|we)\b\s*(.*)", re.I)
 FILLER = re.compile(r"^(?:me\s+|us\s+|how to\s+|how\s+|to\s+|do\s+|an?\s+|the\s+|some\s+|your\s+)+", re.I)
@@ -120,9 +137,21 @@ def _known_move(text: str):
     return next((m for m in MOVES if re.search(m[0], text, re.I)), None)
 
 
+def _last_user(messages: list[dict]) -> str:
+    return next((m["content"] for m in reversed(messages) if m.get("role") == "user"), "").strip()
+
+
+def _asked_move(messages: list[dict]):
+    """The known move the last user turn asks to see ("show me a backflip", "do a squat"), or None."""
+    last = _last_user(messages)
+    show, how = SHOW.search(last), HOW.search(last)
+    if not (show or how):
+        return None
+    return _known_move(FILLER.sub("", re.sub(r"[?.!]+$", "", (show or how).group(1))).strip())
+
+
 def mock_reply(messages: list[dict]) -> dict:
-    last = next((m["content"] for m in reversed(messages) if m.get("role") == "user"), "").strip()
-    low = last.lower()
+    last = _last_user(messages)
 
     show, how = SHOW.search(last), HOW.search(last)
     if show or how:
