@@ -179,7 +179,7 @@ def _call(messages, **kw) -> str:
 # ---- backends ----------------------------------------------------------------
 
 def _openai_compatible(base: str, key: str, messages, m, *, temperature, max_tokens, timeout, **_) -> str:
-    if re.search(r"(?i)nano-9b-v2", m):
+    if re.search(r"(?i)nano-9b-v2", m) or os.getenv("NEMOTRON_NO_THINK", "").lower() in ("1", "true", "yes"):
         # Nemotron Nano 9B v2 reasons first unless the system prompt says /no_think;
         # the reasoning can use up max_tokens before any answer.
         messages = [dict(x) for x in messages]
