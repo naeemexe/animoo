@@ -1,0 +1,14 @@
+{
+ "kind": "ambience",
+ "prompt": "A sunny city park in the afternoon with distant birdsong, children playing and a light breeze in the trees.",
+ "endpoint": "/v1/sound-generation",
+ "body": {
+  "model_id": "eleven_text_to_sound_v2",
+  "loop": true,
+  "duration_seconds": 22,
+  "prompt_influence": 0.35
+ },
+ "bytes": 353218,
+ "seconds": 4.2,
+ "created": "2026-11-08T15:35:58+00:00"
+}
