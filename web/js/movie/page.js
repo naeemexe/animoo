@@ -13,7 +13,8 @@ import { validateScript, plannedDuration } from './script.js';
 import { FISHERMAN_SCENE, FISHERMAN_SCRIPT } from './mock.js';
 import { API_BASE, urlParams } from '../api.js';
 import { buildSet, setTimeOfDay } from './world.js';
-import { motionFor, motionServerUp, MOTION_URL } from './clips.js';
+import { motionFor, motionServerUp, MOTION_URL, actionFor, liveFor } from './clips.js';
+import { prepareAction, obstaclesFromSet } from './control.js';
 import { direct, makeResolver } from './director.js';
 import { createTimeline } from './timeline.js';
 import { DirectorCamera } from './camera.js';
@@ -180,34 +181,48 @@ export function createMoviePage(root, stage, look) {
       // All requests go out at once (cache hits come back together; the pod queues the rest),
       // and the log still lists them in beat order.
       const pending = script.beats.map((beat) => {
-        const li = log('motion', 'call', `generate_motion(${beat.cast}, "${beat.prompt}", ${beat.duration}s)`);
+        const li = log('motion', 'call', beat.motion ? `library_action(${beat.cast}, ${beat.motion})` : `generate_motion(${beat.cast}, "${beat.prompt}", ${beat.duration}s)`);
         li.classList.add('pending');
         timeline.setBeatState(beat.id, 'pending');
-        return { li, req: motionFor(beat) };
+        // Library actions first; a move that isn't in the library goes to Kimodo through the
+        // app server (which keeps it in library/motions/live/), then straight to the pod.
+        const live = () => liveFor(beat).then((m) => m ?? motionFor(beat));
+        return { li, req: beat.motion ? actionFor(beat).then((m) => m ?? live()) : live() };
       });
       for (const [i, beat] of script.beats.entries()) {
-        const { li, req } = pending[i];
-        const m = await req;
+        const { li } = pending[i];
+        const m = await pending[i].req;
         li.classList.remove('pending');
         const hero = state.heroes[beat.cast];
-        const clip = hero.makeClip(m.text, beat.id);
-        clipsByCast[beat.cast].set(beat.id, clip);
-        log('motion', 'result', `${beat.id}: ${clip.duration.toFixed(1)} s from ${m.source}${m.file ? ` (${m.file})` : ''} · ${(m.ms / 1000).toFixed(1)} s`, { err: m.source === 'library' });
+        let entry, secs;
+        if (m.variants) {
+          entry = prepareAction((text, name) => hero.makeClip(text, name), beat, m);
+          secs = entry.variants[0].duration;
+        } else {
+          entry = hero.makeClip(m.text, beat.id);
+          secs = entry.duration;
+        }
+        clipsByCast[beat.cast].set(beat.id, entry);
+        const what = m.variants ? `${m.action}${m.variants.length > 1 ? ` (${m.variants.length} lengths)` : ''}` : `"${beat.prompt}"`;
+        log('motion', 'result', `${beat.id}: ${what} · ${secs.toFixed(1)} s from ${m.source}${m.file ? ` (${m.file})` : ''} · ${(m.ms / 1000).toFixed(1)} s`, { err: m.source === 'library' });
         timeline.setBeatState(beat.id, m.source === 'library' ? 'fallback' : 'ready');
       }
 
       mark('clips', t0Clips);
       // Director: line the beats up and merge each character's clips.
-      log('director', 'thought', 'Joining each character\'s clips: match root and heading, turn at the join for `facing`, stretch walks to land on `to`, pin planted feet.');
+      log('director', 'thought', 'Joining each character\'s clips: walks and runs follow a path planned around the props (A* on a 0.25 m grid), in-place actions stay where the scene puts them, gestures turn to face their target (and the one they\'re aimed at turns back), planted feet stay pinned.');
       const t0 = performance.now();
-      state.rows = direct(script, clipsByCast);
+      state.clipsByCast = clipsByCast; // for re-directing from the console
+      state.obstacles = obstaclesFromSet(state.set);
+      state.rows = direct(script, clipsByCast, { obstacles: state.obstacles });
       for (const [id, row] of Object.entries(state.rows)) {
         const hero = state.heroes[id];
-        hero.clips = row.beats.map((b) => clipsByCast[id].get(b.beat.id));
+        hero.clips = row.beats.map((b) => { const e = clipsByCast[id].get(b.beat.id); return e.clip ?? e; });
         hero.clip = row.clip;
         hero.seek(0);
-        const stretched = row.beats.filter((b) => Math.abs(b.stretch - 1) > 0.02).map((b) => `${b.beat.id} ×${b.stretch.toFixed(2)}`);
-        log('director', 'call', `add_to_timeline(${id}, ${row.beats.length} clips) → ${row.offset.toFixed(1)}–${row.end.toFixed(1)} s${stretched.length ? ` · stretched ${stretched.join(', ')}` : ''}`);
+        const stretched = row.beats.filter((b) => !b.path && Math.abs(b.stretch - 1) > 0.02).map((b) => `${b.beat.id} ×${b.stretch.toFixed(2)}`);
+        const paths = row.beats.filter((b) => b.path).map((b) => `${b.beat.id} ${b.pathInfo}`);
+        log('director', 'call', `add_to_timeline(${id}, ${row.beats.length} clips) → ${row.offset.toFixed(1)}–${row.end.toFixed(1)} s${stretched.length ? ` · stretched ${stretched.join(', ')}` : ''}${paths.length ? ` · paths ${paths.join('; ')}` : ''}`);
       }
       state.duration = Math.max(plannedDuration(script), ...Object.values(state.rows).map((r) => r.end));
       // Camera: cut the film into shots from the merged beats.

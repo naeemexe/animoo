@@ -6,6 +6,7 @@
 // coordinates. That lets the camera follow it and other beats face it.
 import { Clip } from '../characters/clip.js';
 import { mergeClips, plantFeet, meanHeading } from '../characters/merge.js';
+import { planPath, warpToPath, pickVariant, pathLength, talkSpot } from './control.js';
 
 const RAD = Math.PI / 180;
 const angleTo = (from, to) => Math.atan2(to[0] - from[0], to[1] - from[1]);
@@ -74,40 +75,72 @@ function stretchTail(clip, from, dest) {
 // One timeline row. `clips` maps beat id → retargeted Clip (origin, +Z).
 // → { castId, offset, clip, beats: [{ beat, start, end, stretch }], positionAt(t) }
 // A scaled character (a kid) lives in its group's space: world / scale.
-export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.3 } = {}) {
+export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.3, obstacles = [] } = {}) {
   const k = castEntry.scale ?? 1;
   const resolve = (target, t) => resolveWorld(target, t).map((v) => v / k);
-  const fps = clips.get(beats[0].id).fps;
+  const clipOf = (e) => e.clip ?? e;
+  const fps = clipOf(clips.get(beats[0].id)).fps;
   const offset = beats[0].start;
+  // Obstacles in this character's group space (world / scale).
+  const obs = obstacles.map((o) => ({ ...o, c: [o.c[0] / k, o.c[1] / k], h: [o.h[0] / k, o.h[1] / k] }));
   let acc = null;
   const placed = [];
 
   for (const beat of beats) {
-    // Fallback library clips can be longer than the beat: cut them.
-    let c = slice(clips.get(beat.id), Math.round(beat.duration * fps) + 1);
-    const n = Math.max(1, Math.min(Math.round(blend * fps), c.frames - 1));
-    const tr = travel(c, n);
+    const entry = clips.get(beat.id);
+    const act = entry instanceof Clip ? null : entry;
+    const n0 = Math.max(1, Math.round(blend * fps));
+    // Where this beat starts: the join point of the previous clip (or the cast start).
+    if (acc) acc = hold(acc, Math.round((beat.start - (offset + acc.duration)) * fps));
+    const joinAt = acc ? acc.frames - n0 : 0;
+    const at = acc ? [acc.hips[joinAt * 3], acc.hips[joinAt * 3 + 2]] : castEntry.start.position.map((v) => v / k);
+    const tJoin = acc ? offset + joinAt / fps : beat.start;
+
+    // Locomotion from the library: a path around the props, the clip bent onto it.
+    if (act?.root === 'path' && beat.to !== undefined) {
+      let goal = resolve(beat.to, tJoin);
+      // Walking up to someone to greet or talk: stop at talking distance, same side of any prop.
+      if (beat.approach) goal = talkSpot(at, resolve(beat.approach, beat.start + beat.duration), obs, { dist: 1.3 / k }) ?? goal;
+      const path = planPath(at, goal, obs);
+      const len = pathLength(path);
+      let c = pickVariant(act.variants, len).clone();
+      // Retargeted clips start at the origin facing +Z: put frame 0 at `at`, then bend.
+      c.transform(0, [0, 0], [at[0] - c.hips[0], at[1] - c.hips[2]]);
+      c = warpToPath(c, path);
+      const info = `${(len * k).toFixed(1)} m${path.length > 2 ? ', around props' : ', straight'} · stride ×${c.scale.toFixed(2)}`;
+      if (!acc) {
+        acc = plantFeet(c.clone());
+        placed.push({ beat, start: offset, end: offset + acc.duration, stretch: c.scale, path, pathInfo: info });
+      } else {
+        const n = Math.max(1, Math.min(n0, c.frames - 1));
+        const current = meanHeading(acc, joinAt, acc.frames);
+        const heading = meanHeading(c, 0, n);
+        const b = blend + 0.5 * Math.abs(wrap(heading - current)) / Math.PI;
+        acc = mergeClips(acc, c, { blend: b, heading });
+        const seg = acc.segments.at(-1);
+        placed.push({ beat, start: offset + seg.start / fps, end: offset + acc.duration, stretch: c.scale, path, pathInfo: info });
+      }
+      continue;
+    }
+
+    // Fallback library clips can be longer than the beat: cut them (not a sit or a stand-up).
+    let c = slice(clipOf(entry), Math.max(act?.minFrames ?? 1, Math.round(beat.duration * fps) + 1));
+    const n = Math.max(1, Math.min(n0, c.frames - 1));
+    const tr = act?.root === 'pinned' ? { dist: 0, angle: 0 } : travel(c, n);
 
     if (!acc) {
-      const from = castEntry.start.position.map((v) => v / k);
+      const from = at;
       let heading = (castEntry.start.facing ?? 0) * RAD;
       if (typeof beat.facing === 'number') heading = beat.facing * RAD;
       else if (beat.facing !== undefined) heading = angleTo(from, resolve(beat.facing, beat.start));
       if (beat.to !== undefined && tr.dist > 0.3) heading = angleTo(from, resolve(beat.to, beat.start)) - tr.angle;
       acc = plantFeet(c.clone().transform(heading - meanHeading(c, 0, n), [c.hips[0], c.hips[2]], [from[0] - c.hips[0], from[1] - c.hips[2]]));
-      const stretch = beat.to !== undefined ? stretchTail(acc, 0, resolve(beat.to, beat.start)) : 1;
+      const stretch = beat.to !== undefined && !act ? stretchTail(acc, 0, resolve(beat.to, beat.start)) : 1;
       placed.push({ beat, start: offset, end: offset + acc.duration, stretch });
       continue;
     }
 
-    // Wait for the planned start if the previous clip ended early.
-    const end = offset + acc.duration;
-    acc = hold(acc, Math.round((beat.start - end) * fps));
-
-    const start = acc.frames - n; // where the join begins, and where B's frame 0 lands
-    const at = [acc.hips[start * 3], acc.hips[start * 3 + 2]];
-    const tJoin = offset + start / fps;
-    const current = meanHeading(acc, start, acc.frames);
+    const current = meanHeading(acc, joinAt, acc.frames);
     let heading;
     if (typeof beat.facing === 'number') heading = beat.facing * RAD;
     else if (beat.facing !== undefined) heading = angleTo(at, resolve(beat.facing, tJoin));
@@ -117,7 +150,7 @@ export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.3 } 
     const b = blend + 0.5 * turn / Math.PI;
     acc = mergeClips(acc, c, { blend: b, heading: heading === undefined ? undefined : current + wrap(heading - current) });
     const seg = acc.segments.at(-1);
-    const stretch = beat.to !== undefined ? stretchTail(acc, seg.start, resolve(beat.to, tJoin)) : 1;
+    const stretch = beat.to !== undefined && !act ? stretchTail(acc, seg.start, resolve(beat.to, tJoin)) : 1;
     placed.push({ beat, start: offset + seg.start / fps, end: offset + acc.duration, stretch });
   }
   for (let i = 0; i < placed.length - 1; i++) placed[i].end = placed[i + 1].start;
@@ -137,18 +170,98 @@ export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.3 } 
   };
 }
 
-// All rows. Two passes, so a beat that faces another character uses where
-// that character really is at that moment, not where it started.
+// Gestures aimed at someone: a wave, a talk, a point (library or live).
+const GESTURE_MOTION = /^(wave|talk|point|laugh|sit_bench_talk)$/;
+const STANDING_REACT = /^(idle|talk|wave|point|laugh)$/;
+const isGesture = (b) => GESTURE_MOTION.test(b.motion ?? '') || (!b.motion && /\b(waves?|points?|talks?|tells|says|greets?)\b/i.test(b.prompt));
+
+// Who a gesture is for: its target if that's a character, else the character
+// nearest the target (grandpa in the rowboat, the girl at her window), else
+// the nearest other character if it has no target.
+function addressee(b, script, resolve) {
+  const others = script.cast.filter((c) => c.id !== b.cast);
+  if (!others.length) return null;
+  if (others.some((c) => c.id === b.facing)) return b.facing;
+  const me = resolve(b.cast, b.start);
+  const p = b.facing === undefined || typeof b.facing === 'number' ? me : resolve(b.facing, b.start);
+  let best = null, bd = Infinity;
+  for (const c of others) {
+    const d = Math.hypot(...resolve(c.id, b.start).map((v, i) => v - p[i]));
+    if (d < bd) { bd = d; best = c.id; }
+  }
+  return b.facing === undefined || typeof b.facing === 'number' || bd < 3.5 ? best : null;
+}
+
+// Attention: each gesture faces the one it's for, and that one, if standing
+// and not busy, turns back to face the gesturer (at the moment of the gesture).
+const FILLS = /^(idle|talk|sit_bench_idle|sit_ground_idle|sit_bench_talk|sit_bench|sit_ground)$/;
+export function aimGestures(script, resolve, shift = {}) {
+  const beats = script.beats.map((b) => ({ ...b, start: shift[b.id] ?? b.start }));
+  // A beat that now starts later stretches the in-place beat before it (an idle keeps breathing).
+  for (const c of script.cast) {
+    const mine = beats.filter((b) => b.cast === c.id).sort((a, b) => a.start - b.start);
+    for (let i = 0; i < mine.length - 1; i++) {
+      const gap = mine[i + 1].start - (mine[i].start + mine[i].duration);
+      if (gap > 0.05 && FILLS.test(mine[i].motion ?? '')) mine[i].duration += gap;
+    }
+  }
+  const LOCO = /^(walk|run|crouch_walk)$/;
+  for (const g of beats.filter(isGesture)) {
+    if (typeof g.facing === 'number' && !GESTURE_MOTION.test(g.motion ?? '')) continue;
+    const who = addressee(g, script, resolve);
+    if (!who) continue;
+    g.facing = who;
+    // The walk right before it ends next to them, not at a place.
+    const prev = beats.filter((b) => b.cast === g.cast && b.start < g.start).sort((a, b) => a.start - b.start).at(-1);
+    if (prev && LOCO.test(prev.motion ?? '') && prev.to !== undefined) prev.approach = who;
+    const mine = beats.filter((b) => b.cast === who).sort((a, b) => a.start - b.start);
+    const bb = mine.findLast((b) => b.start <= g.start + 0.5) ?? mine[0];
+    if (!bb || bb === g || bb.to !== undefined) continue;
+    if (!(STANDING_REACT.test(bb.motion ?? '') || (!bb.motion && isGesture(bb)))) continue;
+    bb.facing = isGesture(bb) ? g.cast : resolve(g.cast, g.start + 0.3);
+  }
+  return { ...script, beats };
+}
+
+// All rows. Passes, so a beat that faces another character uses where that
+// character really is at that moment, not where it started; gestures are aimed
+// once positions are known.
 export function direct(script, clipsByCast, opts) {
   let rows = {};
-  for (let pass = 0; pass < 2; pass++) {
+  const shift = {};
+  for (let pass = 0; pass < 4; pass++) {
     const resolve = makeResolver(script, rows);
+    const aimed = aimGestures(script, resolve, shift);
     const next = {};
     for (const c of script.cast) {
-      const beats = script.beats.filter((b) => b.cast === c.id).sort((a, b) => a.start - b.start);
+      const beats = aimed.beats.filter((b) => b.cast === c.id).sort((a, b) => a.start - b.start);
       if (beats.length) next[c.id] = buildRow(c, beats, clipsByCast[c.id], resolve, opts);
     }
     rows = next;
+    if (!syncReactions(script, aimed, rows, shift)) break;
   }
   return rows;
+}
+
+// "She waves back": a gesture answering another one starts 0.6 s after the one it
+// answers really starts (walks take as long as their paths, so planned times drift).
+// Returns true if any start moved.
+export function syncReactions(script, aimed, rows, shift) {
+  const actual = {};
+  for (const r of Object.values(rows)) for (const p of r.beats) actual[p.beat.id] = p.start;
+  const order = new Map(script.beats.map((b, i) => [b.id, i]));
+  let moved = false;
+  for (const b of aimed.beats.filter(isGesture)) {
+    const g = aimed.beats.find((x) => x.cast === b.facing && isGesture(x) && x.facing === b.cast &&
+      Math.abs(x.start - b.start) < 2.5 && (x.start < b.start - 0.05 ||
+        (Math.abs(x.start - b.start) <= 0.05 && (/\bback\b/.test(b.action ?? '') || order.get(x.id) < order.get(b.id)))));
+    if (!g || actual[g.id] === undefined) continue;
+    // Starts here include the turn blend, so correct by the difference.
+    const err = actual[g.id] + 0.6 - (actual[b.id] ?? b.start);
+    if (Math.abs(err) > 0.1) {
+      shift[b.id] = b.start + err;
+      moved = true;
+    }
+  }
+  return moved;
 }

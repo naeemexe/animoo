@@ -1,0 +1,391 @@
+{
+ "scene": "In a park on a sunny afternoon, a boy sits on the grass, slowly stands up, walks around the park bench to his friend and waves to her, and she waves back.",
+ "created": "2026-11-08T07:56:06+00:00",
+ "model": "nvidia/nemotron-3.5-super-vl-120b-a12b + nvidia/nemotron-3.5-lightning-30b-a3b",
+ "backend": "nvidia",
+ "llm_calls": [
+  {
+   "agent": "orchestrator",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+   "ok": true,
+   "seconds": 2.51
+  },
+  {
+   "agent": "world",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+   "ok": true,
+   "seconds": 1.62
+  }
+ ],
+ "llm_seconds": [
+  2.51,
+  1.62
+ ],
+ "plan": {
+  "title": "Boy waves to friend in the park",
+  "thoughts": [
+   "Two characters: a boy and his friend in a sunny park.",
+   "Places: the grass where the boy starts, the park bench he walks around, and his friend's spot.",
+   "The boy sits, stands up, walks around the bench to his friend, and waves; she waves back in reaction."
+  ],
+  "time_of_day": "day",
+  "weather": "clear",
+  "water": false,
+  "places": [
+   {
+    "key": "grass",
+    "what": "a grassy area in the park",
+    "use": "sit"
+   },
+   {
+    "key": "bench",
+    "what": "a park bench",
+    "use": "sit"
+   },
+   {
+    "key": "friend_spot",
+    "what": "a spot near the bench where the friend stands",
+    "use": "stand"
+   }
+  ],
+  "cast": [
+   {
+    "id": "boy",
+    "name": "Boy",
+    "character": "avatar_male",
+    "kid": true,
+    "starts_at": "grass"
+   },
+   {
+    "id": "friend",
+    "name": "Friend",
+    "character": "avatar_female",
+    "kid": true,
+    "starts_at": "friend_spot"
+   }
+  ],
+  "beats": [
+   {
+    "id": "b1",
+    "cast": "boy",
+    "action": "sits on the grass",
+    "prompt": "A person sits on the grass.",
+    "duration": 4
+   },
+   {
+    "id": "b2",
+    "cast": "boy",
+    "action": "stands up",
+    "prompt": "A person stands up from the grass.",
+    "duration": 4
+   },
+   {
+    "id": "b3",
+    "cast": "boy",
+    "action": "walks around the bench to his friend",
+    "prompt": "A person walks forward around a bench.",
+    "duration": 6,
+    "move_to": "friend_spot"
+   },
+   {
+    "id": "b4",
+    "cast": "boy",
+    "action": "waves to his friend",
+    "prompt": "A person waves hello with their right hand.",
+    "duration": 3,
+    "face": "friend"
+   },
+   {
+    "id": "b5",
+    "cast": "friend",
+    "action": "waves back",
+    "prompt": "A person waves hello with their right hand.",
+    "duration": 3,
+    "face": "boy",
+    "after": "b4"
+   }
+  ]
+ },
+ "world": {
+  "thoughts": [
+   "The bench and grass are in the library; the park bench is the sit target.",
+   "A sunny park scene: oak trees, bushes, flowers and a bench."
+  ],
+  "choices": [
+   {
+    "place": "bench",
+    "library": "bench"
+   },
+   {
+    "place": "grass",
+    "library": "grass-tuft"
+   },
+   {
+    "place": "bench-target",
+    "library": "bench"
+   }
+  ],
+  "decor": [
+   {
+    "library": "tree-oak",
+    "count": 3,
+    "near": "edge"
+   },
+   {
+    "library": "bush",
+    "count": 3,
+    "near": "bench"
+   },
+   {
+    "library": "flower-yellow",
+    "count": 3,
+    "near": "grass"
+   },
+   {
+    "library": "lily-pad",
+    "count": 2,
+    "near": "edge"
+   }
+  ]
+ },
+ "script": {
+  "version": 1,
+  "title": "Boy waves to friend in the park",
+  "scene": "In a park on a sunny afternoon, a boy sits on the grass, slowly stands up, walks around the park bench to his friend and waves to her, and she waves back.",
+  "terrain": {
+   "time_of_day": "golden",
+   "weather": "clear",
+   "paths": [
+    {
+     "points": [
+      [
+       -3.53,
+       -1.18
+      ],
+      [
+       4.36,
+       -0.93
+      ]
+     ],
+     "width": 1.4
+    }
+   ]
+  },
+  "props": [
+   {
+    "key": "grass",
+    "library": "stump",
+    "position": [
+     -3.25,
+     -2.03
+    ],
+    "rotation": -18.0
+   },
+   {
+    "key": "bench",
+    "library": "bench",
+    "position": [
+     4.76,
+     -0.12
+    ],
+    "rotation": -63.0
+   },
+   {
+    "key": "tree-oak-1",
+    "library": "tree-oak",
+    "position": [
+     -14.23,
+     -0.39
+    ],
+    "rotation": 45
+   },
+   {
+    "key": "tree-oak-2",
+    "library": "tree-oak",
+    "position": [
+     -5.48,
+     9.72
+    ],
+    "rotation": 135
+   },
+   {
+    "key": "tree-oak-3",
+    "library": "tree-oak",
+    "position": [
+     8.4,
+     -7.18
+    ],
+    "rotation": -45
+   },
+   {
+    "key": "bush-4",
+    "library": "bush",
+    "position": [
+     4.34,
+     2.53
+    ],
+    "rotation": 135
+   },
+   {
+    "key": "bush-5",
+    "library": "bush",
+    "position": [
+     2.07,
+     -3.56
+    ],
+    "rotation": -120
+   },
+   {
+    "key": "bush-6",
+    "library": "bush",
+    "position": [
+     7.54,
+     -0.47
+    ],
+    "rotation": 60
+   },
+   {
+    "key": "flower-yellow-7",
+    "library": "flower-yellow",
+    "position": [
+     -4.76,
+     -3.3
+    ],
+    "rotation": -45
+   },
+   {
+    "key": "flower-yellow-8",
+    "library": "flower-yellow",
+    "position": [
+     -4.33,
+     -4.31
+    ],
+    "rotation": 150
+   },
+   {
+    "key": "flower-yellow-9",
+    "library": "flower-yellow",
+    "position": [
+     -1.51,
+     -3.95
+    ],
+    "rotation": 75
+   }
+  ],
+  "cast": [
+   {
+    "id": "boy",
+    "name": "Boy",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      -3.33,
+      -1.79
+     ],
+     "facing": -18.0
+    },
+    "scale": 0.7
+   },
+   {
+    "id": "friend",
+    "name": "Friend",
+    "character": "avatar_female",
+    "start": {
+     "position": [
+      -6.8,
+      -5.04
+     ],
+     "facing": 56.0
+    },
+    "scale": 0.883
+   }
+  ],
+  "beats": [
+   {
+    "id": "boy-1",
+    "cast": "boy",
+    "start": 0.0,
+    "duration": 4.0,
+    "prompt": "A person sits on the grass.",
+    "action": "sits on the grass",
+    "facing": -18.0,
+    "motion": "sit_ground"
+   },
+   {
+    "id": "boy-2",
+    "cast": "boy",
+    "start": 4.0,
+    "duration": 4.0,
+    "prompt": "A person stands up from the grass.",
+    "action": "stands up",
+    "facing": -18.0,
+    "motion": "stand_up_ground"
+   },
+   {
+    "id": "boy-3",
+    "cast": "boy",
+    "start": 8.0,
+    "duration": 6.0,
+    "prompt": "A person walks forward around a bench.",
+    "action": "walks around the bench to his friend",
+    "facing": "grass",
+    "motion": "walk"
+   },
+   {
+    "id": "boy-4",
+    "cast": "boy",
+    "start": 14.0,
+    "duration": 3.0,
+    "prompt": "A person waves hello with their right hand.",
+    "action": "waves to his friend",
+    "facing": "friend",
+    "motion": "wave"
+   },
+   {
+    "id": "friend-1",
+    "cast": "friend",
+    "start": 14.0,
+    "duration": 3.0,
+    "prompt": "A person waves hello with their right hand.",
+    "action": "waves back",
+    "facing": "boy",
+    "seed": 1,
+    "motion": "wave"
+   }
+  ],
+  "shots": [
+   {
+    "id": "s1",
+    "start": 0.0,
+    "duration": 5.67,
+    "framing": "wide",
+    "subject": [
+     "boy",
+     "friend"
+    ],
+    "angle": 35
+   },
+   {
+    "id": "s2",
+    "start": 5.67,
+    "duration": 5.66,
+    "framing": "medium",
+    "subject": "boy",
+    "angle": -25
+   },
+   {
+    "id": "s3",
+    "start": 11.33,
+    "duration": 5.67,
+    "framing": "wide",
+    "subject": [
+     "boy",
+     "friend"
+    ],
+    "angle": 55
+   }
+  ]
+ }
+}

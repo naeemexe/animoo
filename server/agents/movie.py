@@ -321,10 +321,15 @@ def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
     if real and len(real) < len(places):
         for p in places:
             if p not in real:
+                # "a spot near the bench" belongs to the bench; anything else to the first real place.
+                into = next((r for r in real if re.search(rf"\b{re.escape(r['key'].replace('-', ' '))}\b", p["what"].lower())), None)
                 for raw_k, k in list(pmap.items()):
                     if k == p["key"]:
-                        pmap[raw_k] = real[0]["key"]
-                fixes.append(f"place {p['key']} ({p['what']}) is no prop: merged into {real[0]['key']}")
+                        pmap[raw_k] = (into or real[0])["key"]
+                        if into:
+                            nowhere.discard(raw_k)  # a real place to start at
+                into = into or real[0]
+                fixes.append(f"place {p['key']} ({p['what']}) is no prop: merged into {into['key']}")
         places = real
     cast, cmap = [], {}
     for i, c in enumerate((raw.get("cast") or [])[:3]):
@@ -493,7 +498,8 @@ def repair_world(raw: dict, plan: dict, manifest: dict, scene: str = "") -> tupl
     seats = {p["id"] for p in manifest["props"] if "seat" in p.get("tags", [])}
     for pl in plan["places"]:  # a seat must be something to sit on (a log stack is too tall)
         c = by_place[pl["key"]]
-        if pl["use"] == "sit" and not c.get("generate") and c["library"] not in seats and seats:
+        if pl["use"] == "sit" and not c.get("generate") and c["library"] not in seats and seats \
+                and not GROUND_WORDS.search(f"{pl['key']} {pl['what']}"):  # sitting on the grass needs no seat
             new = "bench" if "bench" in pl["what"].lower() and "bench" in seats else \
                 "stump" if "stump" in seats else sorted(seats)[0]
             fixes.append(f"{pl['key']}: {c['library']} is no seat → {new}")
@@ -686,6 +692,22 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
         f = _dir(p["face"])
         p["foot"] = (p["center"][0] + f[0] * (R + 0.8), p["center"][1] + f[1] * (R + 0.8))
         p["anchor"] = a
+    # "Walks around the bench to his friend": the prop's front (where people stand or sit)
+    # turns away from the route, so the walk really has to go around it (task 22).
+    starts = {c["id"]: c["starts_at"] for c in plan["cast"]}
+    for k, p in places.items():
+        pat = rf"\baround (the |a |his |her )?(\w+ )?{re.escape(k.replace('-', ' '))}\b"
+        walker = next((b["cast"] for b in plan["beats"] if re.search(pat, f"{b.get('action', '')} {b['prompt']}".lower())), None)
+        if not walker or not p.get("center"):
+            continue
+        sa = starts.get(walker)
+        if sa in places and places[sa].get("center") and sa != k:
+            p["face"] = _heading(places[sa]["center"], p["center"])  # long side across the approach, front beyond
+        else:
+            p["face"] = (p["face"] + 180) % 360
+        f = _dir(p["face"])
+        p["foot"] = (p["center"][0] + f[0] * (p["R"] + 0.8), p["center"][1] + f[1] * (p["R"] + 0.8))
+        notes.append(f"{k}: turned so {walker} has to walk around it")
     # Single seats (a stump): one per person who sits there.
     for k, p in places.items():
         e = entries.get(p["library"])
@@ -708,7 +730,8 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
     for i, b in enumerate(plan["beats"]):
         k = b.get("goto") or next((x.get("move_to") for x in reversed(plan["beats"][:i])
                                    if x["cast"] == b["cast"] and x.get("move_to")), None)
-        if not b.get("move_to") and SIT.search(b["prompt"].lower()) and k in places:
+        if not b.get("move_to") and SIT.search(b["prompt"].lower()) and k in places \
+                and not GROUND_WORDS.search(f"{b['prompt']} {b.get('action', '')}"):
             p = places[k]
             e = entries.get(p["library"])
             if p["library"] in SEATS or p.get("seats") or (e and "seat" in e.get("tags", [])) or \
