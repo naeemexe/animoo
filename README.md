@@ -1,5 +1,9 @@
 # Animoo
 
+**3D props:** NVIDIA Nemotron → NVIDIA SANA-Sprint → TRELLIS.2 → three.js  
+**Motion:** NVIDIA Nemotron → Llama-3-8B-Instruct (LLM2Vec, Kimodo's text encoder) → NVIDIA Kimodo → three.js  
+*All generation runs on an NVIDIA Brev A100; Nemotron agents plan, build and direct every scene.*
+
 **Type a sentence, get a living animated film.** A team of NVIDIA Nemotron agents plans the story,
 builds the world and directs the characters like a game controller; specialist models generate
 whatever is missing (3D props, motion, sound); and the film keeps changing while it plays when you
