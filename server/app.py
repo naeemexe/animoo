@@ -227,6 +227,22 @@ def movie_audio(req: AudioRequest) -> dict:
     return out
 
 
+class SpeechRequest(BaseModel):
+    text: str
+
+
+# The Chat character's voice (ElevenLabs): one sentence -> {url, cached, seconds}, cached in
+# library/audio/. 503 without a key or when ElevenLabs fails: the page falls back to the browser voice.
+@app.post("/api/chat/speech")
+def chat_speech(req: SpeechRequest) -> dict:
+    from . import elevenlabs
+    try:
+        return elevenlabs.speech(req.text[:600])
+    except (elevenlabs.NoKey, elevenlabs.ElevenLabsError, ValueError) as e:
+        print(f"[elevenlabs] speech failed: {e}")
+        raise HTTPException(503, str(e)[:200])
+
+
 class PropRequest(BaseModel):
     name: str
     prompt: str | None = None

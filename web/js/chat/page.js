@@ -1,7 +1,7 @@
 // The Chat page (task 10): one character in a little storybook set, and a
 // chat panel. Milo opens with a greeting in his own words, and every reply
 // comes from POST /api/chat (Nemotron; a rule-based mock only when the LLM is
-// down, and then the bubble says so). Replies are spoken with speechSynthesis while the character plays a
+// down, and then the bubble says so). Replies are spoken (ElevenLabs, else speechSynthesis) while the character plays a
 // talking motion. A reply with `demonstrate` asks Kimodo for that motion
 // (through gpu/tunnel.sh → localhost:8101, cached in the browser, library
 // fallback), performs it, and merges back into idle.
@@ -15,7 +15,7 @@ import { loadCharacter } from '../characters/index.js';
 import { buildSet, setTimeOfDay } from '../movie/world.js';
 import { motionFor, motionServerUp, MOTION_URL } from '../movie/clips.js';
 import { CHAT_SET } from './set.js';
-import { createVoice } from './voice.js';
+import { createVoice, ELEVEN } from './voice.js';
 import { Performer } from './performer.js';
 
 const CHARACTER = 'avatar_male';
@@ -67,18 +67,19 @@ export function createChatPage(root, stage, look) {
   };
 
   const voice = createVoice({
-    onVoices: ({ voices, voice: v }) => {
+    onVoices: ({ voices, voice: v, eleven, elevenFailed }) => {
       ui.voice.innerHTML = '';
-      if (!voices.length) {
+      const names = [...(elevenFailed ? [] : [ELEVEN]), ...voices.slice(0, 30).map((x) => x.name)];
+      if (!names.length) {
         ui.voice.innerHTML = '<option>no voices installed</option>';
         ui.voice.disabled = true;
         return;
       }
       ui.voice.disabled = false;
-      for (const x of voices.slice(0, 30)) {
+      for (const name of names) {
         const o = document.createElement('option');
-        o.value = o.textContent = x.name;
-        if (x === v) o.selected = true;
+        o.value = o.textContent = name;
+        if (eleven ? name === ELEVEN : name === v?.name) o.selected = true;
         ui.voice.appendChild(o);
       }
     },

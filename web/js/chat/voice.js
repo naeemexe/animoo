@@ -1,5 +1,6 @@
-// The character's voice: the browser's speechSynthesis with the best installed
-// English voice. Text is spoken one sentence at a time (Chrome cuts long
+// The character's voice: ElevenLabs (server/elevenlabs.py speech(), cached),
+// else the browser's speechSynthesis with the best installed English voice.
+// Text is spoken one sentence at a time (Chrome cuts long
 // utterances off, and the page wants to know when the first sentence ends).
 // With no speech engine or no voices, it times the sentences from their
 // length instead, so the talking gesture still plays.
@@ -10,6 +11,9 @@ const QUALITY = /\b(premium|enhanced|natural|neural|wavenet|online)\b/i;
 // Windows, ChromeOS and Android.
 const LIKED = /\b(aaron|alex|daniel|evan|nathan|tom|oliver|arthur|rishi|google uk english male|microsoft (guy|david|mark|ryan|andrew|brian))\b/i;
 const FEMALE = /\b(female|ava|zoe|samantha|allison|susan|serena|karen|moira|tessa|aria|jenny|libby|sonia|victoria|fiona|kate|zira|google us english)\b/i;
+
+// The voice menu's entry for the ElevenLabs voice (the server picks the voice id).
+export const ELEVEN = 'ElevenLabs · Liam';
 
 export function scoreVoice(v) {
   let s = 0;
@@ -32,12 +36,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export function createVoice({ onVoices = () => {} } = {}) {
   const synth = 'speechSynthesis' in window ? window.speechSynthesis : null;
-  const state = { voice: null, voices: [], speaking: false, level: 0 };
+  const state = { voice: null, voices: [], speaking: false, level: 0, eleven: true, elevenFailed: false, audio: null };
   let run = 0; // bumped by stop(), so an old speak() loop gives up
   let chosenByUser = false;
 
   function refresh() {
-    if (!synth) return;
+    if (!synth) { onVoices(state); return; }
     state.voices = synth.getVoices().filter((v) => scoreVoice(v) > -100)
       .sort((a, b) => scoreVoice(b) - scoreVoice(a) || a.name.localeCompare(b.name));
     if (!chosenByUser || !state.voices.includes(state.voice)) state.voice = state.voices[0] ?? null;
@@ -49,8 +53,49 @@ export function createVoice({ onVoices = () => {} } = {}) {
   }
 
   function setVoice(name) {
+    state.eleven = name === ELEVEN;
+    if (state.eleven) return;
     state.voice = state.voices.find((v) => v.name === name) ?? state.voice;
     chosenByUser = true;
+  }
+
+  // ElevenLabs (through POST /api/chat/speech, cached in library/audio/): one
+  // mp3 per sentence. Any failure turns it off for the session and the browser
+  // voice takes over.
+  const urls = new Map(); // sentence → Promise<url | null>
+  function elevenUrl(sentence) {
+    if (!urls.has(sentence)) {
+      urls.set(sentence, fetch('/api/chat/speech', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: sentence }),
+      }).then((r) => (r.ok ? r.json() : r.text().then((t) => { throw new Error(`${r.status} ${t.slice(0, 120)}`); })))
+        .then((j) => j.url)
+        .catch((err) => {
+          console.warn('ElevenLabs voice failed, using the browser voice:', err.message);
+          state.eleven = false;
+          state.elevenFailed = true;
+          urls.delete(sentence);
+          onVoices(state);
+          return null;
+        }));
+    }
+    return urls.get(sentence);
+  }
+
+  async function playOne(sentence, id) {
+    const url = await elevenUrl(sentence);
+    if (!url) return false; // fall back for this sentence
+    if (id !== run) return true;
+    return new Promise((resolve) => {
+      const audio = new Audio(url);
+      state.audio = audio;
+      let done = false;
+      const finish = () => { if (!done) { done = true; clearTimeout(timer); if (state.audio === audio) state.audio = null; resolve(true); } };
+      const timer = setTimeout(finish, 30000);
+      audio.onended = finish;
+      audio.onerror = () => { console.warn('speech audio failed to play'); finish(); };
+      audio.onpause = finish; // stop()
+      audio.play().catch((err) => { console.warn('speech audio:', err.message); finish(); });
+    });
   }
 
   // One sentence: resolves when it has been spoken (or after a timeout, since
@@ -80,10 +125,11 @@ export function createVoice({ onVoices = () => {} } = {}) {
     stop();
     const id = run;
     const sentences = splitSentences(text);
+    if (state.eleven) sentences.forEach(elevenUrl); // ask for every sentence now, play them in turn
     state.speaking = true;
     try {
       for (let i = 0; i < sentences.length && id === run; i++) {
-        await sayOne(sentences[i], id);
+        if (!(state.eleven && await playOne(sentences[i], id))) await sayOne(sentences[i], id);
         if (id === run) onSentence(i, sentences.length);
       }
     } finally {
@@ -95,7 +141,9 @@ export function createVoice({ onVoices = () => {} } = {}) {
     run++;
     state.speaking = false;
     synth?.cancel();
+    state.audio?.pause();
+    state.audio = null;
   }
 
-  return { state, speak, stop, setVoice, refresh, get available() { return !!synth; } };
+  return { state, speak, stop, setVoice, refresh, get available() { return !!synth || state.eleven; } };
 }
