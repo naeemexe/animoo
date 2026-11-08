@@ -640,8 +640,9 @@ function streetMeshes(streets, half) {
 export async function fillWorld(stage, script, set, { seed = 11 } = {}) {
   const biome = script.terrain?.biome ?? 'forest';
   const P = palette(script.terrain?.time_of_day, script.terrain?.weather);
-  P.sea = '#' + new THREE.Color('#4f97bb').lerp(new THREE.Color(P.fog), 0.35).getHexString();
-  P.shallow = '#' + new THREE.Color('#7cc6cf').lerp(new THREE.Color(P.fog), 0.25).getHexString();
+  // Strong blues: the toon light (lavender at sunrise) shifts them a lot.
+  P.sea = '#' + new THREE.Color('#2f8fd0').lerp(new THREE.Color(P.fog), 0.12).getHexString();
+  P.shallow = '#' + new THREE.Color('#5cc8d6').lerp(new THREE.Color(P.fog), 0.1).getHexString();
   const rng = mulberry32(seed);
   const sea = biome === 'sea' ? seaSide(script) : null;
   const keep = keepOut(script, set);

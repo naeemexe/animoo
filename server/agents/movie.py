@@ -254,7 +254,7 @@ barrels, carts and lanterns; a camp gets logs, stumps, rocks and pines; a villag
 bushes and trees. The biome sets the rest of the world (fill code adds the ground, the buildings or
 forest around the set and the backdrop), so decor is only what stands near the action: a city street gets
 lantern-post, bench, hedge, crate, barrel and a truck (never trees or rocks); a sea or harbor scene
-gets dock, rowboat, canoe, barrel, crate, chest, rock-large, palm-tree; a park gets bench, hedge, fountain,
+gets barrel, crate, chest, rock-large, palm-tree (boats only as places); a park gets bench, hedge, fountain,
 lantern-post, flowers, tree-round. near is a place key or "edge" (the rim of the island, good for trees).
 A window, door or porch is part of a building: choose house or wooden-cottage for it, never generate a
 lone window. A village gets houses (house, wooden-cottage) and lantern-post in the decor; a city shop,
@@ -488,7 +488,7 @@ BIOME_DECOR = {
     "city": [{"library": "lantern-post", "count": 4}, {"library": "bench", "count": 2}, {"library": "hedge", "count": 3},
              {"library": "crate", "count": 2}, {"library": "truck", "count": 1, "near": "edge"}],
     "sea": [{"library": "barrel", "count": 3}, {"library": "crate", "count": 3}, {"library": "rock-large", "count": 3},
-            {"library": "canoe", "count": 1}],
+            {"library": "chest", "count": 1}],
     "park": [{"library": "tree-round", "count": 4, "near": "edge"}, {"library": "hedge", "count": 4}, {"library": "lantern-post", "count": 3},
              {"library": "flower-red", "count": 3}, {"library": "bench", "count": 1}],
 }
@@ -496,7 +496,7 @@ BIOME_DECOR = {
 NOT_IN = {"city": re.compile(r"^(tree|pine|bush|rock|flower|mushroom|grass|stump|log|house|wooden-cottage|city-)"),
           "sea": re.compile(r"^(mushroom|stump|house|wooden-cottage|city-|lily|flower)"),
           "park": re.compile(r"^(mushroom|stump|log|rock|city-)")}
-SETTING = re.compile(r"\b(street|road|sidewalk|square|plaza|path|park|lawn|beach|shore)\b", re.I)
+SETTING = re.compile(r"\b(street|road|sidewalk|square|plaza|path|park|lawn|beach|shore|sand|ground|grass)\b", re.I)
 HOUSE_PART = re.compile(r"\b(window|door|doorstep|porch|balcony|room)\b", re.I)
 TOWN = re.compile(r"\b(village|street|town|houses?|cottages?|alley|square)\b", re.I)
 
@@ -542,14 +542,21 @@ def repair_world(raw: dict, plan: dict, manifest: dict, scene: str = "") -> tupl
     for pl in plan["places"]:
         c = by_place[pl["key"]]
         # The setting itself ("the street", "a park path") is no building: the fill makes it; a lamp marks the spot.
-        if SETTING.search(f"{pl['key']} {pl['what']}") and c["library"] in big and "lantern-post" in ids \
+        if SETTING.search(f"{pl['key']} {pl['what']}") and (c["library"] in big or c.get("generate")) \
                 and not re.search(r"\b(shop|cafe|house|building|store|home)\b", pl["what"], re.I):
-            fixes.append(f"{pl['key']}: {c['library']} → lantern-post (the {pl['key']} is the set itself)")
-            by_place[pl["key"]] = {"library": "lantern-post"}
+            mark = "palm-tree" if "palm" in pl["what"].lower() else \
+                "lantern-post" if plan.get("biome") in ("city", "park") else "rock-small"
+            if mark in ids:
+                fixes.append(f"{pl['key']}: {c['library']} → {mark} (the {pl['key']} is the set itself)")
+                by_place[pl["key"]] = {"library": mark}
         # A library prop named exactly like the place wins over a stand-in (hedge → hedge, not a pine).
         elif pl["key"] in ids and pl["key"] not in c["library"] and not c.get("generate"):
             fixes.append(f"{pl['key']}: {c['library']} → {pl['key']} (the library has one)")
             by_place[pl["key"]] = {"library": pl["key"]}
+        # The big dock is a 2 m platform and layout stands people at its foot (inside it): use the small one.
+        if by_place[pl["key"]]["library"] == "dock" and "dock-small" in ids:
+            fixes.append(f"{pl['key']}: dock → dock-small (people stand at its foot)")
+            by_place[pl["key"]] = {"library": "dock-small"}
     seats = {p["id"] for p in manifest["props"] if "seat" in p.get("tags", [])}
     for pl in plan["places"]:  # a seat must be something to sit on (a log stack is too tall)
         c = by_place[pl["key"]]
@@ -566,6 +573,9 @@ def repair_world(raw: dict, plan: dict, manifest: dict, scene: str = "") -> tupl
             continue
         if d["library"] in wet and not plan["water"]:
             fixes.append(f"decor {d['library']}: no water in this scene, dropped")
+            continue
+        if re.search(r"boat|canoe|raft", d["library"]):  # decor lands at random on land; a story boat is a place
+            fixes.append(f"decor {d['library']}: a boat isn't decor, dropped")
             continue
         bad = NOT_IN.get(plan.get("biome"))
         if bad and bad.match(d["library"]):
