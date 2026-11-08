@@ -72,7 +72,7 @@ SELF_HOSTED_MODEL = "nemotron"
 OPENCODE_MODEL = "opencode/nemotron-3.5-lightning-free"
 NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
 OPENCODE_BIN_DEFAULT = Path.home() / ".opencode" / "bin" / "opencode"
-OPENCODE_DIR_DEFAULT = Path.home() / ".cache" / "animo-world" / "opencode"
+OPENCODE_DIR_DEFAULT = Path.home() / ".cache" / "animoo" / "opencode"
 CHAIN = ("nvidia", "openai", "opencode")
 OFF = ("off", "mock", "none")
 
@@ -334,7 +334,7 @@ def flatten(messages: list[dict]) -> str:
     (a coding agent) comes first, so this says clearly what the job is."""
     system = "\n\n".join(m["content"] for m in messages if m["role"] == "system")
     turns = [m for m in messages if m["role"] != "system"]
-    out = ["You are not working on code in this task. You are the language model behind the Animo World "
+    out = ["You are not working on code in this task. You are the language model behind the Animoo "
            "app, used as a plain text endpoint. Do not use any tools: every tool call is rejected. Do not "
            "read or edit files, do not run commands. Read the instructions and the conversation below, then "
            "write only the next ASSISTANT message, exactly in the format the instructions ask for."]

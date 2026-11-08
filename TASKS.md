@@ -209,9 +209,9 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
   we don't self-host).
 - Kimodo prints LoRA weights as "MISSING" while loading its LLM2Vec text encoder.
   Check whether the text encoding is right (task 05).
-- `.claude/` is gitignored, so `.claude/launch.json` (`animo-world-server`,
-  `animo-world-web`) exists only in this checkout.
-- Run the app with `animo-world-server`, since FastAPI serves `web/` at `/`. The
+- `.claude/` is gitignored, so `.claude/launch.json` (`animoo-server`,
+  `animoo-web`) exists only in this checkout.
+- Run the app with `animoo-server`, since FastAPI serves `web/` at `/`. The
   server venv is `server/.venv`.
 - three r160 `MeshToonMaterial` has no `flatShading`. Use `faceted(geometry)` from
   `web/js/toon.js`, and run every loaded GLB through `toonify()`.
@@ -336,7 +336,7 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
   call's seconds; `/health` shows `config.llm` {backend, model, ready, calls, median_s}.
 - 06: OpenCode's free tier only accepts OpenCode's stock agent with its full tool list. A custom agent, tools
   turned off, or `permission: deny` (which drops the tools) all get "Free usage limit reached". So
-  `opencode run --pure` runs in `~/.cache/animo-world/opencode/` with an `opencode.json` that sets every
+  `opencode run --pure` runs in `~/.cache/animoo/opencode/` with an `opencode.json` that sets every
   permission to `ask`, and the non-interactive `run` auto-rejects every tool call. Without that, the model ran a
   bash command it was asked to run in a test. Every call carries about 8k tokens of OpenCode's coding-agent
   prompt, and our system prompt and conversation go in as one flattened user message. `opencode run` hangs if
@@ -410,7 +410,7 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
   stand up at different times and walk about 6 s to their dance spots; in the market the keeper stops at
   the fountain and never reaches the cart, so the apple is handed back to nobody; in the lighthouse scene
   grandpa has no beats (he sits in the rowboat for the whole film).
-- 08b: the `animo-world-server` launch config moved to :8002 because :8000 and :8001 already had
+- 08b: the `animoo-server` launch config moved to :8002 because :8000 and :8001 already had
   uvicorn servers running (both `--reload`, so they picked up the changes too).
 - 14 (2026-11-08): checked on the Movie page (scene + probe of bone/mesh positions at several times) for all four
   cached scenes: characters 1.76–1.79 m standing (kids 1.32 m), props grounded (min y 0), no prop overlaps,
@@ -639,7 +639,7 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
 - 12 (2026-11-08): five takes in `demo/` (01 park bench 21 s, 02 city street 24 s, 03 beach harbor 11 s, 04 restaurant
   17 s, 05 night rain lamplighter 21 s; 1920×1080 VP9, 6–15 MB each, 57 MB in all, so committed). Each recorded once with
   Export WebM and checked by playing the blob back in the page at one time (no ffmpeg on the Mac).
-- 12: offline check: the local `animo-world-offline` launch config starts the server with `MOTION_URL`/`ASSET_URL` on
+- 12: offline check: the local `animoo-offline` launch config starts the server with `MOTION_URL`/`ASSET_URL` on
   `127.0.0.1:9`, and the page gets `?motion=http://127.0.0.1:9`. All five scenes loaded their cached plans and every clip
   came from the action library or `library/motions/live/` (the lamplighter's "lights a lantern"); no beat fell back to
   the sample motions. The only console errors are `ERR_UNSAFE_PORT` from the dead :9 probe. The real tunnel was left up.

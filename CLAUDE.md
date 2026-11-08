@@ -1,4 +1,4 @@
-# Animo World: rules for every session
+# Animoo: rules for every session
 
 Read `docs/STATUS.md`, `PLAN.md`, `TASKS.md` and `WORKFLOW.md` before starting.
 

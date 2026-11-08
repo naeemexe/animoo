@@ -1,8 +1,8 @@
-# Animo World
+# Animoo
 
 ## Pitch
 
-Animo World turns one sentence into a short 3D storybook film. You type "In a small
+Animoo turns one sentence into a short 3D storybook film. You type "In a small
 restaurant at night, a man sits at a table for two, a woman walks in and waves, sits down
 across from him, and they talk and laugh", and a team of NVIDIA Nemotron agents writes the
 script, builds the set, casts the characters and plans every beat. The motion comes from
@@ -167,12 +167,12 @@ are approximate.
 
 | # | Time | Picture | Narration (suggested) |
 |---|---|---|---|
-| 1 | 0:00–0:15 | Title card, then the Chat page: Mira waves; ask "show me a squat" and cut to her doing it | "This is Animo World. Talk to a character and she acts it out: Nemotron answers, NVIDIA's Kimodo makes the move." |
+| 1 | 0:00–0:15 | Title card, then the Chat page: Mira waves; ask "show me a squat" and cut to her doing it | "This is Animoo. Talk to a character and she acts it out: Nemotron answers, NVIDIA's Kimodo makes the move." |
 | 2 | 0:15–0:40 | Screen recording on the Movie page: type the park-bench prompt, press Make. The agent log fills in: orchestrator plan (cast, looks, audio), world agent's `search_library` calls, motion clips, director's shots. | "Describe a scene and a team of Nemotron agents builds it in front of you. The orchestrator plans the beats, the cast, even the sound. The world agent builds the set with tool calls, Kimodo gives every beat its motion, and the director plans paths around the props and cuts it into shots." |
 | 3 | 0:40–1:00 | `01-park-bench.webm` | "The boy walks around the bench to his friend, and the wave turns toward her." |
 | 4 | 1:00–1:45 | Screen recording on the same scene: tick **edit set**. Fly the free camera low over the park (WASD + mouse). Click the bench, drag it 3 m and turn it; the friend's spot moves with it. Duplicate a tree with Ctrl+D, delete a bush. Open the character path: drag numbered nodes 1 and 3 into a curve, add a point. Show the pink camera path, raise a key with its ↕ handle. Untick edit set: the log says "re-directed around the edited set", and play: the boy walks the new curve around the moved bench. | "Then step inside. A free camera flies anywhere. Move the bench and the story moves with it. Plant a tree, delete a bush. Draw the boy's walk and the camera's path as numbered points. Leave edit mode and the director re-plans everything: no one walks through a bench or through each other." |
 | 5 | 1:45–2:35 | `02-city-street.webm` (0:15), `04-restaurant-night.webm` (0:15), `03-beach-harbor.webm` (0:08), `05-night-rain-lamplighter.webm` (0:12), each with its prompt as a caption | "The same pipeline does a city street, a restaurant at night with an eye-level camera, a harbor, and rain after dark. The sound is planned too: traffic, a dining-room murmur, waves, rain and crickets. And the lamplighter's move wasn't in our library, so Kimodo generated it live, and now it's cached." |
-| 6 | 2:35–2:55 | Closing card: Nemotron agents → Kimodo motion → TRELLIS.2 props → three.js film with sound. Credits: VRM characters by SherryKatzu and Rarestgrass, Kenney CC0 kits. | "Every plan, clip and prop is cached, so any film replays instantly, even with the GPU off. That's Animo World." |
+| 6 | 2:35–2:55 | Closing card: Nemotron agents → Kimodo motion → TRELLIS.2 props → three.js film with sound. Credits: VRM characters by SherryKatzu and Rarestgrass, Kenney CC0 kits. | "Every plan, clip and prop is cached, so any film replays instantly, even with the GPU off. That's Animoo." |
 
 For part 2, use a cached prompt (park bench or restaurant) so the log plays at reading speed;
 add `?fresh` to the URL only to show a live Nemotron call. For part 4, avoid dropping the bench

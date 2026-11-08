@@ -20,7 +20,7 @@ A new main session should read this first, then `TASKS.md`.
 
 ```bash
 bash gpu/tunnel.sh                       # GPU servers → localhost:8101/8102/8103 (Brev box `framed-gpu`)
-server/.venv/bin/uvicorn server.app:app --port 8000   # or the `animo-world-server` launch config
+server/.venv/bin/uvicorn server.app:app --port 8000   # or the `animoo-server` launch config
 open http://localhost:8000               # Movie | Chat
 ```
 

@@ -1,4 +1,4 @@
-# Animo World
+# Animoo
 
 Two pages, one storybook 3D world:
 

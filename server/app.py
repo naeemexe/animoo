@@ -1,4 +1,4 @@
-"""Animo World backend.
+"""Animoo backend.
 
 Run from the repo root:
     server/.venv/bin/uvicorn server.app:app --port 8000
@@ -28,7 +28,7 @@ from .tools.generate_prop import GenerateError, generate_prop
 ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
 
-app = FastAPI(title="Animo World")
+app = FastAPI(title="Animoo")
 
 # The static web server (a different localhost port) calls this API too.
 app.add_middleware(
@@ -53,7 +53,7 @@ def health() -> dict:
     # Report which settings exist, never their values.
     return {
         "ok": True,
-        "service": "animo-world",
+        "service": "animoo",
         "config": {
             "llm": llm.info(),
             "nvidia_api_key": bool(os.getenv("NVIDIA_API_KEY")),
