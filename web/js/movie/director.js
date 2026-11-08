@@ -72,10 +72,56 @@ function stretchTail(clip, from, dest) {
   return s;
 }
 
+// Seated beats (sitting down on a bench or chair, and the seated idle, talk or
+// gestures after it) end with the hips on the seat: Kimodo's sit-down steps
+// back by its own amount (0.1-0.45 m) and the seated loops don't step at all,
+// so without this a sitter floats in front of the seat. The correction fades
+// in as the hips go down (a sit-down) or applies whole (already seated), and
+// the next beats start from the corrected spot, so a stand-up rises off the seat.
+// `seats`: [{ key, c: [x, z], front: [x, z], half, back }] (see seatsFromSet).
+const SIT_DOWN = /^sit_(bench|chair)$/;
+const SEATED = /^sit_(bench|chair)_(idle|talk)$/;
+const SITS = /^a person sits\b(?!.*\b(ground|floor|grass|sand|rug|blanket)\b)/i;
+function isSeated(beat) {
+  if (beat.motion) return SIT_DOWN.test(beat.motion) || SEATED.test(beat.motion) || (/^live|^$/.test(beat.motion) && SITS.test(beat.prompt));
+  return SITS.test(beat.prompt ?? '') && !/stands? up|gets? up|rises/i.test(beat.prompt ?? '');
+}
+function snapSeat(clip, from, beat, seats) {
+  if (!seats.length || !isSeated(beat) || from >= clip.frames - 1) return null;
+  const L = clip.frames - 1;
+  const end = [clip.hips[L * 3], clip.hips[L * 3 + 2]];
+  let best = null, bd = 1.3;
+  for (const s of seats) {
+    // Distance to the seat's line (a bench or sofa seats several along it).
+    const side = [-s.front[1], s.front[0]];
+    const a = Math.max(-s.half, Math.min(s.half, (end[0] - s.c[0]) * side[0] + (end[1] - s.c[1]) * side[1]));
+    const p = [s.c[0] + s.front[0] * s.back + side[0] * a, s.c[1] + s.front[1] * s.back + side[1] * a];
+    const d = Math.hypot(end[0] - p[0], end[1] - p[1]);
+    if (d < bd) { bd = d; best = { s, p }; }
+  }
+  if (!best) return null;
+  const dx = best.p[0] - end[0], dz = best.p[1] - end[1];
+  const sitDown = SIT_DOWN.test(beat.motion ?? '') || (!SEATED.test(beat.motion ?? '') && /sits? down|sits on|takes a seat/i.test(beat.prompt ?? ''));
+  const y0 = clip.hips[from * 3 + 1], y1 = clip.hips[L * 3 + 1];
+  for (let f = from; f <= L; f++) {
+    let w = 1;
+    if (sitDown) {
+      const u = y0 - y1 > 0.08 ? (y0 - clip.hips[f * 3 + 1]) / (y0 - y1) : (f - from) / Math.max(1, L - from);
+      w = Math.min(1, Math.max(0, u));
+      w = w * w * (3 - 2 * w);
+    }
+    for (const arr of [clip.hips, clip.feet.left, clip.feet.right]) {
+      arr[f * 3] += dx * w;
+      arr[f * 3 + 2] += dz * w;
+    }
+  }
+  return { key: best.s.key, moved: +Math.hypot(dx, dz).toFixed(2) };
+}
+
 // One timeline row. `clips` maps beat id → retargeted Clip (origin, +Z).
 // → { castId, offset, clip, beats: [{ beat, start, end, stretch }], positionAt(t) }
 // A scaled character (a kid) lives in its group's space: world / scale.
-export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.3, obstacles = [] } = {}) {
+export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.3, obstacles = [], seats = [] } = {}) {
   const k = castEntry.scale ?? 1;
   const resolve = (target, t) => resolveWorld(target, t).map((v) => v / k);
   const clipOf = (e) => e.clip ?? e;
@@ -83,6 +129,7 @@ export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.3, o
   const offset = beats[0].start;
   // Obstacles in this character's group space (world / scale).
   const obs = obstacles.map((o) => ({ ...o, c: [o.c[0] / k, o.c[1] / k], h: [o.h[0] / k, o.h[1] / k] }));
+  const seatsK = seats.map((s) => ({ ...s, c: [s.c[0] / k, s.c[1] / k], half: s.half / k, back: s.back / k }));
   let acc = null;
   const placed = [];
 
@@ -136,7 +183,8 @@ export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.3, o
       if (beat.to !== undefined && tr.dist > 0.3) heading = angleTo(from, resolve(beat.to, beat.start)) - tr.angle;
       acc = plantFeet(c.clone().transform(heading - meanHeading(c, 0, n), [c.hips[0], c.hips[2]], [from[0] - c.hips[0], from[1] - c.hips[2]]));
       const stretch = beat.to !== undefined && !act ? stretchTail(acc, 0, resolve(beat.to, beat.start)) : 1;
-      placed.push({ beat, start: offset, end: offset + acc.duration, stretch });
+      const seat = snapSeat(acc, 0, beat, seatsK);
+      placed.push({ beat, start: offset, end: offset + acc.duration, stretch, ...(seat ? { seat } : {}) });
       continue;
     }
 
@@ -151,7 +199,8 @@ export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.3, o
     acc = mergeClips(acc, c, { blend: b, heading: heading === undefined ? undefined : current + wrap(heading - current) });
     const seg = acc.segments.at(-1);
     const stretch = beat.to !== undefined && !act ? stretchTail(acc, seg.start, resolve(beat.to, tJoin)) : 1;
-    placed.push({ beat, start: offset + seg.start / fps, end: offset + acc.duration, stretch });
+    const seat = snapSeat(acc, seg.start, beat, seatsK);
+    placed.push({ beat, start: offset + seg.start / fps, end: offset + acc.duration, stretch, ...(seat ? { seat } : {}) });
   }
   for (let i = 0; i < placed.length - 1; i++) placed[i].end = placed[i + 1].start;
 

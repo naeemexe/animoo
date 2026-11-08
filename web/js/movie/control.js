@@ -327,3 +327,34 @@ export function talkSpot(at, who, obstacles, { dist = 1.3 } = {}) {
   }
   return best;
 }
+
+// ---- seats ----------------------------------------------------------------------
+
+// Where seated hips go on each kind of seat, in the prop's own frame: which
+// local axis is its front, how far along its length people can sit (half),
+// and the hips' offset from the center toward the front (negative: toward the
+// backrest). Anything else tagged "seat" sits at its center, front +z.
+const SEAT_SPEC = {
+  bench: { front: [-1, 0], half: 0.6, back: 0 },
+  stump: { front: [0, 1], half: 0, back: 0 },
+  chair: { front: [0, 1], half: 0, back: -0.07 },
+  armchair: { front: [0, 1], half: 0, back: -0.1 },
+  sofa: { front: [0, 1], half: 0.55, back: -0.1 },
+};
+
+// The set's seats in world space: [{ key, c: [x, z], front: [x, z], half, back }].
+export function seatsFromSet(set) {
+  const out = [];
+  for (const obj of set?.children ?? []) {
+    const e = obj.userData?.prop;
+    if (!e || !(e.tags ?? []).includes('seat')) continue;
+    const spec = SEAT_SPEC[e.id] ?? { front: [0, 1], half: 0, back: 0 };
+    const r = obj.rotation.y, c = Math.cos(r), s = Math.sin(r), k = obj.scale.x;
+    const [lx, lz] = spec.front;
+    out.push({
+      key: obj.name, c: [obj.position.x, obj.position.z],
+      front: [lx * c + lz * s, -lx * s + lz * c], half: spec.half * k, back: spec.back * k,
+    });
+  }
+  return out;
+}

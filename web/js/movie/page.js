@@ -14,7 +14,7 @@ import { FISHERMAN_SCENE, FISHERMAN_SCRIPT } from './mock.js';
 import { API_BASE, urlParams } from '../api.js';
 import { buildSet, setTimeOfDay } from './world.js';
 import { motionFor, motionServerUp, MOTION_URL, actionFor, liveFor } from './clips.js';
-import { prepareAction, obstaclesFromSet } from './control.js';
+import { prepareAction, obstaclesFromSet, seatsFromSet } from './control.js';
 import { direct, makeResolver } from './director.js';
 import { createTimeline } from './timeline.js';
 import { DirectorCamera } from './camera.js';
@@ -214,7 +214,8 @@ export function createMoviePage(root, stage, look) {
       const t0 = performance.now();
       state.clipsByCast = clipsByCast; // for re-directing from the console
       state.obstacles = obstaclesFromSet(state.set);
-      state.rows = direct(script, clipsByCast, { obstacles: state.obstacles });
+      state.seats = seatsFromSet(state.set);
+      state.rows = direct(script, clipsByCast, { obstacles: state.obstacles, seats: state.seats });
       for (const [id, row] of Object.entries(state.rows)) {
         const hero = state.heroes[id];
         hero.clips = row.beats.map((b) => { const e = clipsByCast[id].get(b.beat.id); return e.clip ?? e; });
@@ -222,7 +223,8 @@ export function createMoviePage(root, stage, look) {
         hero.seek(0);
         const stretched = row.beats.filter((b) => !b.path && Math.abs(b.stretch - 1) > 0.02).map((b) => `${b.beat.id} ×${b.stretch.toFixed(2)}`);
         const paths = row.beats.filter((b) => b.path).map((b) => `${b.beat.id} ${b.pathInfo}`);
-        log('director', 'call', `add_to_timeline(${id}, ${row.beats.length} clips) → ${row.offset.toFixed(1)}–${row.end.toFixed(1)} s${stretched.length ? ` · stretched ${stretched.join(', ')}` : ''}${paths.length ? ` · paths ${paths.join('; ')}` : ''}`);
+        const sat = row.beats.filter((b) => b.seat && b.seat.moved > 0.03).map((b) => `${b.beat.id} onto ${b.seat.key} (${b.seat.moved} m)`);
+        log('director', 'call', `add_to_timeline(${id}, ${row.beats.length} clips) → ${row.offset.toFixed(1)}–${row.end.toFixed(1)} s${stretched.length ? ` · stretched ${stretched.join(', ')}` : ''}${paths.length ? ` · paths ${paths.join('; ')}` : ''}${sat.length ? ` · seated ${sat.join(', ')}` : ''}`);
       }
       state.duration = Math.max(plannedDuration(script), ...Object.values(state.rows).map((r) => r.end));
       // Camera: cut the film into shots from the merged beats.
