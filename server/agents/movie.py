@@ -462,7 +462,7 @@ SPEEDS = [  # m/s, measured on Kimodo (TASKS.md 09a), minus the standing start
     (re.compile(r"\b(jog)"), 2.4),
     (re.compile(r"\b(run)"), 2.0),
     (re.compile(r"\b(sneak|tiptoe|limp)"), 0.8),
-    (re.compile(r"\b(slow|stroll|wander|old)"), 1.1),
+    (re.compile(r"\b(slow|stroll|wander|old)"), 0.85),
     (re.compile(r"\b(skip|march)"), 1.6),
 ]
 
@@ -484,6 +484,12 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
     rng = random.Random(int(hashlib.sha1(scene.encode()).hexdigest()[:8], 16))
     entries = {p["id"]: p for p in manifest["props"]}
     places = {p["key"]: dict(p, **world["choices"][p["key"]]) for p in plan["places"]}
+    for p in places.values():  # a dock or a boat goes by the water, whatever the plan said
+        e = entries.get(p["library"])
+        if plan["water"] and e and e.get("category") == "water" and p["library"] != "bridge-wood":
+            p["use"] = "water"
+        elif p["use"] == "water" and not plan["water"]:
+            p["use"] = "stand"
 
     # Visit order: where characters start, then where beats go.
     order = []
@@ -737,6 +743,8 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
         if cut <= t + 0.5:
             continue
         cut = end if i == len(plan_shots) - 1 else min(cut, end)
+        if cut - t < 0.5:
+            continue
         subj = s["subject"]
         shots.append({"id": f"s{len(shots) + 1}", "start": _r(t), "duration": _r(cut - t),
                       "framing": s["framing"], "subject": subj if len(subj) > 1 else subj[0], "angle": angles[i % 6]})
