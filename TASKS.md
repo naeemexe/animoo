@@ -50,7 +50,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 32 | A | Scene audio: the orchestrator plans ambience + a soft music bed from place, weather, time and mood (or the user's words); ElevenLabs sound effects/music when a key is set, procedural WebAudio otherwise; cached; in the WebM export | 2 h | done (procedural; ElevenLabs coded, off until `ELEVENLABS_API_KEY` is set) | 08 |
 | 12b | A | Re-record the 5 demo takes after round 3 (with audio), update `demo/SUBMISSION.md` | 0.5 h | done | 28–32 |
 | 33 | A | Motion polish: walking legs don't look broken (knees bend the right way, no pops), and each clip starts from where and how the previous one ended | 1.5 h | doing | 22 |
-| 37 | A | Look round 4: small simple white flowers with no black outlines; a good sea backdrop | 1 h | doing | 24, 28 |
+| 37 | A | Look round 4: small simple white flowers with no black outlines; a good sea backdrop | 1 h | done | 24, 28 |
 | 34 | A | Natural beat planning: no pointless sit → stand → sit cycles, nobody stands up for no reason, greetings fit who is seated; re-cache the demo scenes | 1.5 h | todo | 22, 33 |
 | 35 | A | Character skins: outfits, hair and body build (slim to heavy) layered on the same rigged figure, like game skins, so animation never breaks | 1.5 h | todo | 27 |
 | 36 | A | More cast + background NPCs: scenes with 3+ people; city/park/restaurant get background extras on ambient loops (walk, sit, talk, work) | 1.5 h | todo | 31, 35 |
@@ -805,3 +805,22 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
   building that cuts with a transition into the interior) is in the shared notes folder as
   `demo-vision-from-user.md`, for the main session to split into tasks. The new shot list's edit-mode beat uses
   only what exists today.
+- 37 (2026-11-08): flowers: the scattered flowers are procedural clumps of 2-3 small white five-petal daisies with a
+  faint yellow eye (`wildflowers()` in `fill.js`, ~60 triangles each), drawn like the grass: up normals, no depth
+  write, no shadow, and in `scene.userData.noNormal`, so no ink at all. About a third as many as before (park 223 → 67,
+  lighthouse forest → 95). The world agent's decor `flower-red/yellow` and `grass-tuft` props are hidden and replaced
+  by the fill's flowers/tufts at their spots unless a beat names them. Gotchas: `side: DoubleSide` flips the up
+  normal on back faces (petals went brown), so the geometry has both windings like the grass.
+- 37: sea: the 3D sea (`seaMaterial()`) fades into `P.seaHaze` (deep blue toward the horizon color) instead of the
+  land fog, and the dome paints the same haze below the horizon in the sea arc, so there is one clean horizon (the
+  old full-width blue stripe at the horizon is gone). Four far islands on the sea horizon, sky top color reaching
+  down to 92 % (sea biome only), gentle glints past 30 m (fwidth-faded, `WIND.uTime`), shore bands wet sand → foam
+  line → shallows → mid → deep. The script's pond is named `pond` in `world.js` and hidden on beaches; the shore
+  moved in to cover the whole pond so the boat and dock still float.
+- 37: checked with screenshots, panels hidden: beach t = 1.5 and 9.5 (director) and a free-camera view toward the
+  sea; park (re-planned scene "In a park on a sunny afternoon") free-camera at eye level and close; lighthouse forest
+  t = 1. No console errors except the dead GPU ports. Before/after of beach and park in this session only.
+- 37: not done: at sunrise the sky the camera sees is still mostly peach (palette `mid`); the user may want a
+  bluer sea sky. Lily pads from the lighthouse scene's decor sit on the grass outside the pond. Layouts shift a
+  little in the park, forest and beach (scatter RNG order changed), so 12c re-records anyway. The Chat page's
+  hand-placed `flower-red/yellow` props (`web/js/chat/set.js`) are unchanged.
