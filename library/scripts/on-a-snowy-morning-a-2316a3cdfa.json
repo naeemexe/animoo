@@ -1,0 +1,480 @@
+{
+ "scene": "On a snowy morning a boy builds a snowman next to a red sleigh in front of a log cabin, then waves to his mother standing at the door.",
+ "created": "2026-11-08T07:32:36+00:00",
+ "model": "nvidia/nemotron-3.5-super-vl-120b-a12b + nvidia/nemotron-3.5-lightning-30b-a3b",
+ "backend": "nvidia",
+ "llm_calls": [
+  {
+   "agent": "orchestrator",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+   "ok": true,
+   "seconds": 2.54
+  },
+  {
+   "agent": "world",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+   "ok": true,
+   "seconds": 2.7
+  }
+ ],
+ "llm_seconds": [
+  2.54,
+  2.7
+ ],
+ "plan": {
+  "title": "Snowman by the cabin",
+  "thoughts": [
+   "One character: a boy building a snowman in front of a log cabin on a snowy morning.",
+   "Places: the log cabin, the red sleigh, and the spot where the snowman is built.",
+   "The boy rolls snowballs, stacks them, then waves to his mother at the cabin door."
+  ],
+  "time_of_day": "day",
+  "weather": "snow",
+  "water": false,
+  "places": [
+   {
+    "key": "cabin",
+    "what": "a log cabin",
+    "use": "stand"
+   },
+   {
+    "key": "sleigh",
+    "what": "a red sleigh",
+    "use": "stand"
+   },
+   {
+    "key": "snowman",
+    "what": "a snowman next to the sleigh",
+    "use": "stand"
+   }
+  ],
+  "cast": [
+   {
+    "id": "boy",
+    "name": "Boy",
+    "character": "avatar_male",
+    "kid": true,
+    "starts_at": "cabin"
+   }
+  ],
+  "beats": [
+   {
+    "id": "b1",
+    "cast": "boy",
+    "action": "walks to the sleigh",
+    "prompt": "A person walks forward.",
+    "duration": 4,
+    "move_to": "sleigh"
+   },
+   {
+    "id": "b2",
+    "cast": "boy",
+    "action": "rolls a snowball",
+    "prompt": "A person rolls a large snowball on the ground.",
+    "duration": 6
+   },
+   {
+    "id": "b3",
+    "cast": "boy",
+    "action": "rolls another snowball",
+    "prompt": "A person rolls another snowball on the ground.",
+    "duration": 6
+   },
+   {
+    "id": "b4",
+    "cast": "boy",
+    "action": "stacks the snowballs",
+    "prompt": "A person lifts one snowball and places it on top of another.",
+    "duration": 5
+   },
+   {
+    "id": "b5",
+    "cast": "boy",
+    "action": "waves to his mother",
+    "prompt": "A person waves hello with their right hand.",
+    "duration": 3,
+    "face": "cabin"
+   }
+  ]
+ },
+ "world": {
+  "thoughts": [
+   "A snowy morning scene with a log cabin, red sleigh, and snowman.",
+   "Sunrise light on snow, smoke from chimney, pine trees and a frosty atmosphere."
+  ],
+  "choices": [
+   {
+    "place": "cabin",
+    "library": "log-stack"
+   },
+   {
+    "place": "sleigh",
+    "generate": {
+     "name": "red sleigh",
+     "prompt": "a red wooden sleigh with runners",
+     "size_m": 2.5,
+     "category": "vehicles"
+    }
+   },
+   {
+    "place": "snowman",
+    "generate": {
+     "name": "snowman",
+     "prompt": "a round snowman with a carrot nose and stick arms",
+     "size_m": 1.2,
+     "category": "village"
+    }
+   }
+  ],
+  "decor": [
+   {
+    "library": "tree-oak",
+    "count": 3,
+    "near": "edge"
+   },
+   {
+    "library": "pine-tall",
+    "count": 4,
+    "near": "cabin"
+   },
+   {
+    "library": "bush-small",
+    "count": 3,
+    "near": "sleigh"
+   },
+   {
+    "library": "flower-red",
+    "count": 2,
+    "near": "snowman"
+   },
+   {
+    "library": "rock-small",
+    "count": 5,
+    "near": "cabin"
+   },
+   {
+    "library": "lantern-post",
+    "count": 1,
+    "near": "cabin"
+   }
+  ]
+ },
+ "script": {
+  "version": 1,
+  "title": "Snowman by the cabin",
+  "scene": "On a snowy morning a boy builds a snowman next to a red sleigh in front of a log cabin, then waves to his mother standing at the door.",
+  "terrain": {
+   "time_of_day": "sunrise",
+   "weather": "snow",
+   "paths": [
+    {
+     "points": [
+      [
+       -3.53,
+       -1.18
+      ],
+      [
+       4.36,
+       -0.93
+      ]
+     ],
+     "width": 1.4
+    }
+   ]
+  },
+  "props": [
+   {
+    "key": "cabin",
+    "library": "log-stack",
+    "position": [
+     -2.93,
+     -2.98
+    ],
+    "rotation": -18.0
+   },
+   {
+    "key": "sleigh",
+    "library": "red-sleigh",
+    "position": [
+     5.2,
+     0.75
+    ],
+    "rotation": -153.0,
+    "generate": {
+     "prompt": "a red wooden sleigh with runners",
+     "size_m": 2.5,
+     "category": "vehicles"
+    }
+   },
+   {
+    "key": "snowman",
+    "library": "snowman",
+    "position": [
+     2.75,
+     1.25
+    ],
+    "rotation": 102.0,
+    "generate": {
+     "prompt": "a round snowman with a carrot nose and stick arms",
+     "size_m": 1.2,
+     "category": "village"
+    }
+   },
+   {
+    "key": "tree-oak-1",
+    "library": "tree-oak",
+    "position": [
+     6.78,
+     9.98
+    ],
+    "rotation": -45
+   },
+   {
+    "key": "tree-oak-2",
+    "library": "tree-oak",
+    "position": [
+     -3.56,
+     13.16
+    ],
+    "rotation": 75
+   },
+   {
+    "key": "tree-oak-3",
+    "library": "tree-oak",
+    "position": [
+     14.47,
+     -2.43
+    ],
+    "rotation": -135
+   },
+   {
+    "key": "pine-tall-4",
+    "library": "pine-tall",
+    "position": [
+     0.95,
+     -3.4
+    ],
+    "rotation": 30
+   },
+   {
+    "key": "pine-tall-5",
+    "library": "pine-tall",
+    "position": [
+     -6.77,
+     -5.03
+    ],
+    "rotation": -15
+   },
+   {
+    "key": "pine-tall-6",
+    "library": "pine-tall",
+    "position": [
+     -6.46,
+     -0.96
+    ],
+    "rotation": 90
+   },
+   {
+    "key": "pine-tall-7",
+    "library": "pine-tall",
+    "position": [
+     -2.72,
+     -5.69
+    ],
+    "rotation": 75
+   },
+   {
+    "key": "bush-small-8",
+    "library": "bush-small",
+    "position": [
+     7.36,
+     1.87
+    ],
+    "rotation": -135
+   },
+   {
+    "key": "bush-small-9",
+    "library": "bush-small",
+    "position": [
+     6.66,
+     -1.25
+    ],
+    "rotation": -45
+   },
+   {
+    "key": "bush-small-10",
+    "library": "bush-small",
+    "position": [
+     4.38,
+     4.73
+    ],
+    "rotation": 15
+   },
+   {
+    "key": "flower-red-11",
+    "library": "flower-red",
+    "position": [
+     2.64,
+     3.09
+    ],
+    "rotation": 0
+   },
+   {
+    "key": "flower-red-12",
+    "library": "flower-red",
+    "position": [
+     2.96,
+     4.73
+    ],
+    "rotation": -90
+   },
+   {
+    "key": "rock-small-13",
+    "library": "rock-small",
+    "position": [
+     0.41,
+     -5.27
+    ],
+    "rotation": 90
+   },
+   {
+    "key": "rock-small-14",
+    "library": "rock-small",
+    "position": [
+     -4.77,
+     -5.58
+    ],
+    "rotation": -75
+   },
+   {
+    "key": "rock-small-15",
+    "library": "rock-small",
+    "position": [
+     -5.5,
+     -2.29
+    ],
+    "rotation": 90
+   },
+   {
+    "key": "rock-small-16",
+    "library": "rock-small",
+    "position": [
+     -5.07,
+     -2.86
+    ],
+    "rotation": 105
+   },
+   {
+    "key": "rock-small-17",
+    "library": "rock-small",
+    "position": [
+     -5.57,
+     -4.06
+    ],
+    "rotation": 60
+   },
+   {
+    "key": "lantern-post-18",
+    "library": "lantern-post",
+    "position": [
+     -0.14,
+     -6.02
+    ],
+    "rotation": 165
+   }
+  ],
+  "cast": [
+   {
+    "id": "boy",
+    "name": "Boy",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      -3.44,
+      -1.46
+     ],
+     "facing": 86.0
+    },
+    "scale": 0.708
+   }
+  ],
+  "beats": [
+   {
+    "id": "boy-1",
+    "cast": "boy",
+    "start": 0.0,
+    "duration": 6.2,
+    "prompt": "A person walks forward.",
+    "action": "walks to the sleigh",
+    "to": [
+     4.49,
+     -0.66
+    ]
+   },
+   {
+    "id": "boy-2",
+    "cast": "boy",
+    "start": 6.2,
+    "duration": 6.0,
+    "prompt": "A person rolls a large snowball on the ground.",
+    "action": "rolls a snowball",
+    "facing": "sleigh"
+   },
+   {
+    "id": "boy-3",
+    "cast": "boy",
+    "start": 12.2,
+    "duration": 6.0,
+    "prompt": "A person rolls another snowball on the ground.",
+    "action": "rolls another snowball",
+    "facing": "sleigh"
+   },
+   {
+    "id": "boy-4",
+    "cast": "boy",
+    "start": 18.2,
+    "duration": 5.0,
+    "prompt": "A person lifts one snowball and places it on top of another.",
+    "action": "stacks the snowballs",
+    "facing": "sleigh"
+   },
+   {
+    "id": "boy-5",
+    "cast": "boy",
+    "start": 23.2,
+    "duration": 3.0,
+    "prompt": "A person waves hello with their right hand.",
+    "action": "waves to his mother",
+    "facing": "cabin"
+   }
+  ],
+  "shots": [
+   {
+    "id": "s1",
+    "start": 0.0,
+    "duration": 8.73,
+    "framing": "wide",
+    "subject": "boy",
+    "angle": 35
+   },
+   {
+    "id": "s2",
+    "start": 8.73,
+    "duration": 8.74,
+    "framing": "medium",
+    "subject": "boy",
+    "angle": -25
+   },
+   {
+    "id": "s3",
+    "start": 17.47,
+    "duration": 8.73,
+    "framing": "wide",
+    "subject": "boy",
+    "angle": 55
+   }
+  ]
+ }
+}

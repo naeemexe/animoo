@@ -1,0 +1,22 @@
+{
+ "id": "snowman",
+ "name": "snowman",
+ "prompt": "a round snowman with a carrot nose and stick arms",
+ "sent_prompt": "a round snowman with a carrot nose and stick arms, solid chunky shapes, thick sturdy parts",
+ "seed": 0,
+ "image_key": "959c4105c5ce5f67",
+ "size_m": 1.2,
+ "normalize": {
+  "normalized": true,
+  "trimmed": false,
+  "size": [
+   1.02,
+   1.2,
+   0.78
+  ],
+  "vertices": 37254,
+  "triangles": 57839
+ },
+ "pod_seconds": 15.2,
+ "created": "2026-11-08T07:33:36+00:00"
+}

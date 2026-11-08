@@ -1046,6 +1046,50 @@
    "source": "generated",
    "prompt": "a small wooden village well with a rope and bucket",
    "thumbnail": "props/generated/wooden-well.png"
+  },
+  {
+   "id": "red-sleigh",
+   "file": "props/generated/red-sleigh.glb",
+   "category": "vehicles",
+   "size": [
+    2.5,
+    1.3,
+    1.13
+   ],
+   "tags": [
+    "generated",
+    "red",
+    "runners",
+    "sleigh",
+    "wooden"
+   ],
+   "license": "generated: concept image by NVIDIA SANA-Sprint 1.6B (Apache-2.0; its text encoder Gemma-2-2B-IT is under the Gemma Terms of Use), image to 3D by Microsoft TRELLIS.2-4B (MIT) with BiRefNet background removal (MIT)",
+   "source": "generated",
+   "prompt": "a red wooden sleigh with runners",
+   "thumbnail": "props/generated/red-sleigh.png"
+  },
+  {
+   "id": "snowman",
+   "file": "props/generated/snowman.glb",
+   "category": "village",
+   "size": [
+    1.02,
+    1.2,
+    0.78
+   ],
+   "tags": [
+    "arms",
+    "carrot",
+    "generated",
+    "nose",
+    "round",
+    "snowman",
+    "stick"
+   ],
+   "license": "generated: concept image by NVIDIA SANA-Sprint 1.6B (Apache-2.0; its text encoder Gemma-2-2B-IT is under the Gemma Terms of Use), image to 3D by Microsoft TRELLIS.2-4B (MIT) with BiRefNet background removal (MIT)",
+   "source": "generated",
+   "prompt": "a round snowman with a carrot nose and stick arms",
+   "thumbnail": "props/generated/snowman.png"
   }
  ]
 }
