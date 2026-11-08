@@ -42,7 +42,7 @@ from .. import llm
 from ..audio import describe as describe_audio, repair_audio
 from ..tools.generate_prop import load_manifest, slug
 
-from ..tools.actions import GROUND_WORDS, action_for
+from ..tools.actions import ACTIONS, GROUND_WORDS, action_for
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "library" / "scripts"
@@ -150,6 +150,59 @@ def search_library(query: str, limit: int = 5, manifest: dict | None = None, key
 
 # ---- the two Nemotron calls ------------------------------------------------------
 
+# ---- the command vocabulary (the orchestrator plays the cast like a game) ------------------
+# Each beat names one move from the action library, like a game's animation set; Kimodo makes a
+# clip only for a `custom` move the library doesn't have. Ids and their canonical prompts (the
+# prompt is what posture rules and the action matcher read, so each maps back to its own id).
+MOVES = {
+    "walk": "A person walks forward.",
+    "run": "A person runs forward fast.",
+    "crouch_walk": "A person sneaks forward in a low crouch.",
+    "idle": "A person stands still and looks around.",
+    "talk": "A person talks, gesturing with both hands.",
+    "wave": "A person waves hello with their right hand.",
+    "point": ACTIONS["point"]["prompt"],
+    "laugh": ACTIONS["laugh"]["prompt"],
+    "nod": ACTIONS["nod"]["prompt"],
+    "shrug": ACTIONS["shrug"]["prompt"],
+    "clap": ACTIONS["clap"]["prompt"],
+    "cheer": ACTIONS["cheer"]["prompt"],
+    "fist_bump": ACTIONS["fist_bump"]["prompt"],
+    "handshake": ACTIONS["handshake"]["prompt"],
+    "jump": ACTIONS["jump"]["prompt"],
+    "stretch": ACTIONS["stretch"]["prompt"],
+    "pick_up": ACTIONS["pick_up"]["prompt"],
+    "dig": ACTIONS["dig"]["prompt"],
+    "hammer": ACTIONS["hammer"]["prompt"],
+    "punch": ACTIONS["punch"]["prompt"],
+    "kick": ACTIONS["kick"]["prompt"],
+    "push": ACTIONS["push"]["prompt"],
+    "dance": ACTIONS["dance"]["prompt"],
+    "sit": "A person sits down on a bench and rests.",
+    "stand_up": "A person stands up.",
+}
+MOVE_HELP = {
+    "walk": "walk somewhere (with move_to, beside or leave)", "run": "run somewhere", "crouch_walk": "sneak somewhere",
+    "idle": "stand (or sit) still, look around, wait, watch, listen", "talk": "talk, chat, tell, ask, answer, explain",
+    "wave": "wave, greet, say hi or bye", "point": "point at something", "laugh": "laugh", "nod": "nod, agree",
+    "shrug": "shrug", "clap": "clap, applaud", "cheer": "cheer, celebrate", "fist_bump": "dap, fist bump",
+    "handshake": "shake hands", "jump": "jump in place", "stretch": "stretch, yawn", "pick_up": "pick something up",
+    "dig": "dig, plant", "hammer": "hammer, build, fix", "punch": "punch", "kick": "kick", "push": "push something heavy",
+    "dance": "dance", "sit": "sit down (on the place it is at, or the ground)", "stand_up": "get up from sitting",
+}
+LOCO_MOVES = {"walk", "run", "crouch_walk"}
+DO_ALIASES = {"stop": "idle", "stand": "idle", "wait": "idle", "watch": "idle", "look": "idle", "greet": "wave",
+              "dap": "fist_bump", "fistbump": "fist_bump", "sneak": "crouch_walk", "sit_down": "sit", "get_up": "stand_up",
+              "chat": "talk", "speak": "talk", "shake_hands": "handshake", "jog": "run"}
+
+
+CANON = {v: k for k, v in MOVES.items()}
+
+
+def move_list() -> str:
+    return "\n".join(f"  {k}: {v}" for k, v in MOVE_HELP.items())
+
+
 PLAN_EXAMPLE = {
     "title": "Ducks at the pond",
     "thoughts": ["Two characters: a girl and her grandpa. Afternoon light, a pond.",
@@ -176,11 +229,13 @@ PLAN_EXAMPLE = {
                   "outfit": "casual", "build": "sturdy"}},
     ],
     "beats": [
-        {"id": "b1", "cast": "grandpa", "action": "walks to the bench", "prompt": "A person walks forward slowly.", "duration": 6, "move_to": "bench"},
-        {"id": "b2", "cast": "girl", "action": "skips to the pond", "prompt": "A person skips forward happily.", "duration": 5, "move_to": "jetty"},
-        {"id": "b3", "cast": "grandpa", "action": "sits down", "prompt": "A person sits down on a bench and rests.", "duration": 5},
-        {"id": "b4", "cast": "girl", "action": "feeds the ducks", "prompt": "A person crouches down and tosses food with one hand.", "duration": 5, "face": "jetty"},
-        {"id": "b5", "cast": "girl", "action": "waves at grandpa", "prompt": "A person waves hello with their right hand.", "duration": 3, "face": "grandpa", "after": "b3"},
+        {"id": "b1", "cast": "grandpa", "action": "walks to the bench", "do": "walk", "duration": 6, "move_to": "bench"},
+        {"id": "b2", "cast": "girl", "action": "skips to the pond", "do": "run", "duration": 5, "move_to": "jetty"},
+        {"id": "b3", "cast": "grandpa", "action": "sits down", "do": "sit", "duration": 5},
+        {"id": "b4", "cast": "girl", "action": "feeds the ducks", "do": "custom",
+         "prompt": "A person crouches down and tosses food with one hand.", "duration": 5, "face": "jetty"},
+        {"id": "b5", "cast": "girl", "action": "waves at grandpa", "do": "wave", "duration": 3, "face": "grandpa", "after": "b3"},
+        {"id": "b6", "cast": "grandpa", "action": "waves back", "do": "wave", "duration": 3, "face": "girl", "after": "b5"},
     ],
 }
 
@@ -199,14 +254,15 @@ PLAN_SCHEMA = {
                    "properties": {"key": {"type": "string"}, "what": {"type": "string"}, "use": {"type": "string"}}}},
         "cast": {"type": "array", "items": {"type": "object", "required": ["id"],
                  "properties": {"id": {"type": "string"}, "name": {"type": "string"}, "character": {"type": "string"}}}},
-        "beats": {"type": "array", "items": {"type": "object", "required": ["cast", "prompt"],
-                  "properties": {"cast": {"type": "string"}, "prompt": {"type": "string"}}}},
+        "beats": {"type": "array", "items": {"type": "object", "required": ["cast", "do"],
+                  "properties": {"cast": {"type": "string"}, "do": {"type": "string"}, "prompt": {"type": "string"}}}},
     },
 }
 
 ORCHESTRATOR_ROLE = """You are the orchestrator of a team of agents that turns a scene description into a short
-animated storybook film. Each character's motion is made by a text-to-motion model (Kimodo) one short
-clip at a time, so you split the scene into beats: one simple full-body action per beat per character.
+animated storybook film. You direct the characters the way a player drives game characters: where each
+one walks from and to, who walks beside whom, and which move from the action library they play, one
+command (beat) at a time. A text-to-motion model (Kimodo) is called only for a move outside the library.
 Reply with the whole plan in ONE JSON object. Rules:
 - cast: 1 to 5 characters (every named person in the scene; a group like "three friends" is three cast). character is "avatar_male" or "avatar_female"; kid is true for children.
   starts_at is the place where the character is at the start.
@@ -231,28 +287,30 @@ Reply with the whole plan in ONE JSON object. Rules:
   of them). music: prompt (a very soft, slow instrumental bed, no drums, no vocals) and mood (calm, warm,
   tender, playful, hopeful, melancholy, mysterious, cozy, or none). If the scene names sounds or music,
   use those.
-- beats: 3 to 16 in story order, ids b1, b2, ... Give every action the scene names its own beat, for
-  every character (e.g. grabs, runs off, shouts, chases, trips, gives back: six beats). Each beat: cast (a cast id), action (a few words for
-  the timeline), prompt (for the motion model: starts with "A person", one simple full-body action,
-  present tense, no names, e.g. "A person walks forward.", "A person jumps up and cheers with both
-  arms."), duration in seconds (2 to 10). Each clip is made on its own, so a character who sat down
-  stays seated only if the next prompts say so: every beat until they stand up starts "A person sits
-  and ..." ("A person sits and tells a story with big arm gestures.", "A person sits and laughs.").
-  If the scene starts with someone sitting, their first beat is "A person sits still ..." at that place
-  (already seated, no sit-down).
-  Posture: keep track of who is standing and who is seated. A character sits down or stands up only
-  when the scene says so (or to walk somewhere); never sit, stand up, then sit again. Someone seated
-  waves, talks and laughs from the seat ("A person sits and waves hello with their right hand.");
-  a reply ("waves back") is made in the replier's current posture. Each character greets another at
-  most once; after that they talk. "They talk" means both talk at the same time (with).
-  move_to: a place key or cast id, when the character goes somewhere; then the prompt must be a
-  forward locomotion and nothing else ("A person walks forward.", "A person runs forward fast."); put
-  what they do on arrival in the next beat, without move_to.
+- beats: 3 to 16 in story order, ids b1, b2, ... You direct the cast like a game: each beat is ONE
+  command for one character, a move from this action library (ready-made clips, like a game's
+  animation set):
+""" + move_list() + """
+  Each beat: cast (a cast id), do (one id from the list above), action (a few words for the timeline),
+  duration in seconds (2 to 10). Give every action the scene names its own beat, for every character.
+  Only if no move in the list fits, do is "custom" with prompt: the move for the motion model, starting
+  "A person", one simple full-body action, present tense, no names ("A person climbs a ladder.").
+  That clip is generated, so use custom only for moves really outside the list.
+  Moving: do walk/run/crouch_walk with move_to (a place key or cast id) to go there; the move ends
+  when they arrive (stopping is not a beat). beside: a cast id to walk side by side with; both walk
+  beats have the same move_to, and the second one has with set to the first. leave: true to walk off
+  out of the scene (no move_to). A character walking or talking with someone keeps facing ahead while
+  moving; on arrival, beats with face turn them to whoever they talk to.
   face: a place key or cast id to turn to at the start of the beat (talking, waving, looking).
-  after: the id of an earlier beat of another character; this beat starts when that one ends (a
-  reaction). with: the id of an earlier beat of another character; both start together.
-  Each character's first beat starts at 0 s unless it has after or with, so a beat that reacts to
-  someone else (shouts at, chases, laughs at, waves back) must have after.
+  after: the id of an earlier beat of another character; this beat starts when that one ends (a reply
+  or reaction: "waves back", "answers"). with: the id of an earlier beat of another character; both
+  start together (walking together, both talking, a handshake or dap done at once).
+  Each character's first beat starts at 0 s unless it has after or with.
+  Someone already sitting when the scene starts: their first beat is sit at their starts_at place
+  (they start seated, no sit-down).
+  Posture: sit and stand_up only when the scene says so (or stand_up to walk somewhere); while seated,
+  idle, talk, wave and laugh are done from the seat. Each character greets another at most once; after
+  that they talk. "They talk" means both talk (with) or take turns (after).
 - thoughts: 2 or 3 short sentences on how you split the scene."""
 
 WORLD_EXAMPLE = {
@@ -946,15 +1004,35 @@ def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
         if bid in bids:
             bid = f"b{i + 1}x"
         bids.add(bid)
-        prompt = person_prompt(b.get("prompt", ""))
-        if prompt != str(b.get("prompt", "")).strip():
-            fixes.append(f"{bid}: prompt → “{prompt}”")
+        # A command plan: `do` is a move from the library (its canonical prompt), or custom (Kimodo).
+        do = re.sub(r"[\s-]+", "_", str(b.get("do") or "").strip().lower())
+        do = DO_ALIASES.get(do, do)
+        if do in MOVES:
+            prompt = MOVES[do]
+            if do == "sit" and GROUND_WORDS.search(str(b.get("action", ""))):
+                prompt = "A person sits down on the ground."
+        elif do == "custom" and str(b.get("prompt") or "").strip():
+            prompt = person_prompt(b["prompt"])
+        elif do:  # an unknown move: the library's match for its words, else custom from the prompt
+            m = action_for(f"{b.get('action', '')} {do.replace('_', ' ')}")
+            mv_id = m if m in MOVES else ("sit" if m and m.startswith("sit") else None)
+            prompt = MOVES[mv_id] if mv_id and not b.get("prompt") else person_prompt(b.get("prompt") or f"A person {do.replace('_', ' ')}s.")
+            fixes.append(f"{bid}: unknown move “{do}” → " + (mv_id or "custom"))
+            do = mv_id or "custom"
+        else:
+            prompt = person_prompt(b.get("prompt", ""))
+            if prompt != str(b.get("prompt", "")).strip():
+                fixes.append(f"{bid}: prompt → “{prompt}”")
         try:
             dur = float(b.get("duration", 4))
         except (TypeError, ValueError):
             dur = 4.0
         nb = {"id": bid, "cast": cmap[str(b["cast"])], "action": str(b.get("action") or prompt[9:].rstrip(".")),
               "prompt": prompt, "duration": min(max(dur, 2.0), MAX_BEAT)}
+        if do:
+            nb["do"] = do
+            if do == "custom":
+                nb["live"] = True  # the orchestrator asked for a move outside the library
         for f in ("move_to", "face"):
             r = ref(b.get(f))
             if r and r != nb["cast"]:
@@ -974,8 +1052,23 @@ def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
         for f in ("after", "with"):
             if str(b.get(f)) in bids and str(b.get(f)) != bid:
                 nb[f] = str(b[f])
+        if str(b.get("leave")).lower() == "true":  # walks off out of the scene
+            for k in ("move_to", "then", "still_prompt", "face"):
+                nb.pop(k, None)
+            nb["leave"] = True
+            nb["prompt"] = MOVES[do if do in LOCO_MOVES else "walk"]
+        side = ref(b.get("beside"))
+        if side in cmap.values() and side != nb["cast"] and nb.get("move_to"):
+            # Walks side by side with them: beside their walk to the same place.
+            pb = next((x for x in beats if x["id"] == nb.get("with") and x["cast"] == side), None) or next(
+                (x for x in reversed(beats) if x["cast"] == side and x.get("move_to") == nb["move_to"]), None)
+            if pb:
+                nb["together"] = nb["with"] = pb["id"]
+                nb.pop("after", None)
+            else:
+                fixes.append(f"{bid}: beside {side}, but {side} has no walk to {nb['move_to']} before it")
         prev = next((x for x in beats if x["id"] == nb.get("after")), None)
-        if prev and prev["cast"] != nb["cast"] and (prev.get("then") or prev["prompt"]) == (nb.get("then") or nb["prompt"]) \
+        if prev and not nb.get("do") and prev["cast"] != nb["cast"] and (prev.get("then") or prev["prompt"]) == (nb.get("then") or nb["prompt"]) \
                 and not re.search(r"\bback\b", nb["action"]):  # "waves back" answers the wave: after it
             nb["with"] = nb.pop("after")  # "they both stand up": together, not one after the other
             fixes.append(f"{bid}: same action as {prev['id']} → starts with it")
@@ -1737,7 +1830,7 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
                 if b.get("then") and dist >= 1.0:
                     here = at_place[cid] if at_place[cid] else (mv if mv in pos else None)
                     add(cid, cursor[cid], min(max(b["duration"], 2.0), 6.0), b["then"], b["action"],
-                        **({"facing": here} if here else {}))
+                        **({"facing": here} if here else {}), **({"live": True} if b.get("live") else {}))
             else:
                 here = at_place.get(cid)
                 seated = re.search(r"\bsits?\b", b["prompt"].lower())
@@ -1752,6 +1845,8 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
                 dur = b["duration"]
                 if seated:
                     dur = max(dur, 4.0)
+                if b.get("live"):
+                    extra["live"] = True
                 add(cid, start, dur, b["prompt"], b["action"], **extra)
             timing[b["id"]] = (t0, cursor[cid])
 
@@ -1971,11 +2066,19 @@ def tag_motions(beats: list[dict]) -> list[str]:
     for b in beats:
         text = f"{b.get('action', '')}. {b['prompt']}"
         ground = bool(GROUND_WORDS.search(text))
+        if b.pop("live", False):  # the orchestrator's custom move: Kimodo, even if its words match a clip
+            notes.append(f"{b['id']}: custom move \"{b['prompt']}\", Kimodo live")
+            if re.search(r"\b(sits?|sitting|seated)\b", text.lower()):
+                seated.setdefault(b["cast"], "ground" if ground else "bench")
+            continue
         if SEATED_ACT.match(b["prompt"]) and not STAND_UP.search(text):
             # "A person sits still / sits and talks": already seated (task 34: a scene that
             # starts with someone sitting starts them on the seat, not with a sit-down).
             seated.setdefault(b["cast"], "ground" if ground else "bench")
         m = action_for(text, seated.get(b["cast"]), ground)
+        own = CANON.get(b["prompt"])
+        if own and own not in ("sit", "stand_up") and not seated.get(b["cast"]):
+            m = own  # a command plan's library move, as the orchestrator named it
         if not m and seated.get(b["cast"]) and GREET.search(text) and not live_cached(b["prompt"]):
             m = SEATED_TALK[seated[b["cast"]]]  # a wave from the seat: the seated gesture clip, no GPU needed
         if m:
