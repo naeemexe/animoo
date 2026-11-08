@@ -19,7 +19,8 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 03 | B | TRELLIS.2 asset server on the pod (:8102) | 2 h | done | — |
 | 04 | A | Library: the old project's VRMs, props and sample BVHs, plus a CC0 low-poly kit and `manifest.json` | 1.5 h | done | 01 |
 | 05 | A | Characters: load VRMs, retarget Kimodo BVH, play a clip, planted feet | 2.5 h | done | 04 |
-| 06 | A | Nemotron client + agent loop on the server (tool calling, streamed steps) | 1.5 h | waiting | `NVIDIA_API_KEY` in `.env` |
+| 06a | B | Self-host Nemotron Nano 9B v2 (FP8) on the pod with vLLM (:8104, OpenAI-compatible, tool calling) | 1 h | todo | — |
+| 06 | A | Nemotron client + agent loop on the server (tool calling, streamed steps) | 1.5 h | todo | 06a (or `NVIDIA_API_KEY`) |
 | 07 | B | Text → concept image for props (pick a model, add an endpoint) | 1.5 h | done | 03 |
 | 08 | A | Movie: the orchestrator splits a scene into shots and beats, and the world agent builds the set | 3 h | todo | 04, 06 |
 | 09a | A | Movie page UI with a mocked scene script: agent log, world build from script, per-character timeline, play, export WebM | 2.5 h | done | 04, 05 |
@@ -48,7 +49,9 @@ file, category, real-world size, tags, license and source for each entry.
 Two clips should join without a pop. *Done when* a "walk, then wave" pair plays
 cleanly. Compare `tmp/walk_true.bvh` against `tmp/walk_false.bvh`.
 
-**06 Nemotron.** The server talks to `integrate.api.nvidia.com/v1`. Pick the
+**06a Self-hosted Nemotron.** No sponsor key yet, so run `nvidia/NVIDIA-Nemotron-Nano-9B-v2-FP8` (10 GB, not gated) under vLLM on the pod, bound to localhost:8104 with an OpenAI-compatible API and tool calling, and add it to `serve.sh`, `tunnel.sh` and `setup.sh`. To make room, run Kimodo with `TEXT_ENCODER_DEVICE=cpu` (about 13 GB of VRAM freed). *Done when* a chat completion with a tool definition returns a correct tool call through the tunnel, and Kimodo and TRELLIS.2 still work.
+
+**06 Nemotron.** The server talks to an OpenAI-compatible base URL from `.env`: `NEMOTRON_BASE_URL` defaults to `http://localhost:8104/v1` (the self-hosted pod model), or to `https://integrate.api.nvidia.com/v1` when `NVIDIA_API_KEY` is set. Pick the
 Nemotron model that handles tool calling best and record it in
 `docs/decisions.md`. A generic agent loop takes tools and streams each step to
 the browser over SSE. *Done when* a test agent calls a dummy tool correctly
