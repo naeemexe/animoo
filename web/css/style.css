@@ -121,10 +121,9 @@ html, body {
 .chat-log .note { font: 11.5px/1.3 ui-monospace, Menlo, monospace; opacity: 0.75; }
 .chat-log .note.pending::after { content: ' …'; animation: blink 1s infinite; }
 .chat-log .note.err { color: var(--bad); opacity: 1; }
+.chat-log .msg.mock { border-style: dashed; border-color: var(--bad); }
+#chat-brain.bad { color: var(--bad); font-weight: bold; }
 .chat-log .again { align-self: flex-start; font: 12px Georgia, serif; padding: 1px 10px; border: 1.5px solid var(--ink); border-radius: 999px; background: var(--paper); color: var(--ink); cursor: pointer; }
-.chat-suggest { display: flex; flex-wrap: wrap; gap: 5px; }
-.chat-suggest button { font: 13px Georgia, serif; padding: 2px 10px; border: 1.5px solid color-mix(in srgb, var(--ink) 60%, transparent); border-radius: 999px; background: transparent; color: var(--ink); cursor: pointer; }
-.chat-suggest button:hover { background: #fffaf0; }
 .chat-form { display: flex; gap: 6px; }
 .chat-form input { flex: 1; min-width: 0; font: 15px Georgia, serif; color: var(--ink); background: #fffaf0; border: 1.5px solid color-mix(in srgb, var(--ink) 50%, transparent); border-radius: 999px; padding: 6px 12px; }
 .chat-foot { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; opacity: 0.8; }

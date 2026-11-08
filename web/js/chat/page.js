@@ -1,6 +1,7 @@
 // The Chat page (task 10): one character in a little storybook set, and a
-// chat panel. Replies come from POST /api/chat (Nemotron, or a mock until the
-// key exists) and are spoken with speechSynthesis while the character plays a
+// chat panel. Mira opens with a greeting in her own words, and every reply
+// comes from POST /api/chat (Nemotron; a rule-based mock only when the LLM is
+// down, and then the bubble says so). Replies are spoken with speechSynthesis while the character plays a
 // talking motion. A reply with `demonstrate` asks Kimodo for that motion
 // (through gpu/tunnel.sh → localhost:8101, cached in the browser, library
 // fallback), performs it, and merges back into idle.
@@ -41,7 +42,6 @@ export function createChatPage(root, stage, look) {
     status: $('#chat-status'),
     voice: $('#chat-voice'),
     brain: $('#chat-brain'),
-    suggest: $('#chat-suggest'),
   };
 
   const state = {
@@ -140,17 +140,23 @@ export function createChatPage(root, stage, look) {
   }
 
   // ---- a turn ---------------------------------------------------------------
-  async function send(text) {
-    text = text.trim();
-    if (!text || state.busy) return;
+  // send(text) is the user's turn; greet() asks for Mira's opening line (an
+  // empty history), which Nemotron writes in her own words.
+  const send = (text) => turn(text.trim());
+  const greet = () => (state.messages.length ? Promise.resolve() : turn(null));
+
+  async function turn(text) {
+    if (text === '' || state.busy) return;
     state.busy = true;
     ui.send.disabled = true;
-    ui.input.value = '';
+    if (text) ui.input.value = '';
     voice.stop();
     try {
       await load();
-      bubble('user', text);
-      state.messages.push({ role: 'user', content: text });
+      if (text) {
+        bubble('user', text);
+        state.messages.push({ role: 'user', content: text });
+      }
       const li = bubble(NAME, '');
       li.classList.add('thinking');
       const res = await fetch('/api/chat', {
@@ -159,11 +165,21 @@ export function createChatPage(root, stage, look) {
         body: JSON.stringify({ messages: state.messages }),
       });
       if (!res.ok) throw new Error(`/api/chat returned ${res.status}`);
-      const { reply, demonstrate, source } = await res.json();
+      const { reply, demonstrate, source, error } = await res.json();
       li.classList.remove('thinking');
       li.querySelector('.text').textContent = reply;
       state.messages.push({ role: 'assistant', content: reply });
-      ui.brain.textContent = source === 'nemotron' ? 'brain: Nemotron' : 'brain: mock (no NVIDIA_API_KEY yet)';
+      if (source === 'nemotron') {
+        ui.brain.textContent = 'brain: Nemotron';
+        ui.brain.className = '';
+      } else {
+        // Never quietly: the bubble, the footer and the console all say it.
+        li.classList.add('mock');
+        note(li, 'Nemotron offline: mock reply', 'err');
+        ui.brain.textContent = 'brain: mock (Nemotron offline)';
+        ui.brain.className = 'bad';
+        console.warn(`Chat: Nemotron offline, mock reply (${error || 'no reason given'})`);
+      }
 
       // Ask Kimodo right away, while the first sentence is spoken.
       const clipReady = demonstrate ? fetchDemo(li, demonstrate) : null;
@@ -225,10 +241,6 @@ export function createChatPage(root, stage, look) {
   }
 
   ui.form.addEventListener('submit', (e) => { e.preventDefault(); send(ui.input.value); });
-  ui.suggest.addEventListener('click', (e) => {
-    const b = e.target.closest('button');
-    if (b) send(b.textContent);
-  });
 
   // ---- per frame ------------------------------------------------------------
   function face(dt) {
@@ -295,9 +307,11 @@ export function createChatPage(root, stage, look) {
       setTimeOfDay(stage, CHAT_SET.terrain.time_of_day);
       setVisible(true);
       camera(0, true);
-      load().then(() => {
+      load().then(async () => {
+        const fresh = !state.messages.length;
+        await greet();
         const say = params.get('say');
-        if (say && !state.messages.length) send(say);
+        if (say && fresh) send(say);
       });
       setTimeout(() => ui.input.focus(), 0);
     },
