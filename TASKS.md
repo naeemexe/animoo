@@ -43,7 +43,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 25 | A | Interiors: room and restaurant sets, with an interior camera (eye level, horizontal moves, two-shots, over-the-shoulder; never above the roof) | 2 h | done | 16, 24 |
 | 26 | A | Spoken dialogue: Nemotron writes cinematic lines per character; ElevenLabs voices them; talk gesture + timeline sync | 2 h | waiting (needs `ELEVENLABS_API_KEY` in `.env`) | 22 |
 | 27 | A | Story-driven characters: cast built from the story (look, outfit colors, height, age) instead of the two fixed VRMs | 2.5 h | done | 22 |
-| 29 | A | Free spectator camera: WASD + mouse look, scroll zoom, pan around the world (edit mode, or whenever free camera is on) | 1 h | todo | 18 |
+| 29 | A | Free spectator camera: WASD + mouse look, scroll zoom, pan around the world (edit mode, or whenever free camera is on) | 1 h | doing | 18 |
 | 30 | A | Path editor: camera paths and character paths as numbered, draggable nodes joined by dotted lines; add, drag, delete points | 2 h | todo | 19, 29 |
 | 28 | A | Look round 3: trees less blocky, roads blend into the ground | 1.5 h | todo | 23, 24 |
 | 31 | A | Physical rules: nothing passes through anything (characters avoid each other too), paths re-plan after edits, beats follow moved props | 2 h | todo | 22, 18 |
