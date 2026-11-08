@@ -48,7 +48,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 28 | A | Look round 3: trees less blocky, roads blend into the ground | 1.5 h | done | 23, 24 |
 | 31 | A | Physical rules: nothing passes through anything (characters avoid each other too), paths re-plan after edits, beats follow moved props | 2 h | done | 22, 18 |
 | 32 | A | Scene audio: the orchestrator plans ambience + a soft music bed from place, weather, time and mood (or the user's words); ElevenLabs sound effects/music when a key is set, procedural WebAudio otherwise; cached; in the WebM export | 2 h | done (procedural; ElevenLabs coded, off until `ELEVENLABS_API_KEY` is set) | 08 |
-| 12b | A | Re-record the 5 demo takes after round 3 (with audio), update `demo/SUBMISSION.md` | 0.5 h | doing | 28–32 |
+| 12b | A | Re-record the 5 demo takes after round 3 (with audio), update `demo/SUBMISSION.md` | 0.5 h | done | 28–32 |
 
 **Cut rule.** If it's 6:00 am and task 09 isn't working, demo the Chat page plus a
 Movie page with one generated world and the sample clips. A finished small demo
@@ -767,3 +767,20 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
   arrives); pre-generate for the demo scenes once the key is set. Procedural sources keep running (silent) under an
   ElevenLabs ambience file. Not listened to by ear (numbers only); other scenes' layer mixes were checked on the server
   side only (all 13 listed), not played. No cut-synced dips: fades are at play/pause and the film's start and end.
+- 12b (2026-11-08): the five takes in `demo/` were re-recorded once each with Export WebM and sound on (offline launch
+  config, `?motion=http://127.0.0.1:9`, 1920×1080 viewport): 01 park 21.2 s 13.9 MB, 02 city 23.8 s 15.0 MB, 03 beach
+  11.3 s 6.7 MB, 04 restaurant 17.2 s 10.6 MB, 05 lamplighter 21.0 s 12.7 MB; 56 MB in all. Each file's header has
+  V_VP9 + A_OPUS at 1920×1080; the lamplighter blob decoded in the page: 20.94 s of stereo audio, RMS 0.048. One
+  screenshot per scene before recording: none looked broken, so no scene was swapped. Console: only the expected
+  `ERR_UNSAFE_PORT` from the dead :9 probe. Not listened to by ear; the other four takes' audio was checked only
+  from their headers.
+- 12b: a hidden browser pane renders as a background page: the first park take came out 35.7 s long for a 20.9 s film
+  (slow motion, since `frame(dt)` advances film time by the capped frame step). Show the pane (or keep the window in
+  view) before any Export WebM; that take was redone with the pane shown (60 fps, real time).
+- 12b: the blobs were saved by PUT to a throwaway CORS receiver on 127.0.0.1:8765 (a script in the session scratchpad),
+  since the page has no save-to-disk endpoint. A `POST /api/demo/save` or a download link would make this repeatable.
+- 12b: the user's new demo vision (props fade in from a blur and fade out on delete, edit-mode beats like planting
+  trees and moving a building, fast relight of the same set to night/winter/city on one camera path, a walk to a
+  building that cuts with a transition into the interior) is in the shared notes folder as
+  `demo-vision-from-user.md`, for the main session to split into tasks. The new shot list's edit-mode beat uses
+  only what exists today.
