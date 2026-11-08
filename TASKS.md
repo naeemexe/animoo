@@ -39,7 +39,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 21 | A | Full pipeline check + optimization: load times, GLB sizes, caching, LLM call budget, GPU memory, bug bash | 2 h | done (session closed early: export width, snow ground, shot defaults, 2 scenes cached; timing table not written) | 13–17 |
 | 22 | A | Motion control: a game-style action library (cached clips) plus position control: paths around props, facing, gestures aimed at a target, consistent heights | 3 h | done | 14, 16 |
 | 23 | A | Look fixes: intentional depth of field, stable shadows, thinner outlines on small props, less blocky props, no visible circular world edge | 1.5 h | done | 15 |
-| 24 | A | Scene variety: city, sea/beach, park sets (not only forest), one cached scene each | 2 h | doing | 15, 22 |
+| 24 | A | Scene variety: city, sea/beach, park sets (not only forest), one cached scene each | 2 h | done | 15, 22 |
 | 25 | A | Interiors: room and restaurant sets, with an interior camera (eye level, horizontal moves, two-shots, over-the-shoulder; never above the roof) | 2 h | todo | 16, 24 |
 | 26 | A | Spoken dialogue: Nemotron writes cinematic lines per character; ElevenLabs voices them; talk gesture + timeline sync | 2 h | waiting (needs `ELEVENLABS_API_KEY` in `.env`) | 22 |
 | 27 | A | Story-driven characters: cast built from the story (look, outfit colors, height, age) instead of the two fixed VRMs | 2.5 h | todo | 22 |
@@ -510,3 +510,44 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
   Seen, outside 23: in the fisherman film at 9 s the fisherman and the kid overlap (same spot, 22/positions); in the
   foggy film the woman stands inside the well's footprint while drawing water; the snowy scene's trees and bushes stay
   summer-green (24: biomes); the market is in a forest clearing (24).
+- 24 (2026-11-08): the plan and the script's `terrain` carry `biome` (forest, city, sea, park). The orchestrator names it;
+  `biome_from_text()` in `movie.py` lets scene words win (first match: village/camp/cabin → forest, beach/sea/harbor →
+  sea, park/garden → park, city/street/market/plaza/cafe → city, lake/pond/meadow → forest), so old caches pick it up with
+  0 calls. Of the 8 old caches only the market changes (→ city); the night "village street" stays forest. A sea plan
+  always has water.
+- 24: `fill.js` has one branch per biome (forest is unchanged): **city**: flagstone paving, a grid of 3×3-lot blocks
+  (11 m lots, 9 m asphalt streets with lane dashes) around an open middle block where the action plays, Kenney city
+  buildings (5 kinds + a park block, instanced, hidden near the camera or on its line of sight like the forest's trees),
+  108 street lamps, parked trucks, planted trees, no hills, a two-layer skyline dome (lit windows at night).
+  **sea**: sand, a wavy shore line across the pond's side of the set (foam, shallows, sea bands to the dome), the sea
+  drawn to a flat horizon on the dome where the ridges sink, dunes and pines inland only, dune grass, rocks along the
+  shore, up to 20 palms. **park**: a mown lawn with stripes, shade trees thinning around the play area, hedge rows end to
+  end on two rings, flower beds, lamps, and city blocks at 95–160 m plus a skyline past the trees. The walked path is
+  sidewalk/sand/gravel colored per biome (`PATH` in `world.js`).
+- 24: props: the Kenney city tiles came from Kenney's own GitHub repo (`KenneyNL/Starter-Kit-City-Builder`, models CC0;
+  kenney.nl refuses scripted downloads), at 10 m per tile → `library/props/kenney-city/`, ids `city-building-low/tall/
+  tower/corner`, `city-garage`, `city-park-block`. Generated on the GPU: `palm-tree` (15 s, 48k triangles, so at most 20
+  instanced) and `street-cafe` (39 s, the city scene's cafe). A `sand-pit` the world agent asked for came out as a 2.4 m
+  dirt mound and was deleted.
+- 24: world-agent repairs (all on replay, no new calls): a setting place ("the street", "a park path", "the sand") that
+  got a building, a park block or a generate gets a lamp / palm / small rock instead; a library prop named exactly like the
+  place beats a stand-in of another kind (hedge → hedge, not a pine); decor that doesn't fit the biome is dropped (trees,
+  rocks and houses in a city; lily pads and flowers on a beach), boats are never decor (they landed on the sand); a place
+  that picks the 2 m `dock` gets `dock-small` (layout stands people at its foot, so the fisherman stood inside the big one).
+  Decor rules per biome are in the world prompt and `BIOME_DECOR`.
+- 24: new cached scenes (2 hosted Nemotron calls each): `on-a-sunny-morning-at-3630964b1d.json` (beach harbor),
+  `on-a-city-street-at-2e7337cff6.json` (city street), `in-a-city-park-on-1f3c20c46d.json` (city park). Checked with
+  screenshots at fixed times, panels hidden: beach t = 1.5 (palms, dune grass, dock in blue water) and 9.5 (fisherman in
+  his rowboat waving, sea to the horizon); city t = 3, 6.2, 13; park t = 1 and 19.5 (towers past the trees); the old
+  market (now city) and park scenes once each from a free camera; the fisherman (forest) at t = 1 to confirm the forest
+  fill is unchanged (1,209 trees). No console errors.
+- 24, task 22 in the city scene: the woman's walk is planned by A* (3.7 m, straight, nothing in the way; the "walk around
+  the fountain" can't happen because layout put the fountain 9 m off her route), her wave faces the man and his wave back
+  faces her. **Bug (22/14):** a character who *starts* seated, or sits mid-film, on a bench sits in mid-air about 0.5 m in
+  front of it (man at t = 6.2, woman at t = 13). The seat slot is offset by `SIT_BACK` for Kimodo's sit-down step-back,
+  but the seated idle/talk clips (`sit_bench`, `sit_bench_talk`) have no step-back. Pin a seated clip's hips to the seat.
+- 24: not done: the city's fill buildings get no lit windows at night (`atmosphere.js` only raycasts the script's props;
+  the dome's skyline has lit windows); no animated waves; the beach's "wide crane" looks steeply down, so the sea and the
+  horizon only show in the low medium/close shots; the cafe and market props sit on a 10 m-grid city whose buildings are
+  toy-proportioned Kenney tiles (doors are small next to 1.7 m people, but at 25 m+ it reads fine); snow in a city keeps the
+  paving. The camera can still end up behind a dock post (beach t = 9.5 before the dock fix).

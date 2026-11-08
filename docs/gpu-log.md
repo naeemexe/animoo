@@ -55,3 +55,4 @@ Notes:
 | 2026-11-07 | ~0.05 | ~$0.03 | Task 11: one /generate-prop windmill (64 s) plus a cache hit. The pod was already running for other work and was left running. |
 | 2026-11-07 | ~0.7 | ~$0.42 | Task 06a: tried Kimodo with the text encoder on the CPU (OOM at the 50 GB container RAM cap, then 2x slower), installed vLLM and downloaded Nemotron Nano 9B, then dropped it for hosted Nemotron. Kimodo is back on the GPU; motion (4.5 s), TRELLIS.2 and /generate-prop (68 s) checked. The pod was left running. |
 | 2026-11-07 | ~0.7 | ~$1.20 | Brev A100: setup and smoke tests; RunPod stopped |
+| 2026-11-08 | ~0.02 | ~$0.03 | Task 24: 3 TRELLIS.2 props (palm-tree 15 s, sand-pit 18 s (discarded), street-cafe 39 s). The box was already running and was left running. |
