@@ -20,7 +20,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 04 | A | Library: the old project's VRMs, props and sample BVHs, plus a CC0 low-poly kit and `manifest.json` | 1.5 h | done | 01 |
 | 05 | A | Characters: load VRMs, retarget Kimodo BVH, play a clip, planted feet | 2.5 h | done | 04 |
 | 06a | B | Self-host Nemotron Nano 9B v2 (FP8) on the pod with vLLM (:8104, OpenAI-compatible, tool calling) | 1 h | dropped: use OpenRouter / OpenCode Zen instead | — |
-| 06 | A | Nemotron client + agent loop on the server (tool calling, streamed steps), via OpenCode's free Nemotron now and swappable to NVIDIA's API later | 1.5 h | todo | — |
+| 06 | A | Nemotron client + agent loop on the server (tool calling, streamed steps), via OpenCode's free Nemotron now and swappable to NVIDIA's API later | 1.5 h | doing | — |
 | 07 | B | Text → concept image for props (pick a model, add an endpoint) | 1.5 h | done | 03 |
 | 08 | A | Movie: the orchestrator splits a scene into shots and beats, and the world agent builds the set | 3 h | todo | 04, 06 |
 | 09a | A | Movie page UI with a mocked scene script: agent log, world build from script, per-character timeline, play, export WebM | 2.5 h | done | 04, 05 |
