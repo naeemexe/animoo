@@ -28,6 +28,6 @@ into a task in `TASKS.md`.
 - Draw a camera path from one timestamp to another, like directing your own movie → 19
 - Remove the default canned chat texts ("Hi", "I can show you a squat") → 13
 - Day/night and weather changes (see the day/night city reference) → 17
-- Paint-over technique (blocks → AI paints over a screenshot → project it back; also works for interiors) → 20
+- Paint-over technique (blocks → AI paints over a screenshot → project it back; also works for interiors) → Later (backdrop only, in 15)
 
 -

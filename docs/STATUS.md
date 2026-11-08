@@ -40,6 +40,6 @@ open http://localhost:8000               # Movie | Chat
 
 ## Next
 
-Follow the order in `TASKS.md`: 08 → 13 → 14 → 15 → 16 → 17 → **12 (record the demo before noon)** → 18 → 19 → 20 → 21.
+Follow the order in `TASKS.md`: 08 → 13 → 14 → 15 → 16 → 17 → **12 (record the demo before noon)** → 18 → 19 → 21.
 User feedback lives in `FEEDBACK.md` (round 1 became tasks 13–21).
 One session per task (`WORKFLOW.md`); Remote Control is on by default for new sessions.

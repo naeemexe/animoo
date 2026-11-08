@@ -35,7 +35,6 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 17 | A | Time of day + weather: day/dusk/night lighting with glowing lamps and windows at night, plus rain/snow/fog. The orchestrator sets it from the prompt | 2 h | todo | 15 |
 | 18 | A | Edit mode: select, move/rotate/scale, duplicate, delete, replace with a library item, regenerate a prop on the GPU | 3 h | todo | 14 |
 | 19 | A | Camera paths: draw a keyframed camera path between two timestamps in edit mode; it overrides the director for that span | 2.5 h | todo | 16, 18 |
-| 20 | B | Paint-over look (research → prototype): render the blocked-out set from the shot camera, have SANA img2img paint it, project the painting back onto the geometry | 3 h | todo | 15 |
 | 21 | A | Full pipeline check + optimization: load times, GLB sizes, caching, LLM call budget, GPU memory, bug bash | 2 h | todo | 13–17 |
 
 **Cut rule.** If it's 6:00 am and task 09 isn't working, demo the Chat page plus a
@@ -91,8 +90,8 @@ run TRELLIS.2, normalize scale and pivot, `toonify()` it, and save it to
 **12 Demo.** The video plays from cached assets only. List every model and
 license used.
 
-**Order after 08:** 13 (quick) → 14 → 15 → 16 → 17 → 12 (demo, which must be recorded before the 12:00 pm deadline) → 18 → 19 → 20 → 21.
-Before the deadline, work only on what improves the demo; 18–20 can continue after it.
+**Order after 08:** 13 (quick) → 14 → 15 → 16 → 17 → 12 (demo, which must be recorded before the 12:00 pm deadline) → 18 → 19 → 21.
+Before the deadline, work only on what improves the demo; 18–19 can continue after it.
 
 **13 Chat cleanup.** Remove the mock's canned greeting and the "Hi Mira!" / "Show me a squat" chips. Mira greets in her own words from Nemotron, and the mock is used only when the LLM is down, with that shown clearly.
 
@@ -108,11 +107,13 @@ Before the deadline, work only on what improves the demo; 18–20 can continue a
 
 **19 Camera paths.** In edit mode, pick a start and end time on the timeline and place camera keyframes in the scene; a spline camera follows that path for the span.
 
-**20 Paint-over look.** Technique from the reference posts: (1) render the plain blocked-out set from the shot camera, (2) an image model paints over that render in our style, (3) project the painting back onto the geometry from the same camera, so it holds up while moving a little. Try it first on the backdrop and ground. Needs img2img or depth control on the pod (check SANA-Sprint img2img or add a ControlNet), so research first.
+**20 (moved to Later).** The paint-over look is only safe for the far backdrop, which is covered in 15. See Later.
 
 **21 Full check + optimization.** Time every step of a fresh prompt, shrink slow loads, confirm the cache hit paths, fix the bugs found, and update `docs/STATUS.md`.
 
 ## Later
+
+- **Paint-over projection (was 20).** It fits a fixed or near-fixed camera, like the reference village. With our moving film camera, a single projected painting stretches and leaves unpainted areas behind objects, and it bakes in one light direction. The workable 3D version: paint each prop from 4–6 views, blend the projections, and bake them into the prop's own texture, so it reads correctly from any angle. Before the deadline, use it only for the distant backdrop (15), where parallax is small; generated props already get painted-style textures from the SANA concept image through TRELLIS.2.
 
 - Self-check loop: screenshot → Nemotron vision → agent fixes problems.
 - Comparing image→3D generators (Hunyuan3D, SAM 3D), and a motion-model comparison.
