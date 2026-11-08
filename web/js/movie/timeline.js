@@ -3,13 +3,14 @@
 // Click or drag on the lanes to scrub.
 import { plannedDuration } from './script.js';
 
-export function createTimeline(root, { onPlay, onSeek, onDirectorCam, onFreeCam, onExport }) {
+export function createTimeline(root, { onPlay, onSeek, onDirectorCam, onFreeCam, onExport, onMute }) {
   root.innerHTML = `
     <div class="tl-transport">
       <button type="button" class="tl-play" disabled>Play</button>
       <span class="pill tl-time">0.0 / 0.0 s</span>
       <label><input type="checkbox" class="tl-cam" checked> director camera</label>
       <label title="fly around: W/A/S/D, Q/E down/up, Shift faster, drag to look, wheel to dolly, middle-drag to pan"><input type="checkbox" class="tl-free"> free camera</label>
+      <button type="button" class="tl-sound" title="scene sound: ambience and a soft music bed (the export keeps it either way)" aria-pressed="false">Sound on</button>
       <span class="tl-spacer"></span>
       <progress class="tl-progress" max="1" value="0" hidden></progress>
       <a class="tl-download pill ok" hidden></a>
@@ -22,7 +23,7 @@ export function createTimeline(root, { onPlay, onSeek, onDirectorCam, onFreeCam,
   const $ = (s) => root.querySelector(s);
   const el = {
     play: $('.tl-play'), time: $('.tl-time'), cam: $('.tl-cam'), free: $('.tl-free'), exp: $('.tl-export'),
-    progress: $('.tl-progress'), download: $('.tl-download'),
+    sound: $('.tl-sound'), progress: $('.tl-progress'), download: $('.tl-download'),
     labels: $('.tl-labels'), lanes: $('.tl-lanes'), ruler: $('.tl-ruler'), head: $('.tl-playhead'),
   };
   let duration = 1;
@@ -33,6 +34,7 @@ export function createTimeline(root, { onPlay, onSeek, onDirectorCam, onFreeCam,
   el.cam.onchange = () => onDirectorCam(el.cam.checked);
   el.free.onchange = () => onFreeCam?.(el.free.checked);
   el.exp.onclick = onExport;
+  el.sound.onclick = () => onMute?.(el.sound.getAttribute('aria-pressed') !== 'true');
 
   const pct = (x) => `${(100 * x) / duration}%`;
   function lane(label, cls = '') {
@@ -142,6 +144,7 @@ export function createTimeline(root, { onPlay, onSeek, onDirectorCam, onFreeCam,
       el.time.textContent = `${t.toFixed(1)} / ${duration.toFixed(1)} s`;
     },
     setPlaying(on) { el.play.textContent = on ? 'Pause' : 'Play'; },
+    setMuted(on) { el.sound.setAttribute('aria-pressed', String(on)); el.sound.textContent = on ? 'Sound off' : 'Sound on'; },
     // Free camera (task 29): on is the effective state; locked while edit mode forces it on.
     setFreeCam(on, locked = false) { el.free.checked = on; el.free.disabled = locked; el.cam.disabled = on; },
     setExporting(on) {

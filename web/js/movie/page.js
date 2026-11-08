@@ -21,6 +21,7 @@ import { DirectorCamera } from './camera.js';
 import { recordWebM } from './export.js';
 import { createEditor } from './edit.js';
 import { createFreeCam } from './freecam.js';
+import { createSceneAudio } from './audio.js';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const params = urlParams;
@@ -54,7 +55,8 @@ export function createMoviePage(root, stage, look) {
     timings: {},
   };
   // For checks from the console (task 31): window.animoMovie.state / .redirect().
-  window.animoMovie = { state, redirect: () => { redirect(); seek(state.t); } };
+  const sound = createSceneAudio(); // task 32: ambience + a soft music bed, following the timeline
+  window.animoMovie = { state, sound, redirect: () => { redirect(); seek(state.t); } };
   const cam = new DirectorCamera(stage, look);
   const timeline = createTimeline($('#movie-timeline'), {
     onPlay: () => setPlaying(!state.playing),
@@ -62,7 +64,9 @@ export function createMoviePage(root, stage, look) {
     onDirectorCam: (on) => { state.directorCam = on; applyCam(); },
     onFreeCam: (on) => { state.freeCam = on; applyCam(); },
     onExport: () => exportMovie(),
+    onMute: (on) => { sound.setMuted(on); timeline.setMuted(on); },
   });
+  timeline.setMuted(sound.muted);
   // Edit mode (task 18) sits behind its own toggle; off, playback is untouched.
   let camBeforeEdit = true;
   const editor = createEditor(root, stage, {
@@ -155,6 +159,7 @@ export function createMoviePage(root, stage, look) {
     if (state.set) stage.scene.remove(state.set);
     for (const h of Object.values(state.heroes)) stage.scene.remove(h.group);
     Object.assign(state, { script: null, set: null, heroes: {}, rows: {}, t: 0, duration: 0 });
+    sound.load(null);
     ui.log.innerHTML = '';
     ui.scriptBox.hidden = true;
     timeline.reset();
@@ -198,6 +203,12 @@ export function createMoviePage(root, stage, look) {
       ui.scriptBox.hidden = false;
       timeline.setScript(script);
       cam.setScript(script, makeResolver(script));
+      // Scene sound (task 32): procedural now; ElevenLabs files take over when the server has them.
+      sound.load(script).then((r) => {
+        if (!r) return;
+        log('orchestrator', 'result', r.line);
+        r.files.then((note) => { if (note) log('orchestrator', 'note', note); });
+      }).catch((err) => { console.warn(err); log('orchestrator', 'error', `scene sound: ${err.message}`, { err: true }); });
 
       // Characters load while the world agent works.
       const heroesReady = Promise.all(script.cast.map(async (c) => {
@@ -349,6 +360,7 @@ export function createMoviePage(root, stage, look) {
       cam.update(state.t, state.rows, dt);
       timeline.setTime(state.t);
     }
+    sound.sync(state.t, state.playing, state.duration);
     if (free.active) { if (!cam.enabled) free.update(dt); } else if (!state.directorCam || !Object.keys(state.rows).length) stage.controls.update();
   }
 
@@ -379,10 +391,11 @@ export function createMoviePage(root, stage, look) {
         done: () => !state.playing && state.t >= state.duration - 1e-3,
         progress: () => state.t / state.duration,
         onProgress: (p) => timeline.setExportProgress(p),
+        audio: sound.stream(),
       });
       state.lastExport = result;
       timeline.showExport(result);
-      log('director', 'result', `exported ${result.name} · ${(result.blob.size / 1e6).toFixed(1)} MB · ${result.seconds.toFixed(1)} s`);
+      log('director', 'result', `exported ${result.name} · ${(result.blob.size / 1e6).toFixed(1)} MB · ${result.seconds.toFixed(1)} s · ${result.audio ? 'with sound' : 'no sound track'}`);
     } catch (err) {
       console.error(err);
       log('director', 'error', `export failed: ${err.message}`, { err: true });
@@ -408,6 +421,6 @@ export function createMoviePage(root, stage, look) {
       applyCam();
       if (params.has('autoplay') && !state.script && !state.busy) make();
     },
-    hide() { editor.off(); setPlaying(false); free.disable(); cam.setEnabled(false); setVisible(false); },
+    hide() { editor.off(); setPlaying(false); sound.sync(state.t, false, state.duration); free.disable(); cam.setEnabled(false); setVisible(false); },
   };
 }
