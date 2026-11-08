@@ -26,9 +26,10 @@ const HEIGHT_SCALE = 1.6 / 2.01;
 const RAD = Math.PI / 180;
 const params = urlParams;
 
-// Camera: a medium-close shot from the front, a little to the right, so the
-// character stands left of the chat panel.
-const CAM = { yaw: 18 * RAD, dist: 6.0, height: 2.0, look: 1.0, blur: 5 };
+// Camera: straight in front of the character, who faces +Z, so he looks at
+// the user (like the first Animo's chat). Close while talking; it eases back
+// while he performs a move so a flip or a step stays in frame.
+const CAM = { yaw: 0, dist: 4.2, demoDist: 6.5, height: 1.25, look: 0.9, blur: 5 };
 
 async function fetchText(path) {
   const res = await fetch(LIBRARY_BASE + path);
@@ -59,6 +60,7 @@ export function createChatPage(root, stage, look) {
     visible: false,
     saved: null, // the camera/controls as the Movie page left them
     camTarget: new THREE.Vector3(0, CAM.look, 0),
+    camDist: CAM.dist,
     mouth: 0,
     blink: { t: 2.5, v: 0 },
     clips: {},
@@ -298,17 +300,20 @@ export function createChatPage(root, stage, look) {
     const goal = new THREE.Vector3(x, CAM.look, z);
     state.camTarget.lerp(goal, snap ? 1 : 1 - Math.exp(-dt * 1.5));
     const t = state.camTarget;
-    // Slide the view sideways so the character stands in the middle of the
-    // space the chat panel leaves free.
+    const goalDist = state.performer?.busy ? CAM.demoDist : CAM.dist;
+    state.camDist += (goalDist - state.camDist) * (snap ? 1 : 1 - Math.exp(-dt * 2));
+    const dist = state.camDist;
+    // Turn the view (not the camera's place) so the character stands in the
+    // middle of the space the chat panel leaves free while still facing the
+    // camera head-on.
     const panel = ui.log.parentElement.getBoundingClientRect();
     const W = window.innerWidth || 1;
     const freeRight = panel.width && panel.height < window.innerHeight * 0.6 ? W : Math.min(W, panel.left);
-    const viewW = 2 * CAM.dist * Math.tan((cam.fov * RAD) / 2) * cam.aspect;
+    const viewW = 2 * dist * Math.tan((cam.fov * RAD) / 2) * cam.aspect;
     const shift = (0.5 - freeRight / 2 / W) * viewW;
     const right = new THREE.Vector3(Math.cos(CAM.yaw), 0, -Math.sin(CAM.yaw));
     const aim = t.clone().addScaledVector(right, shift);
-    cam.position.set(t.x + Math.sin(CAM.yaw) * CAM.dist, CAM.height, t.z + Math.cos(CAM.yaw) * CAM.dist)
-      .addScaledVector(right, shift);
+    cam.position.set(t.x + Math.sin(CAM.yaw) * dist, CAM.height, t.z + Math.cos(CAM.yaw) * dist);
     cam.lookAt(aim);
   }
 
