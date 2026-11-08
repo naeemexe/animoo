@@ -97,9 +97,12 @@ function pond({ center, radius }) {
   return g;
 }
 
-function path({ points, width = 1.2 }) {
+// The walked path's color per biome: a dirt track, a sidewalk, sand, park gravel.
+const PATH = { forest: '#e6c891', city: '#d8d2c6', sea: '#f1e3bd', park: '#e9d9b0' };
+
+function path({ points, width = 1.2 }, biome = 'forest') {
   const g = new THREE.Group();
-  const mat = toonMaterial('#e6c891', { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  const mat = toonMaterial(PATH[biome] ?? PATH.forest, { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
   for (let i = 0; i < points.length - 1; i++) {
     const [a, b] = [points[i], points[i + 1]];
     const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
@@ -156,7 +159,7 @@ export async function buildSet(stage, script, onStep = () => {}) {
   const t = script.terrain ?? {};
   setTimeOfDay(stage, t.time_of_day, t.weather, script);
   for (const w of t.water ?? []) set.add(pond(w));
-  for (const p of t.paths ?? []) set.add(path(p));
+  for (const p of t.paths ?? []) set.add(path(p, t.biome));
 
   await generateMissing(script, onStep);
   const placed = await Promise.all(script.props.map(async (p) => {
@@ -184,7 +187,7 @@ export async function buildSet(stage, script, onStep = () => {}) {
     const fill = await fillWorld(stage, script, set);
     set.add(fill);
     const c = fill.userData.counts;
-    await onStep(`fill_world() → ${c.trees} trees, ${c.bushes} bushes, ${c.grass} grass tufts, ${c.flowers} flowers, ${c.rocks} rocks · keeps off paths, water, props and walk lines`, false, 'result');
+    await onStep(`fill_world(biome='${c.biome}') → ${c.buildings ? `${c.buildings} buildings, ${c.lamps} street lamps, ` : ''}${c.trees} trees, ${c.bushes} bushes, ${c.grass} grass tufts, ${c.flowers} flowers, ${c.rocks} rocks · keeps off paths, water, props and walk lines`, false, 'result');
   } catch (err) {
     console.warn('fill:', err);
   }

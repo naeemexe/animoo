@@ -1,0 +1,24 @@
+{
+ "id": "palm-tree",
+ "name": "palm-tree",
+ "prompt": "a single tropical coconut palm tree with a curved trunk and green fronds, isolated",
+ "sent_prompt": "a single tropical coconut palm tree with a curved trunk and green fronds, isolated, solid chunky shapes, thick sturdy parts",
+ "seed": 0,
+ "image_key": "5768bf9940d4284a",
+ "size_m": 6.5,
+ "normalize": {
+  "normalized": true,
+  "trimmed": true,
+  "cut_fraction": 0.14,
+  "triangles_removed": 8873,
+  "size": [
+   6.34,
+   6.5,
+   6.23
+  ],
+  "vertices": 43900,
+  "triangles": 48493
+ },
+ "pod_seconds": 14.3,
+ "created": "2026-11-08T08:21:42+00:00"
+}

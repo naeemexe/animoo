@@ -254,7 +254,7 @@ barrels, carts and lanterns; a camp gets logs, stumps, rocks and pines; a villag
 bushes and trees. The biome sets the rest of the world (fill code adds the ground, the buildings or
 forest around the set and the backdrop), so decor is only what stands near the action: a city street gets
 lantern-post, bench, hedge, crate, barrel and a truck (never trees or rocks); a sea or harbor scene
-gets dock, rowboat, canoe, barrel, crate, chest, rock-large; a park gets bench, hedge, fountain,
+gets dock, rowboat, canoe, barrel, crate, chest, rock-large, palm-tree; a park gets bench, hedge, fountain,
 lantern-post, flowers, tree-round. near is a place key or "edge" (the rim of the island, good for trees).
 A window, door or porch is part of a building: choose house or wooden-cottage for it, never generate a
 lone window. A village gets houses (house, wooden-cottage) and lantern-post in the decor; a city shop,

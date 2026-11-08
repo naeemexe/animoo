@@ -1226,6 +1226,33 @@
    ],
    "license": "CC0-1.0",
    "source": "Kenney Starter Kit City Builder, https://github.com/KenneyNL/Starter-Kit-City-Builder (models CC0)"
+  },
+  {
+   "id": "palm-tree",
+   "file": "props/generated/palm-tree.glb",
+   "category": "nature",
+   "size": [
+    6.34,
+    6.5,
+    6.23
+   ],
+   "tags": [
+    "coconut",
+    "curved",
+    "fronds",
+    "generated",
+    "green",
+    "isolated",
+    "palm",
+    "single",
+    "tree",
+    "tropical",
+    "trunk"
+   ],
+   "license": "generated: concept image by NVIDIA SANA-Sprint 1.6B (Apache-2.0; its text encoder Gemma-2-2B-IT is under the Gemma Terms of Use), image to 3D by Microsoft TRELLIS.2-4B (MIT) with BiRefNet background removal (MIT)",
+   "source": "generated",
+   "prompt": "a single tropical coconut palm tree with a curved trunk and green fronds, isolated",
+   "thumbnail": "props/generated/palm-tree.png"
   }
  ]
 }
