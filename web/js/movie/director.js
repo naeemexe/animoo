@@ -7,7 +7,7 @@
 import * as THREE from 'three';
 import { Clip } from '../characters/clip.js';
 import { mergeClips, plantFeet, meanHeading } from '../characters/merge.js';
-import { planPath, warpToPath, pickVariant, pathLength, talkSpot } from './control.js';
+import { planPath, warpToPath, pickVariant, pathLength, talkSpot, lineClear, pushOut } from './control.js';
 
 const RAD = Math.PI / 180;
 const angleTo = (from, to) => Math.atan2(to[0] - from[0], to[1] - from[1]);
@@ -17,6 +17,8 @@ const STRETCH = [0.65, 1.35];
 // A target (prop key, cast id or [x, z]) → [x, z] at film time t.
 export function makeResolver(script, rows = {}) {
   const props = new Map(script.props.map((p) => [p.key, p.position]));
+  // A prop deleted in edit mode: things that faced it face where it was.
+  for (const p of script.layout_props ?? []) if (!props.has(p.key)) props.set(p.key, p.position);
   const cast = new Map(script.cast.map((c) => [c.id, c.start.position]));
   return (target, t = 0) => {
     if (Array.isArray(target)) return target;
@@ -25,6 +27,55 @@ export function makeResolver(script, rows = {}) {
     if (cast.has(target)) return cast.get(target);
     throw new Error(`unknown target "${target}"`);
   };
+}
+
+// ---- beats follow their props (task 31) ----------------------------------------
+
+// Beat spots are coordinates the layout placed around its props (`layout_props`).
+// After edit mode moved, turned or scaled a prop, each spot within 2.5 m of it
+// (the nearest prop wins) moves with it rigidly, and a character's facing turns
+// with the prop its current spot belongs to. A deleted prop leaves its spots.
+// Nothing moved: the script comes back unchanged.
+const WALKABLE = /flower|grass|lily|mushroom|pebble|path|rug/;
+export function followProps(script) {
+  const before = (script.layout_props ?? []).filter((p) => !WALKABLE.test(`${p.library ?? ''} ${p.key}`));
+  const now = new Map(script.props.map((p) => [p.key, p]));
+  const moved = (p, q) => q && (Math.hypot(q.position[0] - p.position[0], q.position[1] - p.position[1]) > 0.005 ||
+    Math.abs((q.rotation ?? 0) - (p.rotation ?? 0)) > 0.1 || Math.abs((q.scale ?? 1) - (p.scale ?? 1)) > 0.001);
+  if (!before.some((p) => moved(p, now.get(p.key)))) return script;
+  const follow = (pt) => {
+    let best = null, bd = 2.5;
+    for (const p of before) {
+      const d = Math.hypot(pt[0] - p.position[0], pt[1] - p.position[1]);
+      if (d < bd) { bd = d; best = p; }
+    }
+    const q = best && now.get(best.key);
+    if (!q || !moved(best, q)) return { p: pt, turn: 0, key: null };
+    const turn = (q.rotation ?? 0) - (best.rotation ?? 0), r = turn * RAD, c = Math.cos(r), sn = Math.sin(r);
+    const ks = (q.scale ?? 1) / (best.scale ?? 1);
+    const x = (pt[0] - best.position[0]) * ks, z = (pt[1] - best.position[1]) * ks;
+    return { p: [+(q.position[0] + c * x + sn * z).toFixed(3), +(q.position[1] - sn * x + c * z).toFixed(3)], turn, key: best.key };
+  };
+  const notes = [];
+  const turnOf = {};
+  const cast = script.cast.map((c) => {
+    const f = follow(c.start.position);
+    turnOf[c.id] = f.turn;
+    if (!f.key) return c;
+    notes.push(`${c.id} start → ${f.key}`);
+    return { ...c, start: { ...c.start, position: f.p, facing: (c.start.facing ?? 0) + f.turn } };
+  });
+  const beats = [...script.beats].sort((a, b) => a.start - b.start).map((b) => {
+    const out = { ...b };
+    if (Array.isArray(b.to)) {
+      const f = follow(b.to);
+      turnOf[b.cast] = f.turn;
+      if (f.key) { out.to = f.p; notes.push(`${b.id} → ${f.key}`); }
+    }
+    if (typeof b.facing === 'number' && turnOf[b.cast]) out.facing = b.facing + turnOf[b.cast];
+    return out;
+  });
+  return { ...script, cast, beats, followed: notes };
 }
 
 function slice(clip, frames) {
@@ -127,10 +178,47 @@ export function roundCorners(pts, per = 10) {
   return curve.getPoints((pts.length - 1) * per).map((v) => [v.x, v.z]);
 }
 
+// A drawn path kept clear of props (task 31), in node order: a node inside a
+// footprint moves out to the nearest free spot, and a stretch of the curve
+// between two nodes that cuts a footprint is replaced by an A* route between
+// them. A path with nothing in the way is the plain curve.
+export function nudgeDrawn(at, nodes, obstacles) {
+  const all = [at, ...nodes.map((p) => pushOut(p, obstacles))];
+  const per = 10, curve = roundCorners(all, per);
+  const out = [at];
+  for (let i = 0; i < all.length - 1; i++) {
+    const seg = all.length < 3 ? all : curve.slice(i * per, (i + 1) * per + 1);
+    out.push(...(lineClear(seg, obstacles) ? seg : planPath(all[i], all[i + 1], obstacles)).slice(1));
+  }
+  return { path: out, nudged: all.slice(1).filter((p, i) => p !== nodes[i]).length };
+}
+
+// Bodies are capsules (0.25 m around the hips' line), so two people closer
+// than 0.7 m (hips to hips) touch. `others`: [{ row, yields }] for the other
+// characters; one that yields (later in the cast list) is ignored while it is
+// itself walking, so two walkers don't both swerve. → where the others stand
+// when `posAt(t)` runs into them, between t0 and t1 (not right at the ends).
+const TOUCH = 0.7;
+const walkingAt = (row, t) => row.beats.some((p) => p.path && t >= p.start && t < p.end);
+export function bodiesHit(posAt, t0, t1, others, ends = []) {
+  const hits = [];
+  for (let t = t0 + 0.3; t < t1; t += 0.1) {
+    const p = posAt(t);
+    for (const o of others) {
+      if (o.yields && walkingAt(o.row, t)) continue;
+      const q = o.row.positionAt(t);
+      if (Math.hypot(p[0] - q[0], p[1] - q[1]) >= TOUCH) continue;
+      if (ends.some((e) => Math.hypot(e[0] - q[0], e[1] - q[1]) < TOUCH)) continue;
+      if (!hits.some((h) => Math.hypot(h[0] - q[0], h[1] - q[1]) < 0.3)) hits.push(q);
+    }
+  }
+  return hits;
+}
+
 // One timeline row. `clips` maps beat id → retargeted Clip (origin, +Z).
 // → { castId, offset, clip, beats: [{ beat, start, end, stretch }], positionAt(t) }
 // A scaled character (a kid) lives in its group's space: world / scale.
-export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.3, obstacles = [], seats = [], walks = {} } = {}) {
+export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.3, obstacles = [], seats = [], walks = {}, others = [] } = {}) {
   const k = castEntry.scale ?? 1;
   const resolve = (target, t) => resolveWorld(target, t).map((v) => v / k);
   const clipOf = (e) => e.clip ?? e;
@@ -154,28 +242,56 @@ export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.3, o
 
     // Locomotion from the library: a path around the props, the clip bent onto it.
     if (act?.root === 'path' && beat.to !== undefined) {
-      // A path drawn in edit mode (task 30) replaces the planned one: through its points, corners rounded.
+      // A path drawn in edit mode (task 30) replaces the planned one: through its points, corners
+      // rounded, nudged around props (task 31).
       const drawn = walks[beat.id];
-      let path;
-      if (drawn?.length) path = roundCorners([at, ...drawn.map((p) => [p[0] / k, p[1] / k])]);
-      else {
-        let goal = resolve(beat.to, tJoin);
+      const nodes = drawn?.map((p) => [p[0] / k, p[1] / k]);
+      let goal = null;
+      if (!drawn?.length) {
+        goal = resolve(beat.to, tJoin);
         // Walking up to someone to greet or talk: stop at talking distance, same side of any prop.
         if (beat.approach) goal = talkSpot(at, resolve(beat.approach, beat.start + beat.duration), obs, { dist: 1.3 / k }) ?? goal;
-        path = planPath(at, goal, obs);
+        // Not on top of someone standing there when the walk ends.
+        else {
+          for (const o of others) {
+            const q = o.row.positionAt(beat.start + beat.duration).map((v) => v / k), d = Math.hypot(goal[0] - q[0], goal[1] - q[1]);
+            if (d < TOUCH / k) goal = d > 1e-3 ? [q[0] + (goal[0] - q[0]) * TOUCH / k / d, q[1] + (goal[1] - q[1]) * TOUCH / k / d] : [q[0] + TOUCH / k, q[1]];
+          }
+        }
       }
-      const len = pathLength(path);
-      let c = pickVariant(act.variants, len).clone();
-      // A drawn path can be much longer than any walk clip: chain the walk, so the stride stays natural.
-      if (drawn?.length) {
-        const base = c, reach = (x) => Math.hypot(x.hips[(x.frames - 1) * 3] - x.hips[0], x.hips[(x.frames - 1) * 3 + 2] - x.hips[2]);
-        for (let i = 0; i < 4 && len / Math.max(reach(c), 0.5) > 1.3; i++) c = mergeClips(c, base, { blend: 0.6 });
-        c.segments = [{ name: base.name, start: 0, end: c.frames }]; // one beat on the timeline
+      let nudged = 0;
+      const route = (o) => {
+        if (!nodes?.length) return planPath(at, goal, o);
+        const r = nudgeDrawn(at, nodes, o);
+        nudged = r.nudged;
+        return r.path;
+      };
+      const walkOn = (path) => {
+        const len = pathLength(path);
+        let c = pickVariant(act.variants, len).clone();
+        // A drawn path can be much longer than any walk clip: chain the walk, so the stride stays natural.
+        if (drawn?.length) {
+          const base = c, reach = (x) => Math.hypot(x.hips[(x.frames - 1) * 3] - x.hips[0], x.hips[(x.frames - 1) * 3 + 2] - x.hips[2]);
+          for (let i = 0; i < 4 && len / Math.max(reach(c), 0.5) > 1.3; i++) c = mergeClips(c, base, { blend: 0.6 });
+          c.segments = [{ name: base.name, start: 0, end: c.frames }]; // one beat on the timeline
+        }
+        // Retargeted clips start at the origin facing +Z: put frame 0 at `at`, then bend.
+        c.transform(0, [0, 0], [at[0] - c.hips[0], at[1] - c.hips[2]]);
+        return warpToPath(c, path);
+      };
+      let path = route(obs), c = walkOn(path), len = pathLength(path), gaveWay = 0;
+      // Other characters (task 31): where this walk would run into someone at that moment,
+      // that spot becomes an obstacle and the walk is planned again (up to 3 times).
+      let obsX = obs;
+      for (let i = 0; i < 3 && others.length; i++) {
+        const posAt = (t) => { const f = Math.max(0, Math.min(c.frames - 1, Math.round((t - tJoin) * fps))); return [c.hips[f * 3] * k, c.hips[f * 3 + 2] * k]; };
+        const hits = bodiesHit(posAt, tJoin, tJoin + c.duration, others, [at.map((v) => v * k), path.at(-1).map((v) => v * k)]);
+        if (!hits.length) break;
+        gaveWay += hits.length;
+        obsX = obsX.concat(hits.map((q) => ({ key: 'body', c: [q[0] / k, q[1] / k], h: [0.25 / k, 0.25 / k], rot: 0 })));
+        path = route(obsX); c = walkOn(path); len = pathLength(path);
       }
-      // Retargeted clips start at the origin facing +Z: put frame 0 at `at`, then bend.
-      c.transform(0, [0, 0], [at[0] - c.hips[0], at[1] - c.hips[2]]);
-      c = warpToPath(c, path);
-      const info = `${(len * k).toFixed(1)} m${drawn?.length ? `, drawn (${drawn.length} points)` : path.length > 2 ? ', around props' : ', straight'} · stride ×${c.scale.toFixed(2)}`;
+      const info = `${(len * k).toFixed(1)} m${drawn?.length ? `, drawn (${drawn.length} points${nudged ? `, ${nudged} moved off props` : ''})` : path.length > 2 ? ', around props' : ', straight'}${gaveWay ? ', around people' : ''} · stride ×${c.scale.toFixed(2)}`;
       if (!acc) {
         acc = plantFeet(c.clone());
         placed.push({ beat, start: offset, end: offset + acc.duration, stretch: c.scale, path, pathInfo: info });
@@ -297,20 +413,38 @@ export function aimGestures(script, resolve, shift = {}) {
 // character really is at that moment, not where it started; gestures are aimed
 // once positions are known.
 export function direct(script, clipsByCast, opts) {
+  script = followProps(script);
   let rows = {};
   const shift = {};
+  const rank = new Map(script.cast.map((c, i) => [c.id, i]));
   for (let pass = 0; pass < 4; pass++) {
     const resolve = makeResolver(script, rows);
     const aimed = aimGestures(script, resolve, shift);
     const next = {};
     for (const c of script.cast) {
       const beats = aimed.beats.filter((b) => b.cast === c.id).sort((a, b) => a.start - b.start);
-      if (beats.length) next[c.id] = buildRow(c, beats, clipsByCast[c.id], resolve, opts);
+      // Where everyone else is (from the last pass), so walks go around them (task 31).
+      const others = Object.values(rows).filter((r) => r.castId !== c.id).map((r) => ({ row: r, yields: rank.get(r.castId) > rank.get(c.id) }));
+      if (beats.length) next[c.id] = buildRow(c, beats, clipsByCast[c.id], resolve, { ...opts, others });
     }
     rows = next;
-    if (!syncReactions(script, aimed, rows, shift)) break;
+    const synced = syncReactions(script, aimed, rows, shift);
+    if (!synced && !(pass < 3 && collisions(script, rows, rank).length)) break;
   }
   return rows;
+}
+
+// Walks that run into another character: [{ cast, beat, at: [x, z], t }] (task 31).
+export function collisions(script, rows, rank = new Map(script.cast.map((c, i) => [c.id, i]))) {
+  const out = [];
+  for (const r of Object.values(rows)) {
+    const others = Object.values(rows).filter((o) => o.castId !== r.castId).map((o) => ({ row: o, yields: rank.get(o.castId) > rank.get(r.castId) }));
+    for (const p of r.beats.filter((b) => b.path)) {
+      const a = r.positionAt(p.start), b = r.positionAt(p.end);
+      for (const q of bodiesHit((t) => r.positionAt(t), p.start, p.end, others, [a, b])) out.push({ cast: r.castId, beat: p.beat.id, at: q });
+    }
+  }
+  return out;
 }
 
 // "She waves back": a gesture answering another one starts 0.6 s after the one it

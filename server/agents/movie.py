@@ -1595,6 +1595,9 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
     script, notes = layout(plan, world, manifest, scene)
     if cached and cached.get("edits", {}).get("props"):
         # Props placed by hand in the Movie page's edit mode (task 18) win over the layout's.
+        # The layout's own props stay as `layout_props`: beats were placed around them, and the
+        # director moves a beat's spot with its prop (task 31).
+        script["layout_props"] = script["props"]
         script["props"] = cached["edits"]["props"]
         notes = [f"set edited by hand on {cached['edits'].get('saved', '?')[:16].replace('T', ' ')}: "
                  f"{len(script['props'])} props from the edit"] + notes

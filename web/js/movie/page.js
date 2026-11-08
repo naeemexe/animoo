@@ -53,6 +53,8 @@ export function createMoviePage(root, stage, look) {
     exporting: false,
     timings: {},
   };
+  // For checks from the console (task 31): window.animoMovie.state / .redirect().
+  window.animoMovie = { state, redirect: () => { redirect(); seek(state.t); } };
   const cam = new DirectorCamera(stage, look);
   const timeline = createTimeline($('#movie-timeline'), {
     onPlay: () => setPlaying(!state.playing),
@@ -187,6 +189,9 @@ export function createMoviePage(root, stage, look) {
         problems.forEach((p) => log('orchestrator', 'error', p, { err: true }));
         throw new Error('the scene script is invalid');
       }
+      // The layout's props (task 31): beats were placed around them, so after an edit each
+      // beat's spot moves with its prop. A replay of a saved edit brings them from the server.
+      script.layout_props ??= structuredClone(script.props);
       state.script = script;
       log('orchestrator', 'script', `“${script.title}” · ${script.cast.length} cast · ${script.beats.length} beats · ${script.shots.length} shots · ${plannedDuration(script).toFixed(1)} s · from ${planned.source}${planned.llm_calls ? ` (${planned.llm_calls} Nemotron calls)` : ''}`);
       ui.scriptView.textContent = JSON.stringify(script, null, 2);

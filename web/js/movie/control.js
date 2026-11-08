@@ -6,6 +6,7 @@
 //   obstaclesFromSet(set)  prop footprints at body height, as oriented boxes
 //   planPath(a, b, obs)    A* on a 0.25 m grid around them, then shortcut and smooth
 //   warpToPath(clip, path) bend a straight walk/run clip onto a path, stride scaled to fit
+//   lineClear / pushOut    free-space checks for drawn paths and other bodies (task 31)
 import * as THREE from 'three';
 import { Clip } from '../characters/clip.js';
 import { mergeClips, plantFeet } from '../characters/merge.js';
@@ -151,6 +152,38 @@ function boxDist(o, x, z) {
   const lx = c * dx - s * dz, lz = s * dx + c * dz; // into the box's frame
   const qx = Math.abs(lx) - o.h[0], qz = Math.abs(lz) - o.h[1];
   return Math.hypot(Math.max(qx, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qz), 0);
+}
+
+// ---- free space (task 31) -----------------------------------------------------
+
+// Is a polyline clear of the obstacles (by `clearance`)? Obstacles touching its
+// ends are ignored (leaving a bench, stopping at a table), as planPath does.
+export function lineClear(pts, obstacles, { clearance = BODY } = {}) {
+  const a = pts[0], b = pts.at(-1);
+  const obs = obstacles.filter((o) => boxDist(o, a[0], a[1]) >= clearance && boxDist(o, b[0], b[1]) >= clearance);
+  if (!obs.length) return true;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p = pts[i], q = pts[i + 1];
+    const n = Math.max(1, Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]) / (CELL / 2)));
+    for (let j = 0; j <= n; j++) {
+      const x = p[0] + (q[0] - p[0]) * j / n, z = p[1] + (q[1] - p[1]) * j / n;
+      if (obs.some((o) => boxDist(o, x, z) < clearance)) return false;
+    }
+  }
+  return true;
+}
+
+// The nearest spot to p that is `clearance` clear of every obstacle (p itself if it is).
+export function pushOut(p, obstacles, { clearance = BODY } = {}) {
+  const free = (x, z) => obstacles.every((o) => boxDist(o, x, z) >= clearance);
+  if (free(p[0], p[1])) return p;
+  for (let r = 0.1; r <= 4; r += 0.1) {
+    for (let a = 0; a < 360; a += 15) {
+      const q = [p[0] + Math.sin(a * Math.PI / 180) * r, p[1] + Math.cos(a * Math.PI / 180) * r];
+      if (free(q[0], q[1])) return q;
+    }
+  }
+  return p;
 }
 
 // ---- paths --------------------------------------------------------------------
