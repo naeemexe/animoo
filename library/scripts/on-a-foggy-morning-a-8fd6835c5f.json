@@ -1,0 +1,408 @@
+{
+ "scene": "On a foggy morning a woman walks along the lake to the old well, draws water, and then sits on a bench by the water.",
+ "created": "2026-11-08T07:34:52+00:00",
+ "model": "nvidia/nemotron-3.5-super-vl-120b-a12b + nvidia/nemotron-3.5-lightning-30b-a3b",
+ "backend": "nvidia",
+ "llm_calls": [
+  {
+   "agent": "orchestrator",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+   "ok": true,
+   "seconds": 3.27
+  },
+  {
+   "agent": "world",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+   "ok": true,
+   "seconds": 2.43
+  }
+ ],
+ "llm_seconds": [
+  3.27,
+  2.43
+ ],
+ "plan": {
+  "title": "Woman at the lake",
+  "thoughts": [
+   "One character: a woman walking along the lake.",
+   "Places: the lake path, the old well, and a bench by the water.",
+   "She walks to the well, draws water, then walks to the bench and sits down."
+  ],
+  "time_of_day": "sunrise",
+  "weather": "fog",
+  "water": true,
+  "places": [
+   {
+    "key": "lake_path",
+    "what": "a path along the lake",
+    "use": "stand"
+   },
+   {
+    "key": "well",
+    "what": "an old well by the lake",
+    "use": "stand"
+   },
+   {
+    "key": "bench",
+    "what": "a bench by the water",
+    "use": "sit"
+   }
+  ],
+  "cast": [
+   {
+    "id": "woman",
+    "name": "Woman",
+    "character": "avatar_female",
+    "kid": false,
+    "starts_at": "lake_path"
+   }
+  ],
+  "beats": [
+   {
+    "id": "b1",
+    "cast": "woman",
+    "action": "walks to the old well",
+    "prompt": "A person walks forward along the lake.",
+    "duration": 6,
+    "move_to": "well"
+   },
+   {
+    "id": "b2",
+    "cast": "woman",
+    "action": "draws water from the well",
+    "prompt": "A person pulls up a bucket of water from a well.",
+    "duration": 5,
+    "face": "well"
+   },
+   {
+    "id": "b3",
+    "cast": "woman",
+    "action": "walks to the bench",
+    "prompt": "A person walks forward carrying a bucket.",
+    "duration": 5,
+    "move_to": "bench"
+   },
+   {
+    "id": "b4",
+    "cast": "woman",
+    "action": "sits on the bench",
+    "prompt": "A person sits down on a bench by the water.",
+    "duration": 5
+   }
+  ]
+ },
+ "world": {
+  "thoughts": [
+   "The lake-path and bench are in the library; the well and cottage are generated.",
+   "A foggy sunrise scene by the lake: oaks, bushes, flowers and lily pads."
+  ],
+  "choices": [
+   {
+    "place": "lake-path",
+    "library": "signpost"
+   },
+   {
+    "place": "well",
+    "generate": {
+     "name": "stone well",
+     "prompt": "a round stone village well with a little wooden roof",
+     "size_m": 2.5,
+     "category": "village"
+    }
+   },
+   {
+    "place": "bench",
+    "library": "bench"
+   },
+   {
+    "place": "cottage",
+    "library": "wooden-cottage"
+   }
+  ],
+  "decor": [
+   {
+    "library": "tree-oak",
+    "count": 4,
+    "near": "edge"
+   },
+   {
+    "library": "bush",
+    "count": 3,
+    "near": "cottage"
+   },
+   {
+    "library": "flower-yellow",
+    "count": 3,
+    "near": "bench"
+   },
+   {
+    "library": "lily-pad",
+    "count": 2,
+    "near": "jetty"
+   }
+  ]
+ },
+ "script": {
+  "version": 1,
+  "title": "Woman at the lake",
+  "scene": "On a foggy morning a woman walks along the lake to the old well, draws water, and then sits on a bench by the water.",
+  "terrain": {
+   "time_of_day": "sunrise",
+   "weather": "fog",
+   "water": [
+    {
+     "shape": "pond",
+     "center": [
+      7.5,
+      8.5
+     ],
+     "radius": 4.8
+    }
+   ],
+   "paths": [
+    {
+     "points": [
+      [
+       -7.16,
+       -4.16
+      ],
+      [
+       -0.7,
+       1.34
+      ]
+     ],
+     "width": 1.4
+    }
+   ]
+  },
+  "props": [
+   {
+    "key": "lake-path",
+    "library": "signpost",
+    "position": [
+     -6.09,
+     -5.23
+    ],
+    "rotation": -45.0
+   },
+   {
+    "key": "well",
+    "library": "stone-well",
+    "position": [
+     -4.79,
+     -2.99
+    ],
+    "rotation": -150.0,
+    "generate": {
+     "prompt": "a round stone village well with a little wooden roof",
+     "size_m": 2.5,
+     "category": "village"
+    }
+   },
+   {
+    "key": "bench",
+    "library": "bench",
+    "position": [
+     -1.26,
+     2.05
+    ],
+    "rotation": -129.0
+   },
+   {
+    "key": "tree-oak-1",
+    "library": "tree-oak",
+    "position": [
+     -13.19,
+     -4.73
+    ],
+    "rotation": 150
+   },
+   {
+    "key": "tree-oak-2",
+    "library": "tree-oak",
+    "position": [
+     3.34,
+     -10.84
+    ],
+    "rotation": 165
+   },
+   {
+    "key": "tree-oak-3",
+    "library": "tree-oak",
+    "position": [
+     9.04,
+     -8.92
+    ],
+    "rotation": 135
+   },
+   {
+    "key": "tree-oak-4",
+    "library": "tree-oak",
+    "position": [
+     -0.37,
+     11.84
+    ],
+    "rotation": 60
+   },
+   {
+    "key": "bush-5",
+    "library": "bush",
+    "position": [
+     -3.92,
+     -10.05
+    ],
+    "rotation": 105
+   },
+   {
+    "key": "bush-6",
+    "library": "bush",
+    "position": [
+     -2.48,
+     10.55
+    ],
+    "rotation": 30
+   },
+   {
+    "key": "bush-7",
+    "library": "bush",
+    "position": [
+     -9.73,
+     -4.81
+    ],
+    "rotation": 90
+   },
+   {
+    "key": "flower-yellow-8",
+    "library": "flower-yellow",
+    "position": [
+     0.5,
+     3.94
+    ],
+    "rotation": 75
+   },
+   {
+    "key": "flower-yellow-9",
+    "library": "flower-yellow",
+    "position": [
+     -1.38,
+     5.14
+    ],
+    "rotation": -120
+   },
+   {
+    "key": "flower-yellow-10",
+    "library": "flower-yellow",
+    "position": [
+     -3.49,
+     4.35
+    ],
+    "rotation": 45
+   },
+   {
+    "key": "lily-pad-11",
+    "library": "lily-pad",
+    "position": [
+     10.69,
+     -5.77
+    ],
+    "rotation": -105
+   },
+   {
+    "key": "lily-pad-12",
+    "library": "lily-pad",
+    "position": [
+     -7.33,
+     -9.16
+    ],
+    "rotation": 120
+   }
+  ],
+  "cast": [
+   {
+    "id": "woman",
+    "name": "Woman",
+    "character": "avatar_female",
+    "start": {
+     "position": [
+      -6.95,
+      -4.37
+     ],
+     "facing": 93.0
+    },
+    "scale": 1.078
+   }
+  ],
+  "beats": [
+   {
+    "id": "woman-1",
+    "cast": "woman",
+    "start": 0.0,
+    "duration": 2.5,
+    "prompt": "A person walks forward along the lake.",
+    "action": "walks to the old well",
+    "to": [
+     -5.58,
+     -4.35
+    ]
+   },
+   {
+    "id": "woman-2",
+    "cast": "woman",
+    "start": 2.5,
+    "duration": 5.0,
+    "prompt": "A person pulls up a bucket of water from a well.",
+    "action": "draws water from the well",
+    "facing": "well"
+   },
+   {
+    "id": "woman-3",
+    "cast": "woman",
+    "start": 7.5,
+    "duration": 6.3,
+    "prompt": "A person walks forward carrying a bucket.",
+    "action": "walks to the bench",
+    "to": [
+     -0.75,
+     2.13
+    ]
+   },
+   {
+    "id": "woman-4",
+    "cast": "woman",
+    "start": 13.8,
+    "duration": 5.0,
+    "prompt": "A person sits down on a bench by the water.",
+    "action": "sits on the bench",
+    "facing": 141.0
+   }
+  ],
+  "shots": [
+   {
+    "id": "s1",
+    "start": 0.0,
+    "duration": 6.27,
+    "framing": "wide",
+    "subject": "woman",
+    "angle": 35
+   },
+   {
+    "id": "s2",
+    "start": 6.27,
+    "duration": 6.26,
+    "framing": "medium",
+    "subject": "woman",
+    "angle": -25
+   },
+   {
+    "id": "s3",
+    "start": 12.53,
+    "duration": 6.27,
+    "framing": "wide",
+    "subject": "woman",
+    "angle": 55
+   }
+  ]
+ }
+}

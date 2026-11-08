@@ -1,0 +1,24 @@
+{
+ "id": "stone-well",
+ "name": "stone-well",
+ "prompt": "a round stone village well with a little wooden roof",
+ "sent_prompt": "a round stone village well with a little wooden roof, solid chunky shapes, thick sturdy parts",
+ "seed": 0,
+ "image_key": "9a8092dd28ae4bd5",
+ "size_m": 2.5,
+ "normalize": {
+  "normalized": true,
+  "trimmed": true,
+  "cut_fraction": 0.15,
+  "triangles_removed": 16245,
+  "size": [
+   2.88,
+   2.5,
+   2.78
+  ],
+  "vertices": 44918,
+  "triangles": 42561
+ },
+ "pod_seconds": 24.5,
+ "created": "2026-11-08T07:35:18+00:00"
+}
