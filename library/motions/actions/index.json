@@ -2,13 +2,13 @@
  "idle": {
   "id": "idle",
   "file": "motions/actions/idle.bvh",
-  "prompt": "A person stands still, breathing calmly and looking around.",
+  "prompt": "A person stands relaxed with both arms hanging loosely at their sides, breathing calmly.",
   "duration": 6,
   "root": "pinned",
-  "generated": "2026-11-08T01:48:39",
-  "kimodo_seconds": 4.2,
-  "post_processing": true,
-  "seed": 0
+  "seed": 1,
+  "generated": "2026-11-08T10:55:10",
+  "kimodo_seconds": 0.4,
+  "post_processing": true
  },
  "walk_steps": {
   "id": "walk_steps",

@@ -39,7 +39,10 @@ MOTION_URL = os.environ.get("MOTION_URL", "http://localhost:8101")
 
 # id: (prompt, seconds to generate, root, extra)
 ACTIONS: dict[str, dict] = {
-    "idle":         {"prompt": "A person stands still, breathing calmly and looking around.", "duration": 6, "root": "pinned"},
+    # Relaxed, arms hanging at the sides, head steady (the old "looking around" idle held the arms out
+    # and turned the head through 98 degrees). Seed 1 scored best of six on hand height and spread.
+    "idle":         {"prompt": "A person stands relaxed with both arms hanging loosely at their sides, breathing calmly.",
+                     "duration": 6, "root": "pinned", "seed": 1},
     "walk_steps":   {"prompt": "A person takes a few steps forward and stops.", "duration": 2.5, "root": "path"},
     "walk_short":   {"prompt": "A person walks forward.", "duration": 3.5, "root": "path"},
     "walk":         {"prompt": "A person walks forward.", "duration": 6, "root": "path"},
@@ -210,10 +213,10 @@ def generate(force: bool = False) -> dict:
         if path.exists() and meta_path.exists() and not force:
             index[aid] = json.loads(meta_path.read_text())
             continue
-        key = (spec["prompt"], spec["duration"])
+        key = (spec["prompt"], spec["duration"], spec.get("seed", 0))
         t0 = time.time()
         if key not in raw:
-            raw[key] = kimodo(spec["prompt"], spec["duration"])
+            raw[key] = kimodo(spec["prompt"], spec["duration"], spec.get("seed", 0))
         text, info = raw[key], {}
         if spec.get("cut"):
             text, info = cut_bvh(text, spec["cut"])
@@ -222,7 +225,7 @@ def generate(force: bool = False) -> dict:
         path.write_text(text)
         meta = {"id": aid, "file": f"motions/actions/{aid}.bvh", **{k: v for k, v in spec.items()},
                 "generated": time.strftime("%Y-%m-%dT%H:%M:%S"), "kimodo_seconds": round(time.time() - t0, 1),
-                "post_processing": True, "seed": 0, **info}
+                "post_processing": True, "seed": spec.get("seed", 0), **info}
         meta_path.write_text(json.dumps(meta, indent=1))
         index[aid] = meta
         print(f"{aid:16s} {meta['kimodo_seconds']:5.1f} s  {info or ''}", flush=True)
