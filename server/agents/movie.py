@@ -205,7 +205,15 @@ def _ask(role: str, user: str, schema: dict, example: dict, tag: str):
     shape = ("Fill in real values for THIS scene; the example below is for a different scene and shows only "
              f"the shape:\n{json.dumps(example, ensure_ascii=False)}")
     return llm.complete([{"role": "system", "content": role}, {"role": "user", "content": user}], schema,
-                        temperature=0.4, max_tokens=3000, timeout=120, retries=1, tag=tag, shape=shape)
+                        agent=tag, temperature=0.4, max_tokens=3000, timeout=120, retries=1, tag=tag, shape=shape)
+
+
+def _answered(tag: str, t0: float) -> str:
+    """'nvidia/... in 2.1 s' for the agent log: which tier answered, and any fallbacks."""
+    c = llm.last_answer(tag)
+    failed = [x for x in list(llm.CALLS) if x["tag"] == tag and not x["ok"] and x["at"] >= time.time() - (time.perf_counter() - t0) - 1]
+    fell = f" (fell back from {', '.join(x['model'] for x in failed)})" if failed else ""
+    return f"{c['model'] if c else '?'} in {time.perf_counter() - t0:.1f} s{fell}"
 
 
 def catalog(manifest: dict) -> str:
@@ -915,11 +923,11 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
     else:
         yield step("orchestrator", "thought", "One Nemotron call returns the whole plan (cast, places, beats, shots); "
                    "layout code then fits positions and timing.")
-        yield step("orchestrator", "call", f"nemotron.plan_scene(“{scene[:90]}{'…' if len(scene) > 90 else ''}”) · {llm.model()}")
+        yield step("orchestrator", "call", f"nemotron.plan_scene(“{scene[:90]}{'…' if len(scene) > 90 else ''}”) · {llm.model('orchestrator')}")
         t0 = time.perf_counter()
         try:
             raw_plan = _ask(ORCHESTRATOR_ROLE, f"The scene:\n{scene}", PLAN_SCHEMA, PLAN_EXAMPLE, "orchestrator")
-            yield step("orchestrator", "result", f"plan received in {time.perf_counter() - t0:.1f} s", (time.perf_counter() - t0) * 1000)
+            yield step("orchestrator", "result", f"plan received from {_answered('orchestrator', t0)}", (time.perf_counter() - t0) * 1000)
         except llm.LLMError as err:
             ms = (time.perf_counter() - t0) * 1000
             yield step("orchestrator", "error", f"Nemotron failed: {str(err)[:200]}", ms)
@@ -969,11 +977,11 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
                             for p in plan["places"])
                 + f"\n\nThe scene: {scene}\nTime of day: {plan['time_of_day']}. Water: {'yes' if plan['water'] else 'no'}."
                 + f"\n\nThe whole library catalog (ids by category):\n{catalog(manifest)}")
-        yield step("world", "call", f"nemotron.pick_props({len(plan['places'])} places) · {llm.model()}")
+        yield step("world", "call", f"nemotron.pick_props({len(plan['places'])} places) · {llm.model('world')}")
         t0 = time.perf_counter()
         try:
             raw_world = _ask(WORLD_ROLE, user, WORLD_SCHEMA, WORLD_EXAMPLE, "world")
-            yield step("world", "result", f"choices received in {time.perf_counter() - t0:.1f} s", (time.perf_counter() - t0) * 1000)
+            yield step("world", "result", f"choices received from {_answered('world', t0)}", (time.perf_counter() - t0) * 1000)
         except llm.LLMError as err:
             yield step("world", "error", f"Nemotron failed: {str(err)[:200]}", (time.perf_counter() - t0) * 1000)
             yield step("world", "note", "Using the best search_library hit for each place instead.")
@@ -1009,7 +1017,10 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
     n_calls = len(llm.CALLS) - calls_before
     if source == "nemotron":
         entry = {"scene": scene, "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-                 "model": llm.model(), "backend": llm.backend(),
+                 "model": " + ".join(dict.fromkeys(c["model"] for c in list(llm.CALLS)[calls_before:] if c["ok"])),
+                 "backend": llm.backend(),
+                 "llm_calls": [{k: c[k] for k in ("agent", "backend", "model", "ok", "seconds")}
+                               for c in list(llm.CALLS)[calls_before:]],
                  "llm_seconds": [c["seconds"] for c in list(llm.CALLS)[calls_before:]],
                  "plan": raw_plan, "world": raw_world, "script": script}
         path = save_cache(scene, entry)

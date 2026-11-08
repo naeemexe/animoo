@@ -99,7 +99,8 @@ def run(agent: Agent, task: str) -> Iterator[dict]:
     for n in range(agent.max_steps):
         t0 = time.perf_counter()
         try:
-            reply = llm.complete(messages, STEP_SCHEMA, temperature=agent.temperature, tag=f"{agent.name}#{n}",
+            reply = llm.complete(messages, STEP_SCHEMA, agent=agent.name, temperature=agent.temperature,
+                                 tag=f"{agent.name}#{n}",
                                  shape='The shape is {"thought": ..., "call": {"tool": ..., "args": {...}}} '
                                        'or {"thought": ..., "final": ...}, as described above.')
         except llm.LLMError as err:

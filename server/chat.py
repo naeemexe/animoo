@@ -64,7 +64,7 @@ REPLY_SCHEMA = {
 
 def _nemotron(messages: list[dict]) -> dict:
     obj = llm.complete([{"role": "system", "content": CHAT_SYSTEM_PROMPT}, *messages], REPLY_SCHEMA,
-                       temperature=0.6, max_tokens=400, timeout=30, retries=1, tag="chat",
+                       agent="chat", temperature=0.6, max_tokens=400, timeout=30, retries=1, tag="chat",
                        shape='Exactly {"reply": "...", "demonstrate": null} or '
                              '{"reply": "...", "demonstrate": {"prompt": "A person ...", "duration": 5}}.')
     return {"reply": str(obj.get("reply", "")).strip(), "demonstrate": _clean_demo(obj.get("demonstrate"))}

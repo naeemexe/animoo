@@ -103,7 +103,8 @@ def agent_run(name: str, task: str = "") -> StreamingResponse:
             yield f"data: {json.dumps(step, ensure_ascii=False)}\n\n"
         calls = [c for c in list(llm.CALLS) if c["at"] >= started]
         summary = {"steps": n, "seconds": round(time.perf_counter() - t0, 2), "llm_calls": len(calls),
-                   "llm_seconds": [c["seconds"] for c in calls], "backend": llm.backend(), "model": llm.model()}
+                   "llm_seconds": [c["seconds"] for c in calls], "backend": llm.backend(),
+                   "model": ", ".join(sorted({c["model"] for c in calls if c["ok"]})) or "none"}
         yield f"event: done\ndata: {json.dumps(summary)}\n\n"
 
     return StreamingResponse(events(), media_type="text/event-stream",

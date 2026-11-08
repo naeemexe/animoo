@@ -1,38 +1,52 @@
-"""The one LLM client: Nemotron, through whichever backend `.env` picks.
+"""The one LLM client: Nemotron, routed per agent, with a fallback chain.
 
-    complete(messages, json_schema=None) -> str            (json_schema is None)
-                                         -> dict | list    (json_schema given)
+    complete(messages, json_schema=None, agent="chat") -> str            (no schema)
+                                                       -> dict | list    (schema given)
 
 `messages` are OpenAI-style `{role: system|user|assistant, content}`. With a
 `json_schema`, the answer is parsed (and repaired) into JSON, checked against
 the schema's `required` keys and top-level types, and asked for again up to
 `retries` times if it still doesn't fit.
 
-Backends (`LLM_BACKEND` in `.env`):
+Routing (all from `.env`, re-read when it changes):
 
-- `opencode` (default): the locally installed OpenCode CLI, which is the only
-  way to reach OpenCode's free Nemotron (`opencode/nemotron-3.5-lightning-free`).
-  The free tier refuses any request that isn't OpenCode's stock agent with its
-  stock tool list, so a custom agent, disabled tools or `deny` permissions all
-  get "Free usage limit reached". What does work: the stock agent with every
-  permission set to `ask`. `opencode run` is non-interactive, so it
-  auto-rejects every tool call and nothing runs on this machine. The calls run
-  in a scratch folder outside the repo (`OPENCODE_DIR`) that holds only that
-  `opencode.json`. The whole conversation is flattened into one message.
-- `nvidia`: `NVIDIA_API_KEY` at https://integrate.api.nvidia.com/v1.
-- `openai`: any OpenAI-compatible server, `NEMOTRON_BASE_URL` + `NEMOTRON_API_KEY`
-  (OpenRouter, a self-hosted vLLM, ...).
+- `agent` names the caller (orchestrator, selfcheck, world, motion, director,
+  chat; anything else counts as `default`). Its hosted model is
+  `LLM_MODEL_<AGENT>` (DEFAULT_ROUTES below when unset), on the `nvidia`
+  backend: `NVIDIA_API_KEY` at https://integrate.api.nvidia.com/v1.
+  `LLM_THINK_<AGENT>=1|0` turns the hosted model's reasoning on or off (on
+  only for the orchestrator by default); reasoning gets its own token budget
+  on top of `max_tokens`.
+- A call that fails (error, timeout, rate limit) falls to the next tier:
+    1. `nvidia`   the agent's hosted model,
+    2. `openai`   the self-hosted Nano 9B: `NEMOTRON_BASE_URL` (+ `NEMOTRON_API_KEY`),
+                  model `NEMOTRON_MODEL` (default `nemotron`), with /no_think,
+    3. `opencode` the OpenCode CLI's free Nemotron (`opencode/nemotron-3.5-lightning-free`),
+  and when all of them fail LLMError is raised, so the caller uses its mock.
+  A hosted model that answers 429 is skipped for `LLM_COOLDOWN_S` (30 s).
+- `LLM_BACKEND` picks where the chain starts: `nvidia` (all three tiers),
+  `openai` (self-hosted, then OpenCode), `opencode` (OpenCode only), or
+  `off` / `mock` (no LLM at all: every call raises LLMError at once, which
+  tests the offline path without editing code).
 
-`NEMOTRON_MODEL` overrides the model for any backend. Tool calling is not
-done here: `server/agents/` asks for JSON, so it works the same on all three.
+OpenCode notes: the free tier refuses any request that isn't OpenCode's stock
+agent with its stock tool list, so a custom agent, disabled tools or `deny`
+permissions all get "Free usage limit reached". What does work: the stock
+agent with every permission set to `ask`. `opencode run` is non-interactive,
+so it auto-rejects every tool call and nothing runs on this machine. The calls
+run in a scratch folder outside the repo (`OPENCODE_DIR`) that holds only that
+`opencode.json`. The whole conversation is flattened into one message.
 
-Every call is timed. `CALLS` keeps the last ones ({backend, model, seconds,
-ok, chars}) and each one is printed as `[llm] ...`, never with its content.
+Tool calling is not done here: `server/agents/` asks for JSON, so it works the
+same on every tier. Every attempt is timed. `CALLS` keeps the last ones
+({agent, backend, model, seconds, ok, chars, error}) and each one is printed as
+`[llm] ...`, never with its content.
 """
 
 from __future__ import annotations
 
 import ast
+import http.client
 import json
 import os
 import re
@@ -44,14 +58,22 @@ import urllib.request
 from collections import deque
 from pathlib import Path
 
-DEFAULT_MODELS = {
-    "opencode": "opencode/nemotron-3.5-lightning-free",
-    "nvidia": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
-    "openai": "nvidia/nemotron-3-nano-30b-a3b",
+HOSTED_SUPER = "nvidia/nemotron-3.5-super-vl-120b-a12b"
+HOSTED_LIGHTNING = "nvidia/nemotron-3.5-lightning-30b-a3b"
+DEFAULT_ROUTES = {
+    "orchestrator": HOSTED_SUPER, "selfcheck": HOSTED_SUPER,
+    "world": HOSTED_LIGHTNING, "motion": HOSTED_LIGHTNING, "director": HOSTED_LIGHTNING,
+    "chat": HOSTED_LIGHTNING, "default": HOSTED_LIGHTNING,
 }
+DEFAULT_THINK = {"orchestrator"}
+THINK_TOKENS = 4000  # extra max_tokens for a reasoning model's thinking
+SELF_HOSTED_MODEL = "nemotron"
+OPENCODE_MODEL = "opencode/nemotron-3.5-lightning-free"
 NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
 OPENCODE_BIN_DEFAULT = Path.home() / ".opencode" / "bin" / "opencode"
 OPENCODE_DIR_DEFAULT = Path.home() / ".cache" / "animo-world" / "opencode"
+CHAIN = ("nvidia", "openai", "opencode")
+OFF = ("off", "mock", "none")
 
 # Every permission OpenCode knows, set to "ask": `opencode run` then rejects
 # each tool call on its own ("permission requested: ...; auto-rejecting").
@@ -64,10 +86,11 @@ _ASK = {k: "ask" for k in (
 OPENCODE_CONFIG = {"$schema": "https://opencode.ai/config.json", "permission": _ASK}
 
 CALLS: deque[dict] = deque(maxlen=200)
+_hosted_cooldown: dict[str, float] = {}  # model -> time it may be tried again
 
 
 class LLMError(RuntimeError):
-    """The backend failed, timed out, or never produced usable output."""
+    """Every tier failed, timed out, or never produced usable output."""
 
 
 _ENV = Path(__file__).resolve().parent.parent / ".env"
@@ -75,7 +98,7 @@ _env_mtime = None
 
 
 def _reload_env() -> None:
-    """Re-read .env when it changes, so switching backend needs no server restart."""
+    """Re-read .env when it changes, so switching routes needs no server restart."""
     global _env_mtime
     try:
         mt = _ENV.stat().st_mtime
@@ -88,44 +111,109 @@ def _reload_env() -> None:
 
 
 def backend() -> str:
+    """Where the chain starts: nvidia | openai | opencode | off."""
     _reload_env()
-    return (os.getenv("LLM_BACKEND") or "opencode").strip().lower()
+    b = (os.getenv("LLM_BACKEND") or "opencode").strip().lower()
+    return "off" if b in OFF else b
 
 
-def model() -> str:
-    return os.getenv("NEMOTRON_MODEL") or DEFAULT_MODELS.get(backend(), DEFAULT_MODELS["opencode"])
+def _agent_key(agent: str) -> str:
+    a = re.sub(r"[^a-z]", "", (agent or "").split("#")[0].lower())
+    return a if a in DEFAULT_ROUTES else "default"
+
+
+def hosted_model(agent: str = "default") -> str:
+    a = _agent_key(agent)
+    return (os.getenv(f"LLM_MODEL_{a.upper()}") or DEFAULT_ROUTES[a]).strip()
+
+
+def _thinks(agent: str) -> bool:
+    a = _agent_key(agent)
+    v = os.getenv(f"LLM_THINK_{a.upper()}")
+    return a in DEFAULT_THINK if v is None or not v.strip() else v.strip().lower() in ("1", "true", "yes", "on")
+
+
+def route(agent: str = "default") -> list[dict]:
+    """The tiers a call by `agent` tries, in order (no secrets)."""
+    b = backend()
+    if b == "off":
+        return []
+    if b not in CHAIN:
+        raise LLMError(f"unknown LLM_BACKEND {b!r} (use nvidia, openai, opencode or off)")
+    tiers = []
+    for t in CHAIN[CHAIN.index(b):]:
+        if t == "nvidia":
+            tiers.append({"backend": "nvidia", "model": hosted_model(agent), "think": _thinks(agent)})
+        elif t == "openai":
+            tiers.append({"backend": "openai", "model": os.getenv("NEMOTRON_MODEL") or SELF_HOSTED_MODEL})
+        else:
+            tiers.append({"backend": "opencode", "model": OPENCODE_MODEL})
+    return tiers
+
+
+def model(agent: str = "default") -> str:
+    """The first model `agent` would try ("mock" when the LLM is off)."""
+    r = route(agent)
+    return r[0]["model"] if r else "mock"
+
+
+def last_answer(tag: str) -> dict | None:
+    """The newest successful call with this tag: which backend and model answered."""
+    for c in reversed(CALLS):
+        if c["tag"] == tag and c["ok"]:
+            return c
+    return None
 
 
 def info() -> dict:
-    """Which backend and model are in use (no secrets), for /health."""
+    """Routing, readiness and the recent calls (no secrets), for /health."""
     b = backend()
     ready = {
-        "opencode": Path(os.getenv("OPENCODE_BIN") or OPENCODE_BIN_DEFAULT).exists(),
         "nvidia": bool(os.getenv("NVIDIA_API_KEY")),
         "openai": bool(os.getenv("NEMOTRON_BASE_URL")),
-    }.get(b, False)
-    recent = [c["seconds"] for c in CALLS if c["ok"]][-20:]
-    return {"backend": b, "model": model(), "ready": ready,
-            "calls": len(CALLS), "median_s": sorted(recent)[len(recent) // 2] if recent else None}
+        "opencode": Path(os.getenv("OPENCODE_BIN") or OPENCODE_BIN_DEFAULT).exists(),
+    }
+    calls = list(CALLS)
+    recent = [c["seconds"] for c in calls if c["ok"]][-20:]
+    answered: dict[str, int] = {}
+    for c in calls:
+        if c["ok"]:
+            k = f"{c['backend']} {c['model']}"
+            answered[k] = answered.get(k, 0) + 1
+    return {
+        "backend": b,
+        "model": model("default"),
+        "routes": {a: [f"{t['backend']} {t['model']}" + (" (think)" if t.get("think") else "") for t in route(a)]
+                   for a in DEFAULT_ROUTES},
+        "ready": ready,
+        "calls": len(calls),
+        "answered_by": answered,
+        "median_s": sorted(recent)[len(recent) // 2] if recent else None,
+        "recent": [{k: c.get(k) for k in ("agent", "tag", "backend", "model", "ok", "seconds", "error")}
+                   for c in calls[-12:]],
+    }
 
 
 # ---- entry point -----------------------------------------------------------
 
-def complete(messages: list[dict], json_schema: dict | None = None, *, temperature: float = 0.4,
-             max_tokens: int = 1200, timeout: float = 90, retries: int = 2, tag: str = "",
-             shape: str | None = None):
+def complete(messages: list[dict], json_schema: dict | None = None, *, agent: str = "default",
+             temperature: float = 0.4, max_tokens: int = 1200, timeout: float = 90, retries: int = 2,
+             tag: str = "", shape: str | None = None):
     """One answer from Nemotron: text, or JSON when `json_schema` is given.
 
-    With a schema, the schema is described to the model, the answer is
-    repaired and checked, and a bad one is sent back with the problem
-    (`retries` times) before LLMError is raised. `shape` replaces the
-    schema's generated example when the prompt explains the shape itself."""
+    `agent` picks the route (see the module docstring). With a schema, the
+    schema is described to the model, the answer is repaired and checked, and
+    a bad one is sent back with the problem (`retries` times, on the tier that
+    answered) before LLMError is raised. `shape` replaces the schema's
+    generated example when the prompt explains the shape itself."""
     messages = [dict(m) for m in messages]
     if json_schema is not None:
         messages = _with_json_instruction(messages, json_schema, shape)
     last_problem = None
+    start_tier = 0
     for attempt in range(retries + 1):
-        text = _call(messages, temperature=temperature, max_tokens=max_tokens, timeout=timeout, tag=tag)
+        text, start_tier = _call(messages, agent=agent, start=start_tier, temperature=temperature,
+                                 max_tokens=max_tokens, timeout=timeout, tag=tag or agent)
         if json_schema is None:
             text = strip_think(text).strip()
             if text:
@@ -140,7 +228,7 @@ def complete(messages: list[dict], json_schema: dict | None = None, *, temperatu
                 last_problem = "; ".join(problems)
             except ValueError as err:
                 last_problem = str(err)
-        print(f"[llm] {tag or 'call'}: attempt {attempt + 1} unusable ({last_problem[:120]})")
+        print(f"[llm] {tag or agent}: attempt {attempt + 1} unusable ({last_problem[:120]})")
         messages = [*messages, {"role": "assistant", "content": text[:4000]},
                     {"role": "user", "content": f"That answer can't be used: {last_problem}. "
                      "Reply again with only the corrected JSON object, nothing else."
@@ -148,38 +236,63 @@ def complete(messages: list[dict], json_schema: dict | None = None, *, temperatu
     raise LLMError(f"no usable answer after {retries + 1} tries: {last_problem}")
 
 
-def _call(messages, **kw) -> str:
-    b, m = backend(), model()
-    t0 = time.perf_counter()
-    ok, text = False, ""
-    try:
-        if b == "opencode":
-            text = _opencode(messages, m, kw["timeout"])
-        elif b == "nvidia":
-            key = os.getenv("NVIDIA_API_KEY")
-            if not key:
-                raise LLMError("LLM_BACKEND=nvidia but NVIDIA_API_KEY is empty")
-            text = _openai_compatible(NVIDIA_BASE_URL, key, messages, m, **kw)
-        elif b == "openai":
-            base = os.getenv("NEMOTRON_BASE_URL")
-            if not base:
-                raise LLMError("LLM_BACKEND=openai but NEMOTRON_BASE_URL is empty")
-            text = _openai_compatible(base, os.getenv("NEMOTRON_API_KEY", ""), messages, m, **kw)
-        else:
-            raise LLMError(f"unknown LLM_BACKEND {b!r} (use opencode, nvidia or openai)")
-        ok = True
-        return text
-    finally:
-        sec = time.perf_counter() - t0
-        CALLS.append({"backend": b, "model": m, "seconds": round(sec, 2), "ok": ok,
-                      "chars": len(text), "tag": kw.get("tag", ""), "at": time.time()})
-        print(f"[llm] {b} {m} {kw.get('tag') or ''} {sec:.2f}s {'ok' if ok else 'FAILED'} {len(text)} chars")
+def _call(messages, *, agent: str, start: int = 0, **kw) -> tuple[str, int]:
+    """Try the route's tiers from `start` on; return (text, index of the tier that answered)."""
+    tiers = route(agent)
+    if not tiers:
+        CALLS.append({"agent": _agent_key(agent), "tag": kw.get("tag", ""), "backend": "off", "model": "mock",
+                      "seconds": 0.0, "ok": False, "chars": 0, "error": "LLM_BACKEND=off", "at": time.time()})
+        raise LLMError("the LLM is switched off (LLM_BACKEND=off): use the mock")
+    errors = []
+    for i in range(start, len(tiers)):
+        tier = tiers[i]
+        b, m = tier["backend"], tier["model"]
+        t0 = time.perf_counter()
+        ok, text, error = False, "", ""
+        try:
+            if b == "nvidia":
+                key = os.getenv("NVIDIA_API_KEY")
+                if not key:
+                    raise LLMError("NVIDIA_API_KEY is empty")
+                if time.time() < _hosted_cooldown.get(m, 0):
+                    raise LLMError(f"rate-limited; cooling down {_hosted_cooldown[m] - time.time():.0f}s more")
+                think = tier.get("think", False)
+                try:
+                    text = _openai_compatible(NVIDIA_BASE_URL, key, messages, m, think=think,
+                                              **{**kw, "max_tokens": kw["max_tokens"] + (THINK_TOKENS if think else 0)})
+                except LLMError as err:
+                    if "429" in str(err):
+                        _hosted_cooldown[m] = time.time() + float(os.getenv("LLM_COOLDOWN_S") or 30)
+                    raise
+            elif b == "openai":
+                base = os.getenv("NEMOTRON_BASE_URL")
+                if not base:
+                    raise LLMError("NEMOTRON_BASE_URL is empty")
+                text = _openai_compatible(base, os.getenv("NEMOTRON_API_KEY", ""), messages, m, no_think=True, **kw)
+            else:
+                text = _opencode(messages, m, kw["timeout"])
+            if not strip_think(text).strip():
+                raise LLMError("empty answer")
+            ok = True
+            return text, i
+        except LLMError as err:
+            error = str(err)[:160]
+            errors.append(f"{b} {m}: {error}")
+        finally:
+            sec = time.perf_counter() - t0
+            CALLS.append({"agent": _agent_key(agent), "tag": kw.get("tag", ""), "backend": b, "model": m,
+                          "seconds": round(sec, 2), "ok": ok, "chars": len(text), "error": error, "at": time.time()})
+            nxt = "" if ok or i + 1 >= len(tiers) else f" → falling back to {tiers[i + 1]['backend']}"
+            print(f"[llm] {kw.get('tag') or agent}: {b} {m} {sec:.2f}s "
+                  f"{'ok' if ok else 'FAILED (' + error + ')'} {len(text)} chars{nxt}")
+    raise LLMError("every tier failed: " + " | ".join(errors))
 
 
 # ---- backends ----------------------------------------------------------------
 
-def _openai_compatible(base: str, key: str, messages, m, *, temperature, max_tokens, timeout, **_) -> str:
-    if re.search(r"(?i)nano-9b-v2", m) or os.getenv("NEMOTRON_NO_THINK", "").lower() in ("1", "true", "yes"):
+def _openai_compatible(base: str, key: str, messages, m, *, temperature, max_tokens, timeout,
+                       no_think: bool = False, think: bool | None = None, **_) -> str:
+    if no_think:
         # Nemotron Nano 9B v2 reasons first unless the system prompt says /no_think;
         # the reasoning can use up max_tokens before any answer.
         messages = [dict(x) for x in messages]
@@ -188,6 +301,8 @@ def _openai_compatible(base: str, key: str, messages, m, *, temperature, max_tok
         else:
             messages.insert(0, {"role": "system", "content": "/no_think"})
     body = {"model": m, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
+    if think is not None:  # hosted Nemotron 3.5: reasoning on or off
+        body["chat_template_kwargs"] = {"enable_thinking": think}
     headers = {"Content-Type": "application/json", "Accept": "application/json"}
     if key:
         headers["Authorization"] = f"Bearer {key}"
@@ -197,7 +312,8 @@ def _openai_compatible(base: str, key: str, messages, m, *, temperature, max_tok
         with urllib.request.urlopen(req, timeout=timeout) as res:
             data = json.load(res)
         return data["choices"][0]["message"].get("content") or ""
-    except (urllib.error.URLError, TimeoutError, KeyError, IndexError, ValueError) as err:
+    except (urllib.error.URLError, OSError, http.client.HTTPException, KeyError, IndexError, TypeError,
+            ValueError) as err:
         # Never echo the request: it carries the key.
         raise LLMError(f"{type(err).__name__} {getattr(err, 'code', '')}".strip()) from None
 
