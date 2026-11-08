@@ -252,7 +252,12 @@ export function planPath(a, b, obstacles, { clearance = BODY } = {}) {
     pts.push(cells[j]);
     i = j;
   }
-  return roundCorners(pts);
+  // Rounding cuts corners inward: keep the most passes (up to 3) that still clear every prop (task 31).
+  for (let passes = 3; passes > 0; passes--) {
+    const r = roundCorners(pts, passes);
+    if (r.every((p, k) => k === 0 || clear(r[k - 1], p))) return r;
+  }
+  return pts;
 }
 
 // Chaikin corner cutting, endpoints kept: a few passes give gentle turns.

@@ -182,13 +182,15 @@ export function roundCorners(pts, per = 10) {
 // footprint moves out to the nearest free spot, and a stretch of the curve
 // between two nodes that cuts a footprint is replaced by an A* route between
 // them. A path with nothing in the way is the plain curve.
+// Nodes and reroutes keep 0.6 m (not 0.45): A*'s corner rounding cuts inward a little.
 export function nudgeDrawn(at, nodes, obstacles) {
-  const all = [at, ...nodes.map((p) => pushOut(p, obstacles))];
+  const margin = { clearance: 0.6 };
+  const all = [at, ...nodes.map((p) => pushOut(p, obstacles, margin))];
   const per = 10, curve = roundCorners(all, per);
   const out = [at];
   for (let i = 0; i < all.length - 1; i++) {
     const seg = all.length < 3 ? all : curve.slice(i * per, (i + 1) * per + 1);
-    out.push(...(lineClear(seg, obstacles) ? seg : planPath(all[i], all[i + 1], obstacles)).slice(1));
+    out.push(...(lineClear(seg, obstacles) ? seg : planPath(all[i], all[i + 1], obstacles, margin)).slice(1));
   }
   return { path: out, nudged: all.slice(1).filter((p, i) => p !== nodes[i]).length };
 }
