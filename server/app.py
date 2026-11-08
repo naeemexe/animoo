@@ -29,6 +29,15 @@ app.add_middleware(
 )
 
 
+# Revalidate every file, so an edited ES module is never served stale from
+# the browser's heuristic cache (unchanged files still come back as 304).
+@app.middleware("http")
+async def revalidate(request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("Cache-Control", "no-cache")
+    return response
+
+
 @app.get("/health")
 def health() -> dict:
     # Report which settings exist, never their values.
