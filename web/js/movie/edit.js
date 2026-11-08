@@ -164,6 +164,15 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
     }
   }
 
+  // generate_prop's size_m, as server/tools/generate_prop.py fit_size reads it: the longest
+  // side for long, low things (benches, boats, carts…), the height for everything else.
+  const LENGTHWISE = /\b(boat|canoe|raft|ship|cart|wagon|car|truck|bus|bridge|dock|pier|jetty|bench|log|fence|table)s?\b/;
+  function sizeFor(entry, text) {
+    if (!entry.size) return undefined;
+    const long = ['vehicles', 'water'].includes(entry.category) || LENGTHWISE.test(text.toLowerCase());
+    return long ? Math.max(...entry.size) : entry.size[1];
+  }
+
   // generate_prop with a new seed under a new id (the library keeps the old one).
   async function regenerate() {
     if (!selected) return;
@@ -177,7 +186,7 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
     status(`regenerating ${p.key} on the GPU (seed ${seed}), about 45 s…`);
     log('world', 'call', `generate_prop('${base}-s${seed}', "${prompt}", seed=${seed}) · concept image → TRELLIS.2`);
     try {
-      const r = await generateProp({ name: `${base}-s${seed}`, prompt, size_m: entry.size?.[1], category: entry.category, seed });
+      const r = await generateProp({ name: `${base}-s${seed}`, prompt, size_m: sizeFor(entry, `${base} ${prompt}`), category: entry.category, seed });
       if (selected?.p !== p) { status(`${r.entry.id} is in the library; the prop was deselected, so nothing was swapped`); return; }
       await swapTo(r.entry.id, `regenerate(${p.key}) → ${r.entry.id} in ${Math.round(r.seconds)} s`);
       fillLibrary();
