@@ -36,7 +36,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 17 | A | Time of day + weather: day/dusk/night lighting with glowing lamps and windows at night, plus rain/snow/fog. The orchestrator sets it from the prompt | 2 h | done | 15 |
 | 18 | A | Edit mode: select, move/rotate/scale, duplicate, delete, replace with a library item, regenerate a prop on the GPU | 3 h | todo | 14 |
 | 19 | A | Camera paths: draw a keyframed camera path between two timestamps in edit mode; it overrides the director for that span | 2.5 h | todo | 16, 18 |
-| 21 | A | Full pipeline check + optimization: load times, GLB sizes, caching, LLM call budget, GPU memory, bug bash | 2 h | todo | 13–17 |
+| 21 | A | Full pipeline check + optimization: load times, GLB sizes, caching, LLM call budget, GPU memory, bug bash | 2 h | doing | 13–17 |
 
 **Cut rule.** If it's 6:00 am and task 09 isn't working, demo the Chat page plus a
 Movie page with one generated world and the sample clips. A finished small demo
