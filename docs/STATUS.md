@@ -1,6 +1,6 @@
 # Status (hand-off)
 
-Last updated 2026-11-08, 06:35. **Deadline: Sunday 2026-11-08, 12:00 pm.**
+Last updated 2026-11-08, 08:55. **Deadline: Sunday 2026-11-08, 12:00 pm.**
 A new main session should read this first, then `TASKS.md`.
 
 ## What works
@@ -43,9 +43,10 @@ open http://localhost:8000               # Movie | Chat
 
 ## Next
 
-Round 2 is done: 22 (action library + position control), 23 (look fixes), 24 (city/sea/park), 25 (interiors + seat fix),
-27 (story-driven cast looks), 18 (edit mode), 19 (camera paths), and 12 (5 demo takes + `demo/SUBMISSION.md`).
-Left: **26 spoken dialogue** waits for `ELEVENLABS_API_KEY` in `.env`; the narrated 2–3 min demo cut is the user's.
-Known gaps are in `TASKS.md` → Found along the way (no arm IK for pointing, rooms too large, no undo in edit mode,
-beats don't follow moved props, city fill windows unlit at night, only two base VRMs).
+Rounds 2–4 are done: action library + position control (22), look fixes (23, 28, 37), city/sea/park + interiors (24, 25),
+story-driven looks and game-style skins with outfit/build (27, 35), edit mode, free camera and numbered path editor (18, 19, 29, 30),
+collision rules (31), scene audio (32, procedural; ElevenLabs when keyed), leg IK + clip-join fixes (33), natural posture planning (34),
+up to 5 cast + background NPCs (36).
+`demo/` takes were recorded after round 3 (before 33–37); re-record with **Export WebM** on the Movie page if time allows (12c).
+Left: **26 spoken dialogue** and ElevenLabs audio wait for `ELEVENLABS_API_KEY` in `.env`. Known gaps: `TASKS.md` → Found along the way.
 **After the demo: `brev delete framed-gpu`** (it bills $1.66/hr until deleted).

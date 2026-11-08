@@ -54,7 +54,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 34 | A | Natural beat planning: no pointless sit → stand → sit cycles, nobody stands up for no reason, greetings fit who is seated; re-cache the demo scenes | 1.5 h | done | 22, 33 |
 | 35 | A | Character skins: outfits, hair and body build (slim to heavy) layered on the same rigged figure, like game skins, so animation never breaks | 1.5 h | done | 27 |
 | 36 | A | More cast + background NPCs: scenes with 3+ people; city/park/restaurant get background extras on ambient loops (walk, sit, talk, work) | 1.5 h | done | 31, 35 |
-| 12c | A | Finalize: re-record the 5 demo takes after round 4, update `demo/SUBMISSION.md`, `docs/STATUS.md` and a short README | 0.5 h | todo | 33–37 |
+| 12c | A | Finalize: re-record the 5 demo takes after round 4, update `demo/SUBMISSION.md`, `docs/STATUS.md` and a short README | 0.5 h | docs done; takes not re-recorded after round 4 (credit) | 33–37 |
 
 **Cut rule.** If it's 6:00 am and task 09 isn't working, demo the Chat page plus a
 Movie page with one generated world and the sample clips. A finished small demo
