@@ -110,6 +110,37 @@ def agent_run(name: str, task: str = "") -> StreamingResponse:
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
+# The Movie page's planning run (orchestrator + world agents, server/agents/movie.py)
+# as server-sent events: `data:` steps, then `event: script` with {script, source,
+# llm_calls} (script is null when the page should play its mock), then `event: done`.
+# Cached per scene text in library/scripts/; `fresh=1` asks Nemotron again.
+@app.get("/api/movie/plan")
+def movie_plan(scene: str, fresh: bool = False) -> StreamingResponse:
+    from .agents.movie import plan_movie
+    if not scene.strip():
+        raise HTTPException(status_code=400, detail="scene is empty")
+
+    def events():
+        t0 = time.perf_counter()
+        yield ": planning\n\n"
+        try:
+            for ev in plan_movie(scene, fresh=fresh):
+                if "step" in ev:
+                    yield f"data: {json.dumps(ev['step'], ensure_ascii=False)}\n\n"
+                else:
+                    yield f"event: script\ndata: {json.dumps(ev, ensure_ascii=False)}\n\n"
+        except Exception as err:  # never leave the page hanging: it falls back to the mock
+            import traceback
+            traceback.print_exc()
+            step = {"agent": "orchestrator", "kind": "error", "text": f"planning crashed: {type(err).__name__}: {err}", "ms": 0}
+            yield f"data: {json.dumps(step)}\n\n"
+            yield f"event: script\ndata: {json.dumps({'script': None, 'source': 'mock', 'llm_calls': 0})}\n\n"
+        yield f"event: done\ndata: {json.dumps({'seconds': round(time.perf_counter() - t0, 2)})}\n\n"
+
+    return StreamingResponse(events(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
 class PropRequest(BaseModel):
     name: str
     prompt: str | None = None

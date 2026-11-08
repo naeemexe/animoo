@@ -1,14 +1,17 @@
-// The Movie page: scene text → (mocked) agent run → set, cast, clips →
-// per-character timeline → playback with a director camera → WebM export.
+// The Movie page: scene text → agent run → set, cast, clips → per-character
+// timeline → playback with a director camera → WebM export.
 //
-// Until task 09b wires in the agents, the orchestrator and world agent are a
-// replay of mock.js; the motion agent's Kimodo calls and the director's merge
-// are real.
+// The orchestrator and world agents run on the server (Nemotron, two calls,
+// server/agents/movie.py) and stream their steps over SSE from
+// /api/movie/plan; their script is cached per scene in library/scripts/. If
+// planning fails with nothing cached, the page plays the mock (mock.js). The
+// motion agent's Kimodo calls and the director's merge run here.
 import * as THREE from 'three';
 import { loadManifest } from '../library.js';
 import { loadCharacter } from '../characters/index.js';
 import { validateScript, plannedDuration } from './script.js';
-import { FISHERMAN_SCENE, FISHERMAN_SCRIPT, FISHERMAN_STEPS } from './mock.js';
+import { FISHERMAN_SCENE, FISHERMAN_SCRIPT } from './mock.js';
+import { API_BASE } from '../api.js';
 import { buildSet, setTimeOfDay } from './world.js';
 import { motionFor, motionServerUp, MOTION_URL } from './clips.js';
 import { direct, makeResolver } from './director.js';
@@ -18,7 +21,8 @@ import { recordWebM } from './export.js';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const params = new URLSearchParams(location.search);
-const FAST = params.has('fast'); // skip the replay delays (for tests)
+const FAST = params.has('fast'); // skip the log's typing delays (for tests)
+const FRESH = params.has('fresh'); // ask Nemotron again instead of the cached plan
 
 export function createMoviePage(root, stage, look) {
   const $ = (sel) => root.querySelector(sel);
@@ -63,6 +67,7 @@ export function createMoviePage(root, stage, look) {
   }
   async function stream(step) {
     const li = log(step.agent, step.kind, '');
+    if (step.ms >= 500) li.querySelector('.kind').textContent = `${step.kind} · ${(step.ms / 1000).toFixed(1)} s`;
     const span = li.querySelector('.text');
     if (FAST) { span.textContent = step.text; return; }
     // Type it out, as if tokens were arriving.
@@ -72,7 +77,25 @@ export function createMoviePage(root, stage, look) {
       await sleep(12);
     }
     span.textContent = step.text;
-    await sleep(step.ms);
+    await sleep(80);
+  }
+
+  // The orchestrator + world run on the server, streamed. Steps are typed out
+  // in order as they arrive; resolves with {script, source, llm_calls}.
+  function planOnServer(scene) {
+    return new Promise((resolve, reject) => {
+      const url = `${API_BASE}/api/movie/plan?scene=${encodeURIComponent(scene)}${FRESH ? '&fresh=1' : ''}`;
+      const es = new EventSource(url);
+      let typing = Promise.resolve();
+      let result = null;
+      es.onmessage = (e) => { const step = JSON.parse(e.data); typing = typing.then(() => stream(step)); };
+      es.addEventListener('script', (e) => { result = JSON.parse(e.data); });
+      es.addEventListener('done', () => { es.close(); typing.then(() => resolve(result)); });
+      es.onerror = () => {
+        es.close();
+        typing.then(() => (result ? resolve(result) : reject(new Error('the planning stream closed early'))));
+      };
+    });
   }
 
   // ---- building -----------------------------------------------------------
@@ -92,25 +115,28 @@ export function createMoviePage(root, stage, look) {
     ui.make.disabled = true;
     try {
       clear();
-      const text = ui.prompt.value.trim();
-      if (text !== FISHERMAN_SCENE) {
-        log('orchestrator', 'note', 'Nemotron isn\'t connected yet (tasks 08, 09b), so this replays the fisherman scene.');
+      const text = ui.prompt.value.trim() || FISHERMAN_SCENE;
+      const t0Plan = performance.now();
+      let planned;
+      try {
+        planned = await planOnServer(text);
+      } catch (err) {
+        log('orchestrator', 'error', `${err.message}; playing the mock fisherman scene.`, { err: true });
+        planned = { script: null, source: 'mock' };
       }
       const manifest = await loadManifest();
-      const steps = FISHERMAN_STEPS;
-      let i = 0;
-      for (; steps[i].kind !== 'script'; i++) await stream(steps[i]);
-
       // The orchestrator's output, checked against the contract.
-      const script = structuredClone(FISHERMAN_SCRIPT);
-      script.scene = text;
+      const script = planned.script ?? structuredClone(FISHERMAN_SCRIPT);
+      if (!planned.script) log('orchestrator', 'note', 'mock script: the fisherman scene (mock.js)');
+      state.source = planned.source;
+      state.planSeconds = (performance.now() - t0Plan) / 1000;
       const problems = validateScript(script, manifest);
       if (problems.length) {
         problems.forEach((p) => log('orchestrator', 'error', p, { err: true }));
         throw new Error('the scene script is invalid');
       }
       state.script = script;
-      log('orchestrator', 'script', `“${script.title}” · ${script.cast.length} cast · ${script.beats.length} beats · ${script.shots.length} shots · ${plannedDuration(script)} s`);
+      log('orchestrator', 'script', `“${script.title}” · ${script.cast.length} cast · ${script.beats.length} beats · ${script.shots.length} shots · ${plannedDuration(script).toFixed(1)} s · from ${planned.source}${planned.llm_calls ? ` (${planned.llm_calls} Nemotron calls)` : ''}`);
       ui.scriptView.textContent = JSON.stringify(script, null, 2);
       ui.scriptBox.hidden = false;
       timeline.setScript(script);
@@ -128,7 +154,6 @@ export function createMoviePage(root, stage, look) {
         return hero;
       }));
 
-      for (i++; steps[i].kind !== 'place'; i++) await stream(steps[i]);
       state.set = await buildSet(stage, script, async (line, err, kind = 'call') => {
         log('world', err ? 'error' : kind, line, { err });
         if (!FAST) await sleep(60);
