@@ -1,6 +1,7 @@
 // Cel-shaded materials. Every mesh in the world (library, generated, demo)
 // goes through here so they all read as one set.
 import * as THREE from 'three';
+import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Light bands, indexed by dot(N, L) * 0.5 + 0.5. Four texels:
 // back (x2), terminator side, lit side.
@@ -28,6 +29,18 @@ export function faceted(geometry) {
   return g;
 }
 
+// Smooth shading across shallow folds, hard edges at real corners: rounded
+// low-poly shapes (tree crowns, bushes, hills, cones) stop reading as blocky
+// facets under the two-band toon light, and the ink pass draws fewer lines
+// inside them, while boxes, roofs and planks keep their crisp edges.
+export const CREASE = 65 * Math.PI / 180; // hex-prism crowns (60°) round off, 90° corners stay
+export function smoothed(geometry, crease = CREASE) {
+  if (geometry.userData.smoothed) return geometry;
+  const g = toCreasedNormals(geometry, crease);
+  g.userData.smoothed = true;
+  return g;
+}
+
 export function toonMaterial(color, opts = {}) {
   return new THREE.MeshToonMaterial({
     color,
@@ -42,6 +55,9 @@ export function toonify(object, { castShadow = true, receiveShadow = true } = {}
     if (!node.isMesh) return;
     // Some exports (the old trimesh props) ship without normals and shade black.
     if (!node.geometry.attributes.normal) node.geometry.computeVertexNormals();
+    // Low-poly kit meshes: smooth the shallow folds. Dense generated meshes
+    // (TRELLIS, tens of thousands of triangles) are smooth already.
+    if (!node.isSkinnedMesh && node.geometry.attributes.position.count < 20000) node.geometry = smoothed(node.geometry);
     const swap = (m) => {
       if (m.isMeshToonMaterial) return m;
       const t = toonMaterial(m.color ? m.color.clone() : 0xffffff, {

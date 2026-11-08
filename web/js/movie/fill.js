@@ -7,7 +7,7 @@
 import * as THREE from 'three';
 import { loadProp } from '../library.js';
 import { mulberry32 } from '../stage.js';
-import { toonMaterial, faceted } from '../toon.js';
+import { toonMaterial, faceted, smoothed } from '../toon.js';
 import { addWind } from './atmosphere.js';
 
 const DOME_R = 300;
@@ -204,12 +204,13 @@ function grassTufts(placements, rng) {
   return Promise.resolve(im);
 }
 
-// Low-poly bushes and boulders: a faceted blob per instance, with a per-
+// Low-poly bushes and boulders: a blob per instance, with a per-
 // instance tint, so the edge of the clearing reads green and full.
 function blobs(name, placements, rng, { detail = 0, stretch = [1, 0.75, 1], colors, shadow = true, lift = 0.45, poly = 'ico' }) {
   if (!placements.length) return Promise.resolve(null);
   const raw = poly === 'dodeca' ? new THREE.DodecahedronGeometry(0.5, detail) : new THREE.IcosahedronGeometry(0.5, detail);
-  const geo = faceted(raw);
+  // Bushes (icosahedra) round off; rocks (dodecahedra) stay faceted.
+  const geo = poly === 'dodeca' ? faceted(raw) : smoothed(raw);
   const im = new THREE.InstancedMesh(geo, toonMaterial('#ffffff'), placements.length);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), e = new THREE.Euler();
   const cs = colors.map((c) => new THREE.Color(c));
@@ -306,7 +307,7 @@ function ground(rng, snowy = false) {
 function hills(rng, P) {
   const g = new THREE.Group();
   g.name = 'fill-hills';
-  const geo = faceted(new THREE.IcosahedronGeometry(1, 1));
+  const geo = smoothed(new THREE.IcosahedronGeometry(1, 2));
   const mats = [toonMaterial(P.near), toonMaterial(P.trees), toonMaterial('#7f9e5a')];
   for (let i = 0; i < 46; i++) {
     const a = (i / 46) * Math.PI * 2 + rng() * 0.12;
@@ -444,12 +445,21 @@ export async function fillWorld(stage, script, set, { seed = 11 } = {}) {
   stage.scene.userData.fogLocked = true;
   sky.userData.fog = stage.scene.fog;
 
-  // Trees: a few at the edge of the play area, then a dense ring out to the hills.
+  // Trees: a few at the edge of the play area, then a dense forest out to the
+  // hills. The clearing's edge is warped by low-frequency noise (lobes that
+  // reach in and out, glades and copses beyond it), so from above it reads as
+  // a glade in a forest, not a round island.
+  const lobe = noise2(seed + 9), glade = noise2(seed + 13);
+  const warped = (x, z, r) => r / (0.6 + 0.9 * lobe(x * 0.05 + 3.1, z * 0.05 - 1.7));
   const trees = scatter(rng, {
-    r0: 8, r1: 95, step: 3.4, margin: 1.6, blocked, scale: [0.85, 1.45],
-    density: (x, z, r) => (r < 13 ? 0.12 : r < 19 ? 0.4 : r < 50 ? 0.9 : 0.55),
+    r0: 7, r1: 95, step: 3.4, margin: 1.6, blocked, scale: [0.85, 1.45],
+    density: (x, z, r) => {
+      const re = warped(x, z, r);
+      const d = re < 13 ? 0.1 : re < 19 ? 0.4 : r < 50 ? 0.9 : 0.55;
+      return r > 22 && glade(x * 0.07, z * 0.07) > 0.68 ? d * 0.15 : d;
+    },
   });
-  const bushes = scatter(rng, { r0: 4, r1: 40, step: 2.2, margin: 0.7, blocked, scale: [0.7, 1.4], density: (x, z, r) => (r < 10 ? 0.15 : 0.45) });
+  const bushes = scatter(rng, { r0: 4, r1: 40, step: 2.2, margin: 0.7, blocked, scale: [0.7, 1.4], density: (x, z, r) => (warped(x, z, r) < 10 ? 0.15 : 0.45) });
   const grass = scatter(rng, { r0: 0, r1: 34, step: 0.7, margin: 0.15, blocked, scale: [0.8, 1.5], density: (x, z) => (snowy ? 0.25 : 1) * (0.3 + 0.6 * meadow(x * 0.18, z * 0.18)) });
   const flowers = scatter(rng, { r0: 0, r1: 28, step: 1.0, margin: 0.1, blocked, scale: [0.8, 1.4], density: (x, z) => (snowy ? 0 : 1) * Math.max(0, drift(x * 0.22, z * 0.22) - 0.45) * 1.6 });
   const rocks = scatter(rng, { r0: 2, r1: 40, step: 3.2, margin: 0.3, blocked, scale: [0.7, 1.5], density: 0.14 });
