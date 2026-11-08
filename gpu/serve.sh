@@ -9,15 +9,11 @@ cd "$(dirname "$0")"
 
 declare -A VENV=([motion]=kimodo [asset]=trellis [image]=image)
 declare -A PORT=([motion]=8101 [asset]=8102 [image]=8103)
-# Kimodo's LLM2Vec text encoder (Llama-3-8B, bf16) runs on the CPU, which frees
-# about 14 GB of VRAM for the Nemotron server. Kimodo supports this option itself.
-# The container gets ~7.6 CPUs, so cap torch's threads (it would start 48).
-declare -A ENV=([motion]="TEXT_ENCODER_DEVICE=cpu OMP_NUM_THREADS=7")
 
 start() {
   local s=$1
   if [ -f /tmp/$s.pid ] && kill -0 "$(cat /tmp/$s.pid)" 2>/dev/null; then echo "$s already running"; return; fi
-  setsid nohup env ${ENV[$s]:-} /opt/venvs/${VENV[$s]}/bin/uvicorn ${s}_server:app --host 127.0.0.1 --port ${PORT[$s]} \
+  setsid nohup /opt/venvs/${VENV[$s]}/bin/uvicorn ${s}_server:app --host 127.0.0.1 --port ${PORT[$s]} \
     > /workspace/logs/$s.log 2>&1 < /dev/null &
   echo $! > /tmp/$s.pid
   echo "$s starting (pid $!, port ${PORT[$s]})"
