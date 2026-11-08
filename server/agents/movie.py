@@ -188,8 +188,10 @@ WORLD_SCHEMA = {
 
 WORLD_ROLE = f"""You are the world agent of a team that makes short animated storybook films. You build the set:
 for every place in the plan, choose ONE prop. Prefer a library prop: use an id from that place's
-search_library results or from the catalog, and accept a close stand-in (a fountain can be a well,
-a tent a camp). Only when nothing in the library fits a KEY place, use generate instead
+search_library results or from the catalog; a close stand-in of the same kind is fine (a tent for a camp,
+a stall for a shop). A place marked NO MATCH that matters to the story (a lighthouse, a well, a
+windmill) should be generated, not replaced by something of another kind (a rock is no lighthouse).
+To make one, use generate instead
 (an image-to-3D model makes it, about a minute): name (short), prompt (one object, e.g. "a stone
 lighthouse with a red roof"), size_m (real height in meters), category ({' | '.join(GEN_CATEGORIES)}).
 At most {MAX_GENERATE} generates per film. Then add decor that sets the mood: 3 to 6 kinds of small library
@@ -957,9 +959,13 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
         yield step("world", "result", ", ".join(h["id"] for h in hits) or "no match", (time.perf_counter() - t0) * 1000)
     world_fix = []
     if raw_world is None:
+        def matched(p):
+            k = _words(p["key"].replace("-", " ")) - STOP
+            return any(k & _words(h["id"].replace("-", " ") + " " + " ".join(h["tags"])) for h in searches[p["key"]])
         user = ("The plan's places, each with its search_library results:\n"
                 + "\n".join(f"- {p['key']} ({p['what']}, use: {p['use']}): "
-                            + (", ".join(f"{h['id']} ({h['height_m']} m; {' '.join(h['tags'])})" for h in searches[p['key']]) or "no match")
+                            + (", ".join(f"{h['id']} ({h['height_m']} m; {' '.join(h['tags'])})" for h in searches[p['key']]) or "nothing")
+                            + ("" if matched(p) else f"  → NO MATCH: generate a {p['key']} unless the catalog has the same kind of thing")
                             for p in plan["places"])
                 + f"\n\nThe scene: {scene}\nTime of day: {plan['time_of_day']}. Water: {'yes' if plan['water'] else 'no'}."
                 + f"\n\nThe whole library catalog (ids by category):\n{catalog(manifest)}")
