@@ -206,6 +206,53 @@ function grassTufts(placements, rng, colors = ['#8cbd52', '#b0d46c', '#7aab48'])
   return Promise.resolve(im);
 }
 
+// Small white wildflowers (task 37): a clump of two or three tiny five-petal
+// daisies on thin stems, each with a faint yellow eye, about 60 triangles (both windings).
+// Like the grass: normals up and no depth write, so the ink pass draws no
+// outline around them; they read as soft white dots in the meadow.
+function wildflowers(placements, rng) {
+  if (!placements.length) return Promise.resolve(null);
+  const pos = [], col = [];
+  const white = [new THREE.Color('#fbfaf4'), new THREE.Color('#f4f2ec')], eye = new THREE.Color('#f2dc86'), stem = new THREE.Color('#7fae52');
+  // Both windings, not DoubleSide: three flips a back face's normal, and the
+  // up-facing normal is what keeps the petals lit like the ground.
+  const tri = (a, b, c, color) => { pos.push(...a, ...b, ...c, ...a, ...c, ...b); for (let v = 0; v < 6; v++) col.push(color.r, color.g, color.b); };
+  const n = 2 + Math.floor(rng() * 2);
+  for (let k = 0; k < n; k++) {
+    const ox = k ? (rng() - 0.5) * 0.18 : 0, oz = k ? (rng() - 0.5) * 0.18 : 0;
+    const h = 0.16 + rng() * 0.1, L = 0.05 + rng() * 0.015;
+    // Each head is a disc tilted about 30° to a random side, so it shows its
+    // face from a low camera as well as from above.
+    const dir = rng() * Math.PI * 2, slope = 0.55;
+    const at = (ang, r, lift) => [ox + Math.cos(ang) * r, h + lift + Math.cos(ang - dir) * r * slope, oz + Math.sin(ang) * r];
+    tri([ox - 0.006, 0, oz], [ox + 0.006, 0, oz], [ox, h, oz], stem);
+    const a0 = rng() * Math.PI;
+    for (let p = 0; p < 5; p++) {
+      const a = a0 + (p / 5) * Math.PI * 2, w = 0.45;
+      const c = [ox, h, oz], tip = at(a, L, 0.006);
+      tri(c, at(a - w, L * 0.6, 0.004), tip, white[p % 2]);
+      tri(c, tip, at(a + w, L * 0.6, 0.004), white[p % 2]);
+    }
+    const e = 0.014;
+    tri(at(Math.PI, e, 0.008), at(Math.PI / 2, e, 0.008), at(0, e, 0.008), eye);
+    tri(at(Math.PI, e, 0.008), at(0, e, 0.008), at(-Math.PI / 2, e, 0.008), eye);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(pos.map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
+  const mat = addWind(toonMaterial('#ffffff', { vertexColors: true }), 0.3);
+  mat.depthWrite = false;
+  const im = new THREE.InstancedMesh(geo, mat, placements.length);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  placements.forEach(([x, z, rot, sc], i) => im.setMatrixAt(i, m.compose(p.set(x, 0, z), q.setFromAxisAngle(up, rot), s.setScalar(sc))));
+  im.renderOrder = 2;
+  im.receiveShadow = false; // tilted heads above the ground self-shadow brown
+  im.frustumCulled = false;
+  im.name = 'fill-flowers';
+  return Promise.resolve(im);
+}
+
 // Low-poly bushes and boulders: a blob per instance, with a per-
 // instance tint, so the edge of the clearing reads green and full.
 function blobs(name, placements, rng, { detail = 0, stretch = [1, 0.75, 1], colors, shadow = true, lift = 0.45, poly = 'ico' }) {
@@ -767,7 +814,7 @@ export async function fillWorld(stage, script, set, { seed = 11 } = {}) {
       density: (x, z, r) => { const re = warped(x, z, r); return re < 12 ? 0.04 : r < 45 ? 0.3 : 0.5; } }));
     const bushes = add('bushes', scatter(rng, { r0: 5, r1: 40, step: 3, margin: 0.7, blocked, scale: [0.6, 1.1], density: 0.18 }));
     const grass = add('grass', scatter(rng, { r0: 0, r1: 30, step: 0.9, margin: 0.15, blocked, scale: [0.6, 1.0], density: (x, z) => (0.15 + 0.3 * meadow(x * 0.18, z * 0.18)) }));
-    const flowers = add('flowers', scatter(rng, { r0: 3, r1: 26, step: 0.8, margin: 0.1, blocked, scale: [0.9, 1.3], density: (x, z) => Math.max(0, drift(x * 0.25, z * 0.25) - 0.66) * 3 }));
+    const flowers = add('flowers', scatter(rng, { r0: 3, r1: 26, step: 1.1, margin: 0.1, blocked, scale: [0.9, 1.2], density: (x, z) => Math.max(0, drift(x * 0.25, z * 0.25) - 0.66) * 1.6 }));
     // Hedges in short rows around the lawn (end to end on rings), not strewn about.
     const hedges = [];
     for (const R of [16, 24]) {
@@ -784,7 +831,7 @@ export async function fillWorld(stage, script, set, { seed = 11 } = {}) {
     jobs.push(...Object.entries(treeIds).map(([id, p]) => instanced(id, p, { hideNear: 9, camera, leaves: FOLIAGE })));
     jobs.push(blobs('bushes', bushes, rng, { detail: 1, stretch: [1.3, 0.9, 1.3], colors: ['#5f9a3e', '#6fa847', '#548c3a'], lift: 0.4 }));
     jobs.push(grassTufts(grass, rng));
-    jobs.push(...Object.entries(deal(rng, flowers, ['flower-red', 'flower-yellow'])).map(([id, p]) => instanced(id, p)));
+    jobs.push(wildflowers(flowers, rng));
     jobs.push(instanced('hedge', hedges), instanced('lantern-post', lamps));
     for (const [id, p] of Object.entries(city.buildings)) if (id !== 'city-park-block') { add('buildings', p); jobs.push(instanced(id, p)); }
   } else {
@@ -802,19 +849,18 @@ export async function fillWorld(stage, script, set, { seed = 11 } = {}) {
     }));
     const bushes = add('bushes', scatter(rng, { r0: 4, r1: 40, step: 2.2, margin: 0.7, blocked, scale: [0.7, 1.4], density: (x, z, r) => (warped(x, z, r) < 10 ? 0.15 : 0.45) }));
     const grass = add('grass', scatter(rng, { r0: 0, r1: 34, step: 0.7, margin: 0.15, blocked, scale: [0.8, 1.5], density: (x, z) => (snowy ? 0.25 : 1) * (0.3 + 0.6 * meadow(x * 0.18, z * 0.18)) }));
-    const flowers = add('flowers', scatter(rng, { r0: 0, r1: 28, step: 1.0, margin: 0.1, blocked, scale: [0.8, 1.4], density: (x, z) => (snowy ? 0 : 1) * Math.max(0, drift(x * 0.22, z * 0.22) - 0.45) * 1.6 }));
+    const flowers = add('flowers', scatter(rng, { r0: 0, r1: 28, step: 1.3, margin: 0.1, blocked, scale: [0.85, 1.25], density: (x, z) => (snowy ? 0 : 1) * Math.max(0, drift(x * 0.22, z * 0.22) - 0.5) * 1.2 }));
     const rocks = add('rocks', scatter(rng, { r0: 2, r1: 40, step: 3.2, margin: 0.3, blocked, scale: [0.7, 1.5], density: 0.14 }));
     const big = add('rocks', scatter(rng, { r0: 10, r1: 60, step: 7, margin: 1, blocked, scale: [0.8, 1.8], density: 0.22 }));
     const small = add('small', scatter(rng, { r0: 3, r1: 26, step: 4, margin: 0.2, blocked, scale: [0.8, 1.2], density: 0.12 }));
 
     const treeIds = deal(rng, trees, ['tree-oak', 'tree-round', 'tree-fat', 'pine-tall', 'pine-round', 'pine-tall', 'tree-oak', 'tree-autumn']);
-    const flowerIds = deal(rng, flowers, ['flower-red', 'flower-yellow', 'flower-yellow']);
     const smallIds = deal(rng, small, ['mushrooms', 'stump']);
     jobs.push(
       ...Object.entries(treeIds).map(([id, p]) => instanced(id, p, { hideNear: 9, camera, leaves: FOLIAGE })),
       blobs('bushes', bushes, rng, { detail: 1, stretch: [1.4, 1.0, 1.4], colors: ['#5f9a3e', '#6fa847', '#548c3a', '#7bb04e'], lift: 0.4 }),
       grassTufts(grass, rng),
-      ...Object.entries(flowerIds).map(([id, p]) => instanced(id, p)),
+      wildflowers(flowers, rng),
       blobs('rocks', rocks, rng, { poly: 'dodeca', stretch: [0.6, 0.38, 0.55], colors: ['#b8ad9a', '#a39a8a', '#c7bca6'], lift: 0.3, shadow: false }),
       blobs('boulders', big, rng, { poly: 'dodeca', stretch: [1.8, 1.1, 1.5], colors: ['#a89f8e', '#968e80', '#b9ae98'], lift: 0.32 }),
       ...Object.entries(smallIds).map(([id, p]) => instanced(id, p)),
@@ -822,6 +868,9 @@ export async function fillWorld(stage, script, set, { seed = 11 } = {}) {
   }
   const groups = await Promise.all(jobs.map((j) => j.catch((err) => { console.warn('fill:', err.message); return null; })));
   for (const g of groups) if (g) fill.add(g);
+  // Flowers stay out of the ink's normal pass too: against a wall or curb
+  // their up-facing normals would draw an edge all over the tiny petals.
+  for (const g of groups) if (g?.name === 'fill-flowers') (stage.scene.userData.noNormal ??= new Set()).add(g);
   fill.userData.counts = counts;
   return fill;
 }
