@@ -11,12 +11,13 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .chat import chat_reply
+from .tools.generate_prop import GenerateError, generate_prop
 
 ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
@@ -70,6 +71,25 @@ class ChatRequest(BaseModel):
 @app.post("/api/chat")
 def chat(req: ChatRequest) -> dict:
     return chat_reply([m.model_dump() for m in req.messages])
+
+
+class PropRequest(BaseModel):
+    name: str
+    prompt: str | None = None
+    size_m: float | None = None
+    category: str | None = None
+    seed: int = 0
+
+
+# The world agent's generate_prop tool over HTTP: {name, prompt?, size_m?, category?}
+# -> {entry, cached, seconds}. A library hit returns at once; a new prop takes
+# about 45 s on the pod. Plain `def`, so the wait runs in the thread pool.
+@app.post("/api/props/generate")
+def props_generate(req: PropRequest) -> dict:
+    try:
+        return generate_prop(req.name, req.prompt, req.size_m, req.category, seed=req.seed)
+    except GenerateError as e:
+        raise HTTPException(status_code=503, detail=str(e))
 
 
 # The asset library (props, characters, motions, manifest.json).
