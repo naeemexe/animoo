@@ -35,7 +35,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 16 | A | Cinematic camera: the director picks shots per beat (wide, medium, close, side, over-the-shoulder, low), with cuts and moves (dolly, orbit, crane) | 2.5 h | done (rules, no LLM call) | 08 |
 | 17 | A | Time of day + weather: day/dusk/night lighting with glowing lamps and windows at night, plus rain/snow/fog. The orchestrator sets it from the prompt | 2 h | done | 15 |
 | 18 | A | Edit mode: select, move/rotate/scale, duplicate, delete, replace with a library item, regenerate a prop on the GPU | 3 h | done | 14 |
-| 19 | A | Camera paths: draw a keyframed camera path between two timestamps in edit mode; it overrides the director for that span | 2.5 h | doing | 16, 18 |
+| 19 | A | Camera paths: draw a keyframed camera path between two timestamps in edit mode; it overrides the director for that span | 2.5 h | done | 16, 18 |
 | 21 | A | Full pipeline check + optimization: load times, GLB sizes, caching, LLM call budget, GPU memory, bug bash | 2 h | done (session closed early: export width, snow ground, shot defaults, 2 scenes cached; timing table not written) | 13–17 |
 | 22 | A | Motion control: a game-style action library (cached clips) plus position control: paths around props, facing, gestures aimed at a target, consistent heights | 3 h | done | 14, 16 |
 | 23 | A | Look fixes: intentional depth of field, stable shadows, thinner outlines on small props, less blocky props, no visible circular world edge | 1.5 h | done | 15 |
@@ -623,3 +623,23 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
   overlap scatter until the next replay; no undo; saving needs an existing cache file (the mock scene can't be
   saved); editing only covers the script's props, not the fill or characters. A scene with saved edits keeps
   them even with `?fresh` only if Nemotron fails (a fresh plan overwrites the file and drops `edits`).
+- 19 (2026-11-08): camera paths live in the script as `camera_paths: [{start, end, keys: [{t, pos, look}]}]`.
+  `web/js/movie/campath.js` runs a uniform Catmull-Rom through the keys by time (two keys: eased in and out;
+  before the first key / after the last it holds that key); `DirectorCamera.update` uses it inside the span and
+  the director everywhere else (`pathAt()` returns null for scripts without paths, so their playback is
+  unchanged). Edit mode got a "camera path" block: scrub, "start here" / "end here" set the span (a new span
+  defaults to 4 s), orbit to a view, "add key" (or K) stores camera position + orbit target at the playhead,
+  "preview" flies the span once and comes back, "clear" removes it. While editing the path is drawn in the scene
+  (line, a dot per key, dashed aim lines), and the timeline's camera lane shows a pink "path · n keys" block over
+  the shots. "save" sends `camera_paths` with the props; `save_edits` keeps them in `edits.camera_paths` (and
+  `script.camera_paths`), and `plan_movie` replays them with a log line "n hand-drawn camera path(s)".
+- 19 checked on the foggy-morning scene (offline server, no GPU): set 8–12 s, keys at 8, 12 and 10 s from three
+  orbit views; out of edit mode, screenshots at t = 6 and 15 show the director's medium and close shots as before,
+  t = 9 shows the path's high view over the well; preview ran 8 → 12 s and returned to 9 s; save wrote
+  `edits.camera_paths` (3 keys); a reload with `?t=9` logged the path, showed the same frame and the timeline
+  block; no console errors. The test path was then reverted out of the cache file, so no scene ships with one.
+- 19: not done: keys are fixed world positions (they don't follow a walking character); overlapping spans:
+  the first path wins; uniform Catmull-Rom can overshoot when keys are very unevenly spaced; depth of field on a
+  path is a fixed medium blur on the look-at point. Edit mode opens on a high overview and the mouse wheel zooms
+  slowly, so getting a close key takes many ticks: a "start from the director's view at this time" button would
+  make close keys easy. In fog, high path views wash out.
