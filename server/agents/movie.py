@@ -616,7 +616,8 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
         # A short wait stretches the last beat if it stays in place (a sit keeps
         # sitting); otherwise an idle beat fills it.
         mine = [x for x in beats if x["cast"] == cid]
-        if mine and "to" not in mine[-1] and until - cursor[cid] > 0.05 and \
+        transition = mine and re.search(r"\b(stands? up|gets? up|rises|trips|falls|stumbles|jumps)\b", mine[-1]["prompt"].lower())
+        if mine and "to" not in mine[-1] and not transition and until - cursor[cid] > 0.05 and \
                 mine[-1]["duration"] + until - cursor[cid] <= MAX_BEAT:
             mine[-1]["duration"] = _r(until - mine[-1]["start"], 1)
             cursor[cid] = _r(mine[-1]["start"] + mine[-1]["duration"])
