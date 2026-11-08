@@ -7,8 +7,8 @@ costs **two** calls (plus at most one re-ask each):
 
 1. Orchestrator (one call): the scene text → a *story plan*: title, time of
    day, named places, cast, beats in story order (who does what, a Kimodo
-   prompt "A person ...", where they go, who they face, what they wait for)
-   and shots. No coordinates: small models are bad at geometry.
+   prompt "A person ...", where they go, who they face, what they wait for).
+   No shots (the browser plans those by rules, task 16). No coordinates: small models are bad at geometry.
 2. World (one call): for each place, `search_library` results are gathered
    first (plain code, logged as the world agent's tool calls), and Nemotron
    picks one library prop per place or asks `generate_prop` for at most two
@@ -136,11 +136,6 @@ PLAN_EXAMPLE = {
         {"id": "b4", "cast": "girl", "action": "feeds the ducks", "prompt": "A person crouches down and tosses food with one hand.", "duration": 5, "face": "jetty"},
         {"id": "b5", "cast": "girl", "action": "waves at grandpa", "prompt": "A person waves hello with their right hand.", "duration": 3, "face": "grandpa", "after": "b3"},
     ],
-    "shots": [
-        {"framing": "wide", "subject": ["grandpa", "girl"], "until": "b2"},
-        {"framing": "medium", "subject": "girl", "until": "b4"},
-        {"framing": "medium", "subject": ["girl", "grandpa"], "until": "b5"},
-    ],
 }
 
 PLAN_SCHEMA = {
@@ -158,7 +153,6 @@ PLAN_SCHEMA = {
                  "properties": {"id": {"type": "string"}, "name": {"type": "string"}, "character": {"type": "string"}}}},
         "beats": {"type": "array", "items": {"type": "object", "required": ["cast", "prompt"],
                   "properties": {"cast": {"type": "string"}, "prompt": {"type": "string"}}}},
-        "shots": {"type": "array"},
     },
 }
 
@@ -190,8 +184,6 @@ Reply with the whole plan in ONE JSON object. Rules:
   reaction). with: the id of an earlier beat of another character; both start together.
   Each character's first beat starts at 0 s unless it has after or with, so a beat that reacts to
   someone else (shouts at, chases, laughs at, waves back) must have after.
-- shots: 2 to 6 camera shots in order. framing is wide, medium or close; subject is a cast id, a
-  place key or a list of them; until is the id of the beat the shot lasts until.
 - thoughts: 2 or 3 short sentences on how you split the scene."""
 
 WORLD_EXAMPLE = {
@@ -1232,7 +1224,7 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
         yield step("orchestrator", "note", f"Cached plan for this scene from {cached['created'][:16].replace('T', ' ')} "
                    f"({cached.get('model', '?')}): replaying it, 0 LLM calls (?fresh asks Nemotron again).")
     else:
-        yield step("orchestrator", "thought", "One Nemotron call returns the whole plan (cast, places, beats, shots); "
+        yield step("orchestrator", "thought", "One Nemotron call returns the whole plan (cast, places, beats; the camera is planned by rules later); "
                    "layout code then fits positions and timing.")
         yield step("orchestrator", "call", f"nemotron.plan_scene(“{scene[:90]}{'…' if len(scene) > 90 else ''}”) · {llm.model('orchestrator')}")
         t0 = time.perf_counter()
@@ -1263,7 +1255,7 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
         yield step("orchestrator", "thought", t)
     yield step("orchestrator", "result",
                f"“{plan['title']}” · {plan['time_of_day']}, {plan['weather']} · cast {', '.join(c['id'] for c in plan['cast'])} · "
-               f"places {', '.join(p['key'] for p in plan['places'])} · {len(plan['beats'])} beats · {len(plan['shots'])} shots")
+               f"places {', '.join(p['key'] for p in plan['places'])} · {len(plan['beats'])} beats")
     for f in fixes[:6]:
         yield step("orchestrator", "note", f"repaired: {f}")
 
