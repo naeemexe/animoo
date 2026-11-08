@@ -1046,32 +1046,6 @@
    "source": "generated",
    "prompt": "a small wooden village well with a rope and bucket",
    "thumbnail": "props/generated/wooden-well.png"
-  },
-  {
-   "id": "girls-window",
-   "file": "props/generated/girls-window.glb",
-   "category": "buildings",
-   "size": [
-    1.38,
-    1.5,
-    0.96
-   ],
-   "tags": [
-    "cottage",
-    "frame",
-    "generated",
-    "girls",
-    "glass",
-    "night",
-    "panes",
-    "rainy",
-    "window",
-    "wooden"
-   ],
-   "license": "generated: concept image by NVIDIA SANA-Sprint 1.6B (Apache-2.0; its text encoder Gemma-2-2B-IT is under the Gemma Terms of Use), image to 3D by Microsoft TRELLIS.2-4B (MIT) with BiRefNet background removal (MIT)",
-   "source": "generated",
-   "prompt": "a small cottage window with glass panes and a wooden frame, rainy night",
-   "thumbnail": "props/generated/girls-window.png"
   }
  ]
 }

@@ -210,17 +210,12 @@
    },
    {
     "key": "window",
-    "library": "girls-window",
+    "library": "wooden-cottage",
     "position": [
-     0.02,
-     1.61
+     -0.57,
+     3.36
     ],
-    "rotation": 162.0,
-    "generate": {
-     "prompt": "a small cottage window with glass panes and a wooden frame, rainy night",
-     "size_m": 1.5,
-     "category": "buildings"
-    }
+    "rotation": 162.0
    },
    {
     "key": "lantern",
@@ -284,6 +279,42 @@
      -7.12
     ],
     "rotation": 0
+   },
+   {
+    "key": "house-7",
+    "library": "house",
+    "position": [
+     -14.04,
+     -3.24
+    ],
+    "rotation": -105
+   },
+   {
+    "key": "house-8",
+    "library": "house",
+    "position": [
+     -12.09,
+     6.87
+    ],
+    "rotation": 0
+   },
+   {
+    "key": "lantern-post-9",
+    "library": "lantern-post",
+    "position": [
+     -6.68,
+     -9.47
+    ],
+    "rotation": 45
+   },
+   {
+    "key": "lantern-post-10",
+    "library": "lantern-post",
+    "position": [
+     7.55,
+     -7.11
+    ],
+    "rotation": -165
    }
   ],
   "cast": [
@@ -341,7 +372,7 @@
     "start": 5.4,
     "duration": 5.4,
     "prompt": "A person walks forward.",
-    "action": "walks down the street",
+    "action": "walks to the lantern",
     "to": [
      7.64,
      -3.28
