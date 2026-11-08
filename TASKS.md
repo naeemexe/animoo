@@ -43,6 +43,12 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 25 | A | Interiors: room and restaurant sets, with an interior camera (eye level, horizontal moves, two-shots, over-the-shoulder; never above the roof) | 2 h | done | 16, 24 |
 | 26 | A | Spoken dialogue: Nemotron writes cinematic lines per character; ElevenLabs voices them; talk gesture + timeline sync | 2 h | waiting (needs `ELEVENLABS_API_KEY` in `.env`) | 22 |
 | 27 | A | Story-driven characters: cast built from the story (look, outfit colors, height, age) instead of the two fixed VRMs | 2.5 h | done | 22 |
+| 29 | A | Free spectator camera: WASD + mouse look, scroll zoom, pan around the world (edit mode, or whenever free camera is on) | 1 h | todo | 18 |
+| 30 | A | Path editor: camera paths and character paths as numbered, draggable nodes joined by dotted lines; add, drag, delete points | 2 h | todo | 19, 29 |
+| 28 | A | Look round 3: trees less blocky, roads blend into the ground | 1.5 h | todo | 23, 24 |
+| 31 | A | Physical rules: nothing passes through anything (characters avoid each other too), paths re-plan after edits, beats follow moved props | 2 h | todo | 22, 18 |
+| 32 | A | Scene audio: the orchestrator plans ambience + a soft music bed from place, weather, time and mood (or the user's words); ElevenLabs sound effects/music when a key is set, procedural WebAudio otherwise; cached; in the WebM export | 2 h | todo (procedural now; ElevenLabs needs `ELEVENLABS_API_KEY`) | 08 |
+| 12b | A | Re-record the 5 demo takes after round 3 (with audio), update `demo/SUBMISSION.md` | 0.5 h | todo | 28–32 |
 
 **Cut rule.** If it's 6:00 am and task 09 isn't working, demo the Chat page plus a
 Movie page with one generated world and the sample clips. A finished small demo
@@ -100,6 +106,8 @@ license used.
 **Order after 08:** 13 (quick) → 08b → 14 → 15 → 16 → 17 → 12 (demo, which must be recorded before the 12:00 pm deadline) → 18 → 19 → 21.
 
 **Order from round 2 (2026-11-08, 01:45):** 22 → 23 → 24 → 25 → 26 (once the key is in `.env`) → **12 at 9:00 am** → 27 → 18 → 19.
+
+**Order from round 3 (2026-11-08, 06:40):** 29 → 30 → 28 → 31 → 32 → **12b by 11:15** → 26 (if the key arrives). Visuals and demo first; the user said it's more about the demo than full function.
 22 first because most round-2 notes are motion and position problems, and every later scene depends on it.
 
 **Efficiency rule for every session from now on (the Mac overheats):** verify with one cached scene and a few screenshots at fixed `?t=` times.
@@ -143,6 +151,18 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
 **26 Spoken dialogue.** The orchestrator (Nemotron) writes short, cinematic lines per character in the script; the server calls ElevenLabs TTS (one voice per character), caches audio in `library/audio/` with the text; the timeline plays the audio and the talk action (22) runs for its duration. ElevenLabs is only TTS, so Nemotron stays the only LLM.
 
 **27 Story-driven characters.** The cast agent reads the story and sets each character's look: base model, height, outfit and hair colors, maybe accessories. Start with recoloring and scaling the VRMs (cheap), then more base VRMs; a text-to-rigged-character model is a stretch.
+
+**29 Free camera.** A spectator camera like a game's: W/A/S/D move, Q/E down/up, Shift faster, right-drag (or click-drag in empty space) turns the view, scroll zooms/dollies, middle-drag pans. On in edit mode; a "free camera" toggle outside it. Leaving it returns to the director.
+
+**30 Path editor.** Two kinds of path: (1) camera path (from 19) and (2) character path (a character walks through the points instead of A*). Each node is a numbered marker in the scene, joined to the next by a dotted line; click "add point" to add one at the cursor on the ground (camera points at the current free-camera view), drag nodes to move them (on the ground plane for character paths; camera nodes also get a height handle), delete a node. Saved into the scene script. Visual polish matters more than every edge case.
+
+**28 Look round 3.** Trees read blocky: give foliage rounder, smoother forms (smooth normals, more segments or blob clusters, soft toon bands) on both library trees and fill trees. Roads don't blend: soften road and pavement edges into the ground (feathered edge, curb or verge strip, dirt/grass blend), so a road reads as part of the ground.
+
+**31 Physical rules.** The game-style approach from 22 stays (fixed clips, the scene controls position); this adds the rules a game engine enforces: characters are capsules and avoid each other as well as props (no one walks through anyone), paths re-plan after edit-mode moves, beats whose place or target moved follow the prop, and drawn character paths (30) are checked and nudged around obstacles.
+
+**32 Scene audio.** The orchestrator (Nemotron, in its existing call) adds `audio` to the script: an ambience prompt (birds, waves, city traffic, rain on roofs, restaurant chatter, night crickets) and a soft music-bed prompt with mood, from the place, weather, time and story, unless the user names sounds. With `ELEVENLABS_API_KEY`, the server calls ElevenLabs Sound Effects (looping ambience) and Music (a short soft bed), cached in `library/audio/` with their prompts. Without it, a procedural WebAudio fallback (filtered noise for rain/wind/waves/traffic, a few soft pad chords) plays. Audio plays with the timeline, fades with cuts and goes into the WebM export.
+
+**12b Re-record.** After 28–32, record the 5 demo takes once each again (with audio) and update `demo/SUBMISSION.md`.
 
 ## Later
 

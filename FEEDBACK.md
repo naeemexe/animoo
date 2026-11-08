@@ -45,3 +45,12 @@ into a task in `TASKS.md`.
 - Standing up from the ground is too fast → 22
 - Game-style action library (walk, jump, talk, wave, dig, build, pick up, punch, kick, crouch walk) reused everywhere; generate only unusual moves (push-ups, moonwalk) → 22
 - Interior scenes (room, restaurant) with an inside camera that moves horizontally, two-shots, from behind one character → 25
+
+### Round 3 (2026-11-08, 06:40): turned into tasks 28–32 and 12b in TASKS.md
+- Trees look too blocky → 28
+- Roads don't blend with the ground → 28
+- Free camera: zoom, pan, WASD and mouse look, like a game spectator camera → 29
+- Paths: camera paths and character paths, with numbered nodes joined by dotted lines, that you can add and drag → 30
+- Use game-like physical rules so things can't pass through each other → 31
+- Ambient sound and a soft music bed generated from scene, weather and time, chosen by the orchestrator unless the user says → 32
+
