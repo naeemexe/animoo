@@ -325,7 +325,7 @@ export function createChatPage(root, stage, look) {
       state.saved = { pos: stage.camera.position.clone(), target: c.target.clone(), enabled: c.enabled };
       c.enabled = false;
       look.setFocus({ point: state.camTarget, blur: CAM.blur }); // sharp on the presenter, soft forest
-      setTimeOfDay(stage, CHAT_SET.terrain.time_of_day);
+      setTimeOfDay(stage, CHAT_SET.terrain.time_of_day, undefined, CHAT_SET);
       setVisible(true);
       camera(0, true);
       load().then(async () => {

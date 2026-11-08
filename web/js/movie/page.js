@@ -335,7 +335,7 @@ export function createMoviePage(root, stage, look) {
     exportMovie,
     show() {
       setVisible(true);
-      if (state.script) setTimeOfDay(stage, state.script.terrain?.time_of_day, state.script.terrain?.weather);
+      if (state.script) setTimeOfDay(stage, state.script.terrain?.time_of_day, state.script.terrain?.weather, state.script);
       cam.setEnabled(state.directorCam);
       if (params.has('autoplay') && !state.script && !state.busy) make();
     },
