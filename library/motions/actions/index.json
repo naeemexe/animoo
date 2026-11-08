@@ -219,6 +219,72 @@
   "post_processing": true,
   "seed": 0
  },
+ "fist_bump": {
+  "id": "fist_bump",
+  "file": "motions/actions/fist_bump.bvh",
+  "prompt": "A person gives a fist bump, reaching one fist forward.",
+  "duration": 3,
+  "root": "pinned",
+  "generated": "2026-11-08T10:29:01",
+  "kimodo_seconds": 3.4,
+  "post_processing": true,
+  "seed": 0
+ },
+ "handshake": {
+  "id": "handshake",
+  "file": "motions/actions/handshake.bvh",
+  "prompt": "A person reaches out their right hand and shakes hands.",
+  "duration": 3,
+  "root": "pinned",
+  "generated": "2026-11-08T10:29:04",
+  "kimodo_seconds": 3.2,
+  "post_processing": true,
+  "seed": 0
+ },
+ "nod": {
+  "id": "nod",
+  "file": "motions/actions/nod.bvh",
+  "prompt": "A person nods their head in agreement.",
+  "duration": 2.5,
+  "root": "pinned",
+  "generated": "2026-11-08T10:29:07",
+  "kimodo_seconds": 2.8,
+  "post_processing": true,
+  "seed": 0
+ },
+ "shrug": {
+  "id": "shrug",
+  "file": "motions/actions/shrug.bvh",
+  "prompt": "A person shrugs their shoulders with open hands.",
+  "duration": 2.5,
+  "root": "pinned",
+  "generated": "2026-11-08T10:29:10",
+  "kimodo_seconds": 2.8,
+  "post_processing": true,
+  "seed": 0
+ },
+ "clap": {
+  "id": "clap",
+  "file": "motions/actions/clap.bvh",
+  "prompt": "A person claps their hands.",
+  "duration": 3,
+  "root": "pinned",
+  "generated": "2026-11-08T10:29:13",
+  "kimodo_seconds": 3.3,
+  "post_processing": true,
+  "seed": 0
+ },
+ "cheer": {
+  "id": "cheer",
+  "file": "motions/actions/cheer.bvh",
+  "prompt": "A person cheers with both arms raised.",
+  "duration": 3,
+  "root": "pinned",
+  "generated": "2026-11-08T10:29:16",
+  "kimodo_seconds": 3.2,
+  "post_processing": true,
+  "seed": 0
+ },
  "dance": {
   "id": "dance",
   "file": "motions/actions/dance.bvh",

@@ -1,0 +1,11 @@
+{
+ "id": "shrug",
+ "file": "motions/actions/shrug.bvh",
+ "prompt": "A person shrugs their shoulders with open hands.",
+ "duration": 2.5,
+ "root": "pinned",
+ "generated": "2026-11-08T10:29:10",
+ "kimodo_seconds": 2.8,
+ "post_processing": true,
+ "seed": 0
+}

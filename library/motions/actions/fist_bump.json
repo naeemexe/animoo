@@ -1,0 +1,11 @@
+{
+ "id": "fist_bump",
+ "file": "motions/actions/fist_bump.bvh",
+ "prompt": "A person gives a fist bump, reaching one fist forward.",
+ "duration": 3,
+ "root": "pinned",
+ "generated": "2026-11-08T10:29:01",
+ "kimodo_seconds": 3.4,
+ "post_processing": true,
+ "seed": 0
+}

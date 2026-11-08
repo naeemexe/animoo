@@ -1,0 +1,11 @@
+{
+ "id": "handshake",
+ "file": "motions/actions/handshake.bvh",
+ "prompt": "A person reaches out their right hand and shakes hands.",
+ "duration": 3,
+ "root": "pinned",
+ "generated": "2026-11-08T10:29:04",
+ "kimodo_seconds": 3.2,
+ "post_processing": true,
+ "seed": 0
+}

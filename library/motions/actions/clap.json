@@ -1,0 +1,11 @@
+{
+ "id": "clap",
+ "file": "motions/actions/clap.bvh",
+ "prompt": "A person claps their hands.",
+ "duration": 3,
+ "root": "pinned",
+ "generated": "2026-11-08T10:29:13",
+ "kimodo_seconds": 3.3,
+ "post_processing": true,
+ "seed": 0
+}

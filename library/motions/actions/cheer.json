@@ -1,0 +1,11 @@
+{
+ "id": "cheer",
+ "file": "motions/actions/cheer.bvh",
+ "prompt": "A person cheers with both arms raised.",
+ "duration": 3,
+ "root": "pinned",
+ "generated": "2026-11-08T10:29:16",
+ "kimodo_seconds": 3.2,
+ "post_processing": true,
+ "seed": 0
+}

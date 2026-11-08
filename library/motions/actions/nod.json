@@ -1,0 +1,11 @@
+{
+ "id": "nod",
+ "file": "motions/actions/nod.bvh",
+ "prompt": "A person nods their head in agreement.",
+ "duration": 2.5,
+ "root": "pinned",
+ "generated": "2026-11-08T10:29:07",
+ "kimodo_seconds": 2.8,
+ "post_processing": true,
+ "seed": 0
+}
