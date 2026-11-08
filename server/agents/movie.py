@@ -39,6 +39,7 @@ from pathlib import Path
 from typing import Iterator
 
 from .. import llm
+from ..audio import describe as describe_audio, repair_audio
 from ..tools.generate_prop import load_manifest, slug
 
 from ..tools.actions import GROUND_WORDS, action_for
@@ -145,6 +146,9 @@ PLAN_EXAMPLE = {
     "biome": "forest",
     "weather": "clear",
     "water": True,
+    "audio": {"ambience": {"prompt": "A quiet pond in the countryside on a warm afternoon: birdsong, ducks, a soft breeze in the leaves.",
+                           "layers": {"birds": 0.6, "wind": 0.2}},
+              "music": {"prompt": "Very soft, slow warm acoustic guitar and felt piano, gentle and sparse, no drums, no vocals.", "mood": "warm"}},
     "places": [
         {"key": "cottage", "what": "a small cottage", "use": "stand"},
         {"key": "bench", "what": "a wooden park bench", "use": "sit"},
@@ -175,6 +179,7 @@ PLAN_SCHEMA = {
         "weather": {"type": "string"},
         "biome": {"type": "string"},
         "water": {"type": "boolean"},
+        "audio": {"type": "object"},
         "places": {"type": "array", "items": {"type": "object", "required": ["key", "what"],
                    "properties": {"key": {"type": "string"}, "what": {"type": "string"}, "use": {"type": "string"}}}},
         "cast": {"type": "array", "items": {"type": "object", "required": ["id"],
@@ -204,6 +209,12 @@ Reply with the whole plan in ONE JSON object. Rules:
 - water: true only if the scene has a pond, lake, river or sea.
 - time_of_day: one of sunrise, day, golden, dusk, night (what the scene says; golden if it says nothing).
 - weather: one of clear, rain, snow, fog, windy (clear unless the scene names weather).
+- audio: the film's sound. ambience: prompt (one sentence for a looping sound effect of the place, weather
+  and time: birds in a forest, waves on a beach, city traffic, rain on roofs, restaurant chatter, night
+  crickets) and layers (levels 0 to 1 of rain, wind, waves, birds, crickets, traffic, murmur, fire; 1 to 4
+  of them). music: prompt (a very soft, slow instrumental bed, no drums, no vocals) and mood (calm, warm,
+  tender, playful, hopeful, melancholy, mysterious, cozy, or none). If the scene names sounds or music,
+  use those.
 - beats: 3 to 12 in story order, ids b1, b2, ... Give every action the scene names its own beat, for
   every character (e.g. grabs, runs off, shouts, chases, trips, gives back: six beats). Each beat: cast (a cast id), action (a few words for
   the timeline), prompt (for the motion model: starts with "A person", one simple full-body action,
@@ -538,6 +549,9 @@ def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
             "water": bio == "sea" or (bio not in INTERIORS and (bool(WATER_WORDS.search(scene)) if scene else bool(raw.get("water")))),
             "places": places, "cast": cast, "beats": beats, "shots": shots,
             "thoughts": [str(t) for t in (raw.get("thoughts") or [])][:4]}
+    # Scene audio (task 32): Nemotron's choice checked, or rules for plans without one.
+    plan["audio"], afix = repair_audio(raw.get("audio"), scene, bio, tod, wx)
+    fixes += afix
     return plan, fixes
 
 
@@ -1354,6 +1368,8 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
         terrain["paths"] = [{"points": path_pts, "width": 1.4}]
     script = {"version": 1, "title": plan["title"], "scene": scene, "terrain": terrain,
               "props": props, "cast": cast_out, "beats": beats, "shots": shots}
+    if plan.get("audio"):
+        script["audio"] = plan["audio"]
     return script, notes
 
 
@@ -1546,6 +1562,7 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
     yield step("orchestrator", "result",
                f"“{plan['title']}” · {plan['time_of_day']}, {plan['weather']} · cast {', '.join(c['id'] for c in plan['cast'])} · "
                f"places {', '.join(p['key'] for p in plan['places'])} · {len(plan['beats'])} beats")
+    yield step("orchestrator", "result", describe_audio(plan["audio"]))
     for f in fixes[:6]:
         yield step("orchestrator", "note", f"repaired: {f}")
 
