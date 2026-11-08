@@ -37,7 +37,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 18 | A | Edit mode: select, move/rotate/scale, duplicate, delete, replace with a library item, regenerate a prop on the GPU | 3 h | todo | 14 |
 | 19 | A | Camera paths: draw a keyframed camera path between two timestamps in edit mode; it overrides the director for that span | 2.5 h | todo | 16, 18 |
 | 21 | A | Full pipeline check + optimization: load times, GLB sizes, caching, LLM call budget, GPU memory, bug bash | 2 h | done (session closed early: export width, snow ground, shot defaults, 2 scenes cached; timing table not written) | 13–17 |
-| 22 | A | Motion control: a game-style action library (cached clips) plus position control: paths around props, facing, gestures aimed at a target, consistent heights | 3 h | doing | 14, 16 |
+| 22 | A | Motion control: a game-style action library (cached clips) plus position control: paths around props, facing, gestures aimed at a target, consistent heights | 3 h | done | 14, 16 |
 | 23 | A | Look fixes: intentional depth of field, stable shadows, thinner outlines on small props, less blocky props, no visible circular world edge | 1.5 h | todo | 15 |
 | 24 | A | Scene variety: city, sea/beach, park sets (not only forest), one cached scene each | 2 h | todo | 15, 22 |
 | 25 | A | Interiors: room and restaurant sets, with an interior camera (eye level, horizontal moves, two-shots, over-the-shoulder; never above the roof) | 2 h | todo | 16, 24 |
@@ -453,3 +453,35 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
 - 17: windows are only as good as the raycast: on the thatched cottage a pane can sit under the eaves, and props
   with no flat walls (the stilt hut's open legs) may get none. The tent is excluded. Market stalls, the lighthouse lamp
   room and the fountain get no night glow. Snow and fog weather work in code but weren't checked with a scene.
+- 22 (2026-11-08): the action library is `library/motions/actions/` (28 clips, 8.3 MB, one Kimodo batch of about 97 s;
+  `python -m server.tools.actions` regenerates missing ones, `--force` all). Each has a `.json` with its prompt and `root`
+  (`path` locomotion, `pinned` in place, `free` sit/stand/dance). Kimodo can start a clip seated, so seated idles/talks and
+  stand-ups are cut from longer clips by hips height (`cut`); the stand-ups are slowed to a 2.0 s (ground) / 1.8 s (chair)
+  rise with `time_scale` (Kimodo's own rise was 1.33 s and 0.9 s). `layout()` tags each beat with `motion`
+  (`tag_motions()`, regex rules plus seated/fallen state); moves outside the library (rowing, lighting a lantern, tripping,
+  rolling snowballs) go to `POST /api/motion`, which asks Kimodo once and keeps the BVH in `library/motions/live/`.
+- 22: `web/js/movie/control.js` does the position control: `pinRoot()` removes the slow drift and turning of in-place clips,
+  `obstaclesFromSet()` takes each prop's footprint at body height (0.05–1.4 m) as an oriented box (props under 0.3 m and
+  flowers/grass/lily pads are walkable), `planPath()` is A* on a 0.25 m grid with 0.45 m clearance plus line-of-sight
+  shortcuts and Chaikin rounding, and `warpToPath()` bends a straight walk/run onto the path (the length variant with the
+  closest distance, stride scaled to fit). The director (`direct()`, up to 4 passes) aims each gesture at its addressee
+  (a character, or the one nearest a prop target: grandpa in the rowboat), turns a standing addressee back, stops a walk
+  that ends in a gesture at 1.3 m on the same side of any prop (`talkSpot()`), and starts a reply ("waves back") 0.6 s
+  after the gesture it answers really starts, stretching the idle before it.
+- 22: checked on the new park-bench scene (`in-a-park-on-a-4ceb33ba99.json`, 2 hosted Nemotron calls), numbers from the
+  merged clips plus 3 director-camera screenshots: the boy's hips rise from 0.15 to 0.80 m between 4.0 and 6.5 s (2.5 s);
+  his walk starts 8.2 m on one side of the bench's long axis and ends 0.95 m on the other, never closer than 0.39 m (hips) /
+  0.34 m (feet) to its footprint; at 18.6 s he faces the friend within 1° and she faces him within 2°, 1.17 m apart; her wave
+  back starts 0.64 s after his. No console errors. The other 7 cached scenes were only checked to lay out (Python), not
+  rendered (efficiency rule): look at them once in 23/24.
+- 22: adult heights are now 1.76 m (male) and 1.70 m (female); kids are ×0.8 of that, only when the plan says `kid`.
+  The park plan made both the boy and his friend kids (1.41 / 1.36 m).
+- 22: layout fixes the park scene needed: a vague place ("a spot near the bench") merges into the place it names instead of
+  the first one; sitting on the grass gets no stump or bench; "walks around the bench" turns the bench's long side across
+  the walker's approach, so the friend stands beyond it.
+- 22: not done: pointing turns the body to face the target but doesn't bend the arm toward it (no arm IK); a seated
+  character never turns (that would twist them off the seat); sitting down still uses Kimodo's step-back (task 14 note),
+  so a sitter can still end on the seat's front edge; characters aren't obstacles for each other's paths; the friend
+  faces away from the boy while she waits (she turns only for her wave back); the Chat page still uses its own clips.
+- 22: the `pathInfo` log says "straight" when the A* line needs no corner, even if it passes a prop's end (the park walk
+  did: the talking spot is diagonal past the bench).
