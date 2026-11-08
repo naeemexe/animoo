@@ -20,7 +20,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 04 | A | Library: the old project's VRMs, props and sample BVHs, plus a CC0 low-poly kit and `manifest.json` | 1.5 h | done | 01 |
 | 05 | A | Characters: load VRMs, retarget Kimodo BVH, play a clip, planted feet | 2.5 h | done | 04 |
 | 06a | B | Self-host Nemotron Nano 9B v2 (FP8) on the pod with vLLM (:8104, OpenAI-compatible, tool calling) | 1 h | dropped: use OpenRouter / OpenCode Zen instead | — |
-| 06 | A | Nemotron client + agent loop on the server (tool calling, streamed steps), via OpenCode's free Nemotron now and swappable to NVIDIA's API later | 1.5 h | doing | — |
+| 06 | A | Nemotron client + agent loop on the server (tool calling, streamed steps), via OpenCode's free Nemotron now and swappable to NVIDIA's API later | 1.5 h | done (free tier rate-limits after ~30 calls: get a key for 08) | — |
 | 07 | B | Text → concept image for props (pick a model, add an endpoint) | 1.5 h | done | 03 |
 | 08 | A | Movie: the orchestrator splits a scene into shots and beats, and the world agent builds the set | 3 h | todo | 04, 06 |
 | 09a | A | Movie page UI with a mocked scene script: agent log, world build from script, per-character timeline, play, export WebM | 2.5 h | done | 04, 05 |
@@ -223,3 +223,38 @@ license used.
 - 11: when the browser pane is hidden, the Movie page's render loop stops, so screenshots go stale. Calling
   `setInterval(() => animo.look.render(), 200)` from the console keeps them current.
 - Cleanup pass: `#movie?autoplay&fast` doesn't start the movie on load (checked 2026-11-07); clicking "Make movie" works. The chat server's Nemotron base URL is hard-coded to the hosted API, so task 06 must read `NEMOTRON_BASE_URL` (self-hosted pod by default).
+- 06: `server/llm.py` `complete(messages, json_schema=None, shape=None)` is the only LLM entry point. `LLM_BACKEND`
+  (`opencode` default, `nvidia`, `openai`) and `NEMOTRON_MODEL` in `.env` pick it, so a sponsor key is a `.env`
+  change. With a schema it shows the model a filled-in example (not the schema: lightning copied the raw
+  schema back as its answer), repairs the JSON (think blocks, fences, trailing commas, smart or single quotes,
+  cut-off objects), checks `required`, types and enums, and re-asks with the problem. `llm.CALLS` records every
+  call's seconds; `/health` shows `config.llm` {backend, model, ready, calls, median_s}.
+- 06: OpenCode's free tier only accepts OpenCode's stock agent with its full tool list. A custom agent, tools
+  turned off, or `permission: deny` (which drops the tools) all get "Free usage limit reached". So
+  `opencode run --pure` runs in `~/.cache/animo-world/opencode/` with an `opencode.json` that sets every
+  permission to `ask`, and the non-interactive `run` auto-rejects every tool call. Without that, the model ran a
+  bash command it was asked to run in a test. Every call carries about 8k tokens of OpenCode's coding-agent
+  prompt, and our system prompt and conversation go in as one flattened user message. `opencode run` hangs if
+  stdin is an open pipe, so it gets `/dev/null`. Each call also leaves a session in OpenCode's local storage.
+- 06: Nemotron 3.5 lightning latency through `opencode run` (process start included), measured 2026-11-07:
+  small JSON calls and agent steps took 1.4–3.8 s, usually 2–3 s. Chat replies took 2.6–9.7 s, with one at
+  19.9 s. The test agent's whole run (3 calls, 2 tool calls) took 6–8 s. So budget about 3 s per orchestrator
+  call, and about 10 s when it's slow.
+- 06: **the OpenCode free tier rate-limits.** After about 30 calls in about 30 minutes, every call (even from a
+  folder with no config) got "Free usage limit reached", and OpenCode retries that quietly for minutes. The client
+  now spots it on stderr in about 1 s, raises `LLMError`, and skips OpenCode for `OPENCODE_COOLDOWN_S` (120 s),
+  so Chat falls back to the mock at once. The limit hit around 20:47 (local time) and was still on at 20:54; how long it lasts isn't known yet.
+  For task 08 (several calls per movie) and the demo, cache every orchestrator result in `library/`, and get a
+  key: `LLM_BACKEND=openai` with `NEMOTRON_BASE_URL=https://openrouter.ai/api/v1` and an OpenRouter key
+  (`nvidia/nemotron-3.5-lightning:free` or a paid Nemotron), or `LLM_BACKEND=nvidia` with `NVIDIA_API_KEY`.
+  The nvidia and openai backends haven't been run (no key).
+- 06: agents: `server/agents/loop.py` has `Agent(name, role, tools, final_schema, max_steps)` and `Tool(name,
+  description, parameters, fn)`. `run(agent, task)` yields `{agent, kind: thought|call|result|final|error, text,
+  ms, data?}`. Each turn the model returns `{"thought", "call": {"tool", "args"}}` or `{"thought", "final"}`. An
+  unknown tool, bad args or a raised exception go back to the model as the tool result, and it corrected itself
+  ("old mill" → error → "windmill"). `GET /api/agents/{name}/run?task=` streams it as SSE (`event: done` carries
+  per-call seconds). `web/js/agent-stream.js` has `streamAgent()` and `logStep()` for the Movie page (09b);
+  `/agents.html?run` shows the test agent (`server/agents/test_agent.py`, a `distance` tool over five places).
+- 06: `/api/chat` now goes through `llm.complete()` with `REPLY_SCHEMA` (30 s timeout, 1 re-ask). It returns
+  `source: "nemotron" | "mock"` and `seconds`; the Chat page already shows "brain: Nemotron". `CLAUDE.md` still
+  says Nemotron goes "through the NVIDIA API" (a main-session edit).
