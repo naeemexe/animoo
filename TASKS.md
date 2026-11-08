@@ -49,6 +49,12 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 31 | A | Physical rules: nothing passes through anything (characters avoid each other too), paths re-plan after edits, beats follow moved props | 2 h | done | 22, 18 |
 | 32 | A | Scene audio: the orchestrator plans ambience + a soft music bed from place, weather, time and mood (or the user's words); ElevenLabs sound effects/music when a key is set, procedural WebAudio otherwise; cached; in the WebM export | 2 h | done (procedural; ElevenLabs coded, off until `ELEVENLABS_API_KEY` is set) | 08 |
 | 12b | A | Re-record the 5 demo takes after round 3 (with audio), update `demo/SUBMISSION.md` | 0.5 h | done | 28–32 |
+| 33 | A | Motion polish: walking legs don't look broken (knees bend the right way, no pops), and each clip starts from where and how the previous one ended | 1.5 h | todo | 22 |
+| 37 | A | Look round 4: small simple white flowers with no black outlines; a good sea backdrop | 1 h | todo | 24, 28 |
+| 34 | A | Natural beat planning: no pointless sit → stand → sit cycles, nobody stands up for no reason, greetings fit who is seated; re-cache the demo scenes | 1.5 h | todo | 22, 33 |
+| 35 | A | Character skins: outfits, hair and body build (slim to heavy) layered on the same rigged figure, like game skins, so animation never breaks | 1.5 h | todo | 27 |
+| 36 | A | More cast + background NPCs: scenes with 3+ people; city/park/restaurant get background extras on ambient loops (walk, sit, talk, work) | 1.5 h | todo | 31, 35 |
+| 12c | A | Finalize: re-record the 5 demo takes after round 4, update `demo/SUBMISSION.md`, `docs/STATUS.md` and a short README | 0.5 h | todo | 33–37 |
 
 **Cut rule.** If it's 6:00 am and task 09 isn't working, demo the Chat page plus a
 Movie page with one generated world and the sample clips. A finished small demo
@@ -108,6 +114,9 @@ license used.
 **Order from round 2 (2026-11-08, 01:45):** 22 → 23 → 24 → 25 → 26 (once the key is in `.env`) → **12 at 9:00 am** → 27 → 18 → 19.
 
 **Order from round 3 (2026-11-08, 06:40):** 29 → 30 → 28 → 31 → 32 → **12b by 11:15** → 26 (if the key arrives). Visuals and demo first; the user said it's more about the demo than full function.
+
+**Order from round 4 (2026-11-08, 07:40):** two lanes in parallel with separate files: motion **33 → 34 → 36** and look **37 → 35**, then **12c by 11:15**. Parallel sessions share one dev server on :8000 (start it only if it isn't up; never kill another session's) and stage by explicit path. The user's demo vision (props fading in from a blur, edit-mode beats like planting trees, a fast relight of one set, a walk into a building that cuts into its interior) is Later unless time is left.
+
 22 first because most round-2 notes are motion and position problems, and every later scene depends on it.
 
 **Efficiency rule for every session from now on (the Mac overheats):** verify with one cached scene and a few screenshots at fixed `?t=` times.
@@ -163,6 +172,18 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
 **32 Scene audio.** The orchestrator (Nemotron, in its existing call) adds `audio` to the script: an ambience prompt (birds, waves, city traffic, rain on roofs, restaurant chatter, night crickets) and a soft music-bed prompt with mood, from the place, weather, time and story, unless the user names sounds. With `ELEVENLABS_API_KEY`, the server calls ElevenLabs Sound Effects (looping ambience) and Music (a short soft bed), cached in `library/audio/` with their prompts. Without it, a procedural WebAudio fallback (filtered noise for rain/wind/waves/traffic, a few soft pad chords) plays. Audio plays with the timeline, fades with cuts and goes into the WebM export.
 
 **12b Re-record.** After 28–32, record the 5 demo takes once each again (with audio) and update `demo/SUBMISSION.md`.
+
+**33 Motion polish.** Walks look like the legs break: find the cause (leg IK knee flipping without a pole/bend hint, the knee hyperextending, foot targets too far so the leg snaps straight, or a retarget twist) and fix it, so knees always bend forward and stay smooth. Clip joins: the next clip starts from the previous clip's end position, heading and pose (a longer, pose-matched blend), never from a random spot or a pose jump.
+
+**37 Look round 4.** Flowers everywhere look off: replace them with small, simple white flowers (tiny cross or daisy shapes) without black outlines, and fewer of them. The sea backdrop looks bad: a clean horizon, a sky gradient that meets the sea, gentle distant waves, maybe a far headland or islands, and a nicer shoreline.
+
+**34 Natural planning.** Plans like "arrives, sits, stands up to say hi, sits again, says hi again" and "the other person stands up for no reason" must not happen. Give the layout a per-character state (standing, seated, lying) and rules: a seated character greets seated (wave from the seat) unless the story says they get up; posture changes need a reason in the beat text; no repeated greetings; idle beats keep the posture. Tighten the orchestrator prompt and add a post-check that repairs plans. Re-plan and re-cache the five demo scenes.
+
+**35 Character skins.** Like game skins: the same rigged figure, with appearance layered on top so it never breaks animation. A few outfit presets (casual, dress, suit, chef, worker, winter coat) as texture/color sets on the VRM's clothing materials, hair color, and a body build value (slim → heavy) done by scaling spine/chest/hips/upper-limb bones in width only, after retargeting, so feet stay planted. The cast agent's `look` picks preset, hair, build. Old scripts play unchanged.
+
+**36 More cast + NPCs.** Support 3–5 named characters in a scene. Background extras (cheap, no LLM call): in city, park and restaurant biomes, 4–8 NPCs on ambient loops from the action library (walk a loop along the sidewalk, sit on a bench, chat in pairs, sweep or carry), varied skins (35), kept out of the main action's paths (31) and out of focus.
+
+**12c Finalize.** Re-record the 5 takes once each, update `demo/SUBMISSION.md` (round-4 features, shot list), `docs/STATUS.md`, and add a short `README.md` (what it is, how to run, credits).
 
 ## Later
 

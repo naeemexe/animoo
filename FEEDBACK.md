@@ -54,3 +54,12 @@ into a task in `TASKS.md`.
 - Use game-like physical rules so things can't pass through each other → 31
 - Ambient sound and a soft music bed generated from scene, weather and time, chosen by the orchestrator unless the user says → 32
 
+### Round 4 (2026-11-08, 07:40): turned into tasks 33–37 and 12c in TASKS.md
+- Walking looks like the legs are breaking → 33
+- The next motion should start from where the previous one ended → 33
+- Skins like a game's: outfit, hair color and body build on top of the same figure, without breaking animation → 35
+- More than two people; NPCs doing random work in the city background → 36
+- Flowers everywhere look off: small simple white ones without black edges → 37
+- The sea background is bad → 37
+- Unnatural plans (sit, stand to say hi, sit, hi again; the other person stands for no reason) → 34
+
