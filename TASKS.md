@@ -44,7 +44,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 26 | A | Spoken dialogue: Nemotron writes cinematic lines per character; ElevenLabs voices them; talk gesture + timeline sync | 2 h | waiting (needs `ELEVENLABS_API_KEY` in `.env`) | 22 |
 | 27 | A | Story-driven characters: cast built from the story (look, outfit colors, height, age) instead of the two fixed VRMs | 2.5 h | done | 22 |
 | 29 | A | Free spectator camera: WASD + mouse look, scroll zoom, pan around the world (edit mode, or whenever free camera is on) | 1 h | done | 18 |
-| 30 | A | Path editor: camera paths and character paths as numbered, draggable nodes joined by dotted lines; add, drag, delete points | 2 h | doing | 19, 29 |
+| 30 | A | Path editor: camera paths and character paths as numbered, draggable nodes joined by dotted lines; add, drag, delete points | 2 h | done | 19, 29 |
 | 28 | A | Look round 3: trees less blocky, roads blend into the ground | 1.5 h | todo | 23, 24 |
 | 31 | A | Physical rules: nothing passes through anything (characters avoid each other too), paths re-plan after edits, beats follow moved props | 2 h | todo | 22, 18 |
 | 32 | A | Scene audio: the orchestrator plans ambience + a soft music bed from place, weather, time and mood (or the user's words); ElevenLabs sound effects/music when a key is set, procedural WebAudio otherwise; cached; in the WebM export | 2 h | todo (procedural now; ElevenLabs needs `ELEVENLABS_API_KEY`) | 08 |
@@ -672,3 +672,27 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
   distance and is fast at 40 m; the wheel dollies (no FOV zoom; fov stays 28); keys stay live during a path
   preview and an export, though the camera ignores them then. Tested with scripted key/mouse input in the
   browser on the cached fisherman scene: fly, look, dolly, pan, gizmo drag, click-select, K, and toggling off.
+- 30: done. `web/js/movie/pathedit.js` draws and edits both kinds of path in edit mode. Each node is a numbered
+  marker (a fixed-size sprite drawn on top), and the nodes are joined by a dotted line along the real curve:
+  camera paths are pink, with a dotted stem to the ground and a dotted aim line; character paths are teal and start
+  from a hollow ring at the character's position. To move a node, drag it. Character nodes slide on the ground and
+  camera nodes slide at their height. The selected camera node gets a ↕ handle for its height. Clicking a camera
+  node scrubs to its key time. Del (or the block's delete button) removes the selected node. The "character path"
+  block has a walk picker (it frames the view on that walk), "add point" (click the ground; past the last node it
+  appends, otherwise it inserts where it adds the least length; Esc stops) and "clear". The script carries
+  `walk_paths: [{beat, cast, points: [[x, z], …]}]`, saved through the same POST and replayed like
+  `camera_paths` (log line "n hand-drawn character path(s)"). In `buildRow` a drawn walk replaces A* with a
+  centripetal Catmull-Rom curve through its points, so the walk passes through every node. When the drawn path is
+  more than 1.3× the clip's reach, the walk clip is chained up to 4 times, so the stride stays natural and the walk
+  takes longer. A picked walk stays a draft until its first edit, so only picking it changes nothing.
+- 30 checked on the park-bench scene (offline server). Real mouse drags moved walk nodes 1 and 3, "add point" added
+  node 5, Del removed it, the ↕ handle raised camera key 2 from 4.5 to 7.18 m, and a sideways drag moved it. The
+  boy walked the new curve at t = 10. Save wrote 1 camera path and 1 character path. A reload logged both and
+  `boy-3 16.1 m, drawn (4 points) · stride ×1.10` (×2.19 before the chaining), and the timeline showed one walk
+  block. The cache file was then restored: the reload logged `9.2 m, straight · stride ×1.24`, 20.9 s, as before,
+  with no console errors.
+- 30: not done: drawn walks ignore props and other characters (task 31). The beat's `to` target isn't updated, so
+  anything that resolves "where the walk ends" from the plan (not the row) still uses the old goal. A chained walk can
+  show a small speed dip at each join. Nodes under the agent panel or the edit bar can't be grabbed, so fly the
+  camera first. Camera keys added with K sit at the camera itself, so you have to fly back to see them.
+  Character-path edits re-direct the whole film on every drop (about 0.1–0.2 s here).
