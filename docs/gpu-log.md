@@ -42,3 +42,4 @@ Notes:
 | 2026-11-07 | ~1.0 | ~$0.60 | Kimodo installed and serving; TRELLIS.2 build started |
 | 2026-11-07 | ~1.5 | ~$0.90 | TRELLIS.2 built and serving; Kimodo and TRELLIS.2 smoke tests pass |
 | 2026-11-07 | ~0.35 | ~$0.21 | SANA-Sprint image server (:8103) installed; 5 sample images and one windmill GLB via /generate-prop |
+| 2026-11-07 | ~0.05 | ~$0.03 | Task 11: one /generate-prop windmill (64 s) plus a cache hit. The pod was already running for other work and was left running. |

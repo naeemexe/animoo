@@ -25,7 +25,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 09a | A | Movie page UI with a mocked scene script: agent log, world build from script, per-character timeline, play, export WebM | 2.5 h | done | 04, 05 |
 | 09b | A | Movie: wire the real agents in, motion agent generates clips on the pod, director merges | 1.5 h | todo | 08, 09a |
 | 10 | A | Chat page: a character talks (Nemotron + browser voice) and demonstrates moves | 2 h | done (mock replies; live Nemotron path untested) | 05, 06 |
-| 11 | A | Prop generation in the world agent (image → TRELLIS.2 → library) | 1.5 h | doing | 07, 08 |
+| 11 | A | Prop generation in the world agent (image → TRELLIS.2 → library) | 1.5 h | done (mechanics; the world agent calls it in 08) | 07, 08 |
 | 12 | A | Demo: cache the demo scenes, record the video, write the submission | 2 h | todo | 09, 10 |
 
 **Cut rule.** If it's 6:00 am and task 09 isn't working, demo the Chat page plus a
@@ -189,3 +189,24 @@ license used.
 - 10: `web/js/demo.js` (the primitive test village) is no longer used by any page.
 - 10: the Movie page before "Make movie" shows the bare island close up and blurred by the tilt-shift
   (same on a fresh `#movie` load), not the whole island as the old placeholder did.
+- 11: `POST /api/props/generate {name, prompt?, size_m?, category?, seed?} -> {entry, cached, seconds}` wraps
+  `server/tools/generate_prop.py` (`generate_prop()` plus `TOOL`, an OpenAI-style schema for task 08). The id is
+  the slugged name; a manifest hit returns at once. Otherwise it starts `gpu/tunnel.sh` if :8103 is closed, calls
+  `/generate-prop` with ", solid chunky shapes, thick sturdy parts" appended, and writes
+  `library/props/generated/{id}.glb|.png|.json` plus a manifest entry (`source: "generated"`, license notes).
+  One generation at a time (a lock). The server venv now needs numpy (`server/requirements.txt`).
+- 11: `server/tools/glb.py` `normalize_glb()` trims the ground slab without trimesh: footprint radius per 1 % height
+  band against the body's radius at 15–25 %; a bottom band ≥1.25× wider is a slab, cut where it narrows back to
+  1.12×, and triangles with centroids below the cut are dropped (orphan vertices too, so bounds stay right). Both
+  windmills trimmed cleanly (cut at 10 % and 12 %, about 40 % of the triangles were grass and rocks), leaving the
+  tower open at the bottom, which doesn't show. A prop that is meant to be wide at the bottom (a bell, a tent)
+  could be trimmed wrongly; `trim_base=False` turns it off, but the HTTP endpoint doesn't expose that yet.
+- 11: the first windmill took 64 s on the pod (the task-07 estimate was 45 s). The pod caches by prompt and seed,
+  so regenerating the same prompt takes about 1 s; a new seed is needed for a different result. The windmill's
+  sails are still thin, short and a little spiky, even with the "chunky" prompt.
+- 11: in the scene script, a prop whose `library` id isn't in the manifest is generated before placement, using an
+  optional `generate: {prompt, size_m, category}` (see `script.js`). The fisherman mock places the windmill at
+  (4.5, −11). The world log shows "generating windmill…", and the next run shows "generated earlier, from the
+  library" (the GLB loads in about 30 ms).
+- 11: when the browser pane is hidden, the Movie page's render loop stops, so screenshots go stale. Calling
+  `setInterval(() => animo.look.render(), 200)` from the console keeps them current.
