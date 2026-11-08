@@ -201,7 +201,6 @@ license used.
   a Premium/Enhanced voice wins if installed (System Settings → Accessibility → Spoken Content).
 - 10: "A person does a slow bodyweight squat and stands back up." (5 s) took 6.3 s on Kimodo the first
   time; the squat itself is about 3 s and the hips drop from 0.87 m to 0.38 m.
-- 10: `web/js/demo.js` (the primitive test village) is no longer used by any page.
 - 10: the Movie page before "Make movie" shows the bare island close up and blurred by the tilt-shift
   (same on a fresh `#movie` load), not the whole island as the old placeholder did.
 - 11: `POST /api/props/generate {name, prompt?, size_m?, category?, seed?} -> {entry, cached, seconds}` wraps
@@ -225,3 +224,4 @@ license used.
   library" (the GLB loads in about 30 ms).
 - 11: when the browser pane is hidden, the Movie page's render loop stops, so screenshots go stale. Calling
   `setInterval(() => animo.look.render(), 200)` from the console keeps them current.
+- Cleanup pass: `#movie?autoplay&fast` doesn't start the movie on load (checked 2026-11-07); clicking "Make movie" works. The chat server's Nemotron base URL is hard-coded to the hosted API, so task 06 must read `NEMOTRON_BASE_URL` (self-hosted pod by default).
