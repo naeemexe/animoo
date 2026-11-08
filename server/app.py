@@ -143,6 +143,28 @@ def movie_plan(scene: str, fresh: bool = False) -> StreamingResponse:
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
+class ScriptEdit(BaseModel):
+    scene: str
+    props: list[dict]
+
+
+# Edit mode on the Movie page (task 18): the edited props go into the scene's
+# cache file in library/scripts/, so the next replay of the scene uses them.
+@app.post("/api/movie/script")
+def movie_script_save(req: ScriptEdit) -> dict:
+    from .agents.movie import save_edits
+    for p in req.props:
+        pos = p.get("position")
+        if not isinstance(p.get("key"), str) or not isinstance(p.get("library"), str) \
+                or not (isinstance(pos, list) and len(pos) == 2 and all(isinstance(v, (int, float)) for v in pos)):
+            raise HTTPException(status_code=400, detail=f"bad prop: {p}")
+    try:
+        path = save_edits(req.scene, req.props)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"file": path.name, "props": len(req.props)}
+
+
 class PropRequest(BaseModel):
     name: str
     prompt: str | None = None

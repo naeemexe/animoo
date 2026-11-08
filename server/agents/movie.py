@@ -1468,6 +1468,18 @@ def save_cache(scene: str, entry: dict) -> Path:
     return p
 
 
+def save_edits(scene: str, props: list[dict]) -> Path:
+    """Store hand-edited props (edit mode) in the scene's cache file; replays use them."""
+    p = cache_path(scene.strip())
+    if not p.exists():
+        raise FileNotFoundError(f"no cached plan for this scene ({p.name}); make the movie once first")
+    entry = json.loads(p.read_text())
+    entry["edits"] = {"saved": datetime.now(timezone.utc).isoformat(timespec="seconds"), "props": props}
+    entry.setdefault("script", {})["props"] = props
+    p.write_text(json.dumps(entry, indent=1, ensure_ascii=False) + "\n")
+    return p
+
+
 # ---- the run ----------------------------------------------------------------------
 
 def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
@@ -1567,6 +1579,11 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
 
     t0 = time.perf_counter()
     script, notes = layout(plan, world, manifest, scene)
+    if cached and cached.get("edits", {}).get("props"):
+        # Props placed by hand in the Movie page's edit mode (task 18) win over the layout's.
+        script["props"] = cached["edits"]["props"]
+        notes = [f"set edited by hand on {cached['edits'].get('saved', '?')[:16].replace('T', ' ')}: "
+                 f"{len(script['props'])} props from the edit"] + notes
     problems = validate_script(script)
     yield step("orchestrator", "call", "layout.fit(beats, distances, sync) · code")
     for nline in notes[:8]:
