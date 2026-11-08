@@ -1468,14 +1468,21 @@ def save_cache(scene: str, entry: dict) -> Path:
     return p
 
 
-def save_edits(scene: str, props: list[dict]) -> Path:
-    """Store hand-edited props (edit mode) in the scene's cache file; replays use them."""
+def save_edits(scene: str, props: list[dict], camera_paths: list[dict] | None = None) -> Path:
+    """Store hand-edited props and camera paths (edit mode) in the scene's cache file; replays use them."""
     p = cache_path(scene.strip())
     if not p.exists():
         raise FileNotFoundError(f"no cached plan for this scene ({p.name}); make the movie once first")
     entry = json.loads(p.read_text())
+    old = entry.get("edits", {})
     entry["edits"] = {"saved": datetime.now(timezone.utc).isoformat(timespec="seconds"), "props": props}
     entry.setdefault("script", {})["props"] = props
+    paths = old.get("camera_paths", []) if camera_paths is None else camera_paths
+    if paths:
+        entry["edits"]["camera_paths"] = paths
+    entry["script"]["camera_paths"] = paths
+    if not paths:
+        entry["script"].pop("camera_paths", None)
     p.write_text(json.dumps(entry, indent=1, ensure_ascii=False) + "\n")
     return p
 
@@ -1584,6 +1591,11 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
         script["props"] = cached["edits"]["props"]
         notes = [f"set edited by hand on {cached['edits'].get('saved', '?')[:16].replace('T', ' ')}: "
                  f"{len(script['props'])} props from the edit"] + notes
+    if cached and cached.get("edits", {}).get("camera_paths"):
+        # Camera paths drawn in edit mode (task 19) override the director for their spans.
+        script["camera_paths"] = cached["edits"]["camera_paths"]
+        notes = [f"{len(script['camera_paths'])} hand-drawn camera path(s): "
+                 + ", ".join(f"{c['start']:.1f}–{c['end']:.1f} s ({len(c['keys'])} keys)" for c in script["camera_paths"])] + notes
     problems = validate_script(script)
     yield step("orchestrator", "call", "layout.fit(beats, distances, sync) · code")
     for nline in notes[:8]:

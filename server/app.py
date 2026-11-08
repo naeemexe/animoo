@@ -146,6 +146,15 @@ def movie_plan(scene: str, fresh: bool = False) -> StreamingResponse:
 class ScriptEdit(BaseModel):
     scene: str
     props: list[dict]
+    camera_paths: list[dict] | None = None  # task 19; None keeps the saved ones
+
+
+def _bad_path(cp: dict) -> bool:
+    num = lambda v: isinstance(v, (int, float))
+    vec = lambda v: isinstance(v, list) and len(v) == 3 and all(num(x) for x in v)
+    keys = cp.get("keys")
+    return not (num(cp.get("start")) and num(cp.get("end")) and cp["start"] < cp["end"] and isinstance(keys, list)
+                and all(isinstance(k, dict) and num(k.get("t")) and vec(k.get("pos")) and vec(k.get("look")) for k in keys))
 
 
 # Edit mode on the Movie page (task 18): the edited props go into the scene's
@@ -158,11 +167,14 @@ def movie_script_save(req: ScriptEdit) -> dict:
         if not isinstance(p.get("key"), str) or not isinstance(p.get("library"), str) \
                 or not (isinstance(pos, list) and len(pos) == 2 and all(isinstance(v, (int, float)) for v in pos)):
             raise HTTPException(status_code=400, detail=f"bad prop: {p}")
+    for cp in req.camera_paths or []:
+        if _bad_path(cp):
+            raise HTTPException(status_code=400, detail=f"bad camera path: {cp}")
     try:
-        path = save_edits(req.scene, req.props)
+        path = save_edits(req.scene, req.props, req.camera_paths)
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    return {"file": path.name, "props": len(req.props)}
+    return {"file": path.name, "props": len(req.props), "camera_paths": len(req.camera_paths or [])}
 
 
 class PropRequest(BaseModel):

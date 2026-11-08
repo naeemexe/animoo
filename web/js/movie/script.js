@@ -62,6 +62,10 @@
 //   The Movie page replaces `shots` after merging the clips: camera.js
 //   `planShots()` adds `type` (wide, medium, close, side, ots, low), `move`
 //   (static, dolly, pull, orbit, crane, rise), `partner` (ots) and `action`.
+//   "camera_paths": [{                      // optional, drawn in edit mode (task 19)
+//     "start": s, "end": s,                 // inside this span the camera follows the path,
+//     "keys": [{ "t": s, "pos": [x, y, z], "look": [x, y, z] }]   // not the director (campath.js)
+//   }]
 // }
 //
 // How the director reads beats: each character's beats play in order and never
