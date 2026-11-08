@@ -29,8 +29,9 @@ function show(name) {
   current = name;
   pages[name].show();
 }
-window.addEventListener('hashchange', () => show(location.hash.slice(1)));
-show(location.hash.slice(1) || 'movie');
+const pageName = () => location.hash.slice(1).split('?')[0];
+window.addEventListener('hashchange', () => show(pageName()));
+show(pageName() || 'movie');
 
 window.addEventListener('resize', () => {
   stage.resize();

@@ -11,7 +11,7 @@ import { loadManifest } from '../library.js';
 import { loadCharacter } from '../characters/index.js';
 import { validateScript, plannedDuration } from './script.js';
 import { FISHERMAN_SCENE, FISHERMAN_SCRIPT } from './mock.js';
-import { API_BASE } from '../api.js';
+import { API_BASE, urlParams } from '../api.js';
 import { buildSet, setTimeOfDay } from './world.js';
 import { motionFor, motionServerUp, MOTION_URL } from './clips.js';
 import { direct, makeResolver } from './director.js';
@@ -20,7 +20,7 @@ import { DirectorCamera } from './camera.js';
 import { recordWebM } from './export.js';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const params = new URLSearchParams(location.search);
+const params = urlParams;
 const FAST = params.has('fast'); // skip the log's typing delays (for tests)
 const FRESH = params.has('fresh'); // ask Nemotron again instead of the cached plan
 
@@ -33,7 +33,7 @@ export function createMoviePage(root, stage, look) {
     scriptView: $('#movie-script'),
     scriptBox: $('#movie-script-box'),
   };
-  ui.prompt.value = FISHERMAN_SCENE;
+  ui.prompt.value = params.get('scene') ?? FISHERMAN_SCENE;
 
   const state = {
     script: null,

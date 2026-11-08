@@ -2,7 +2,10 @@
 // Under the static dev server, `web/health` answers instead and says
 // `service: "static"`; pass `?api=http://localhost:8000` to reach a backend.
 
-const params = new URLSearchParams(location.search);
+// Flags can sit before the hash (`/?fast#movie`) or after it (`#movie?autoplay&fast`).
+export const urlParams = new URLSearchParams(
+  [location.search.slice(1), location.hash.split('?')[1] ?? ''].filter(Boolean).join('&'));
+const params = urlParams;
 export const API_BASE = (params.get('api') ?? '').replace(/\/$/, '');
 
 export async function getHealth() {

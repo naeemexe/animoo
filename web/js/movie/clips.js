@@ -2,8 +2,9 @@
 // localhost:8101), cached in the browser per prompt, with library/motions/ as
 // the fallback when the server is down.
 import { LIBRARY_BASE, loadManifest } from '../library.js';
+import { urlParams } from '../api.js';
 
-export const MOTION_URL = new URLSearchParams(location.search).get('motion') ?? 'http://localhost:8101';
+export const MOTION_URL = urlParams.get('motion') ?? 'http://localhost:8101';
 const CACHE_NAME = 'animo-motion-v1';
 const memory = new Map();
 

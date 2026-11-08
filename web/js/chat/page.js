@@ -10,6 +10,7 @@
 import * as THREE from 'three';
 import { LOOK } from '../look.js';
 import { LIBRARY_BASE } from '../library.js';
+import { urlParams } from '../api.js';
 import { loadCharacter } from '../characters/index.js';
 import { buildSet, setTimeOfDay } from '../movie/world.js';
 import { motionFor, motionServerUp, MOTION_URL } from '../movie/clips.js';
@@ -20,7 +21,7 @@ import { Performer } from './performer.js';
 const CHARACTER = 'avatar_female';
 const NAME = 'Mira';
 const RAD = Math.PI / 180;
-const params = new URLSearchParams(location.search);
+const params = urlParams;
 
 // Camera: a medium-close shot from the front, a little to the right, so the
 // character stands left of the chat panel.
