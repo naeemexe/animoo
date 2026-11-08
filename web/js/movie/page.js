@@ -46,6 +46,7 @@ export function createMoviePage(root, stage, look) {
     busy: false,
     directorCam: true,
     exporting: false,
+    timings: {},
   };
   const cam = new DirectorCamera(stage, look);
   const timeline = createTimeline($('#movie-timeline'), {
@@ -130,6 +131,9 @@ export function createMoviePage(root, stage, look) {
       if (!planned.script) log('orchestrator', 'note', 'mock script: the fisherman scene (mock.js)');
       state.source = planned.source;
       state.planSeconds = (performance.now() - t0Plan) / 1000;
+      // Seconds per phase, for docs/STATUS.md (task 21).
+      const mark = (k, t) => { state.timings[k] = +((performance.now() - t) / 1000).toFixed(2); };
+      state.timings = { plan: +state.planSeconds.toFixed(2) };
       const problems = validateScript(script, manifest);
       if (problems.length) {
         problems.forEach((p) => log('orchestrator', 'error', p, { err: true }));
@@ -154,12 +158,15 @@ export function createMoviePage(root, stage, look) {
         return hero;
       }));
 
+      const t0Set = performance.now();
       state.set = await buildSet(stage, script, async (line, err, kind = 'call') => {
         log('world', err ? 'error' : kind, line, { err });
         if (!FAST) await sleep(60);
       });
+      mark('set', t0Set);
       log('world', 'result', `set built · ${state.set.children.length} items`);
       await heroesReady;
+      mark('set_and_cast', t0Set);
       log('world', 'result', `cast on set: ${script.cast.map((c) => `${c.name} (${c.character})`).join(', ')}`);
 
       // Motion agent: one Kimodo clip per beat.
@@ -168,11 +175,18 @@ export function createMoviePage(root, stage, look) {
         ? `Kimodo is up at ${MOTION_URL}. ${script.beats.length} clips, post_processing on, cached per prompt in the browser.`
         : `Kimodo isn't reachable at ${MOTION_URL}; falling back to library/motions (start gpu/tunnel.sh for real clips).`);
       const clipsByCast = Object.fromEntries(script.cast.map((c) => [c.id, new Map()]));
-      for (const beat of script.beats) {
+      const t0Clips = performance.now();
+      // All requests go out at once (cache hits come back together; the pod queues the rest),
+      // and the log still lists them in beat order.
+      const pending = script.beats.map((beat) => {
         const li = log('motion', 'call', `generate_motion(${beat.cast}, "${beat.prompt}", ${beat.duration}s)`);
         li.classList.add('pending');
         timeline.setBeatState(beat.id, 'pending');
-        const m = await motionFor(beat);
+        return { li, req: motionFor(beat) };
+      });
+      for (const [i, beat] of script.beats.entries()) {
+        const { li, req } = pending[i];
+        const m = await req;
         li.classList.remove('pending');
         const hero = state.heroes[beat.cast];
         const clip = hero.makeClip(m.text, beat.id);
@@ -181,6 +195,7 @@ export function createMoviePage(root, stage, look) {
         timeline.setBeatState(beat.id, m.source === 'library' ? 'fallback' : 'ready');
       }
 
+      mark('clips', t0Clips);
       // Director: line the beats up and merge each character's clips.
       log('director', 'thought', 'Joining each character\'s clips: match root and heading, turn at the join for `facing`, stretch walks to land on `to`, pin planted feet.');
       const t0 = performance.now();
@@ -201,7 +216,9 @@ export function createMoviePage(root, stage, look) {
       script.shots = shots;
       ui.scriptView.textContent = JSON.stringify(script, null, 2);
       timeline.setRows(state.rows, state.duration);
-      log('director', 'result', `film ready · ${state.duration.toFixed(1)} s · merged in ${(performance.now() - t0).toFixed(0)} ms`);
+      mark('direct', t0);
+      state.timings.total = +((performance.now() - t0Plan) / 1000).toFixed(2);
+      log('director', 'result', `film ready · ${state.duration.toFixed(1)} s · merged in ${(performance.now() - t0).toFixed(0)} ms · ${state.timings.total} s from the prompt`);
       seek(0);
       if (!params.has('t')) setPlaying(true);
       else seek(+params.get('t'));

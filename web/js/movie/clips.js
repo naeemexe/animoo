@@ -71,7 +71,7 @@ export async function motionFor({ prompt, duration, seed = 0 }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt, duration, post_processing: true, seed }),
-        signal: AbortSignal.timeout(60000),
+        signal: AbortSignal.timeout(180000), // requests queue on the pod
       });
       if (!res.ok) throw new Error(`generate-motion returned ${res.status}`);
       const text = await res.text();

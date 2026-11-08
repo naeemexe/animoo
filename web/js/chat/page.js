@@ -185,6 +185,23 @@ export function createChatPage(root, stage, look) {
         console.warn(`Chat: Nemotron offline, mock reply (${error || 'no reason given'})`);
       }
 
+      // Chrome refuses speech before the user has touched the page ("not-allowed"), which
+      // would leave Mira's greeting silent: hold it until the first click or key press.
+      if (!text && navigator.userActivation && !navigator.userActivation.hasBeenActive && voice.available) {
+        const hint = note(li, '🔊 click anywhere to hear Mira');
+        const go = () => {
+          removeEventListener('pointerdown', go, true);
+          removeEventListener('keydown', go, true);
+          hint.remove();
+          if (state.busy || state.messages.at(-1)?.content !== reply) return; // the user moved on
+          state.performer.setTalking(true);
+          voice.speak(reply).finally(() => state.performer.setTalking(false));
+        };
+        addEventListener('pointerdown', go, true);
+        addEventListener('keydown', go, true);
+        return;
+      }
+
       // Ask Kimodo right away, while the first sentence is spoken.
       const clipReady = demonstrate ? fetchDemo(li, demonstrate) : null;
       let firstSentence;
