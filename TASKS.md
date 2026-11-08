@@ -52,7 +52,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 33 | A | Motion polish: walking legs don't look broken (knees bend the right way, no pops), and each clip starts from where and how the previous one ended | 1.5 h | done | 22 |
 | 37 | A | Look round 4: small simple white flowers with no black outlines; a good sea backdrop | 1 h | done | 24, 28 |
 | 34 | A | Natural beat planning: no pointless sit → stand → sit cycles, nobody stands up for no reason, greetings fit who is seated; re-cache the demo scenes | 1.5 h | doing | 22, 33 |
-| 35 | A | Character skins: outfits, hair and body build (slim to heavy) layered on the same rigged figure, like game skins, so animation never breaks | 1.5 h | doing | 27 |
+| 35 | A | Character skins: outfits, hair and body build (slim to heavy) layered on the same rigged figure, like game skins, so animation never breaks | 1.5 h | done | 27 |
 | 36 | A | More cast + background NPCs: scenes with 3+ people; city/park/restaurant get background extras on ambient loops (walk, sit, talk, work) | 1.5 h | todo | 31, 35 |
 | 12c | A | Finalize: re-record the 5 demo takes after round 4, update `demo/SUBMISSION.md`, `docs/STATUS.md` and a short README | 0.5 h | todo | 33–37 |
 
@@ -846,3 +846,28 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
 - 33: not fixed: the park boy's "walks around the bench" walk is 9.1 m straight at stride ×0.62 over 18 s
   (walk_long picked, `pickVariant`), slow-motion looking; task 34's re-plan should look at walk timing. Remaining
   hip-height pops at a walk → crouch join (vertical, ~0.3 m in 0.5 s) are the clips' own height change.
+- 35 (2026-11-08): skins on the same rigged VRM. `look.outfit` (casual, dress, suit, chef, worker, winter_coat) is a
+  preset in `web/js/characters/look.js` (`OUTFITS`): default top/bottom/shoes colors (the plan's colors win, except
+  chef's whites and dress/suit's matching bottom), a pattern baked into the clothing texture in UV space (dress dots,
+  suit pinstripe, chef check trousers, worker hi-vis bands), a default accessory (chef_hat, hard_hat) and extras that
+  always come (suit → tie, winter_coat → scarf plus 1.8 cm coat bulk along the tops' normals). New accessories:
+  hard_hat, beanie, tie, scarf. `look.build` (slim −0.16, sturdy +0.22, heavy +0.48, or a number −1…1) is
+  `web/js/characters/build.js`: not a bone scale (a non-uniform parent scale shears every child bone as it rotates)
+  but the same thing without inheritance: each bind-pose vertex moves away from the axis of the torso/upper-limb
+  bones it is weighted to (belly forward 1.6×, back 0.6×, upper arms/thighs 0.75–0.85, forearms/calves 0.35; weight on
+  neck/head/hands/feet holds a vertex still, so the face seam doesn't open). The skeleton is untouched, so the
+  retargeter, leg IK and foot targets are exactly as before: over the 271-frame walk → wave on /characters.html the
+  heavy and average men's foot bones differ by 0.000 mm, planted-foot slide 0.004 mm/frame for both, same hip drop.
+- 35: plan side: the orchestrator prompt and example ask for outfit and build; `repair_look()` maps words (parka →
+  winter_coat, chubby → heavy) and falls back to the cast's name for the outfit ("the chef" → chef). Old scripts
+  (look without outfit/build) load unchanged. Checks: /characters.html `?lineup=char:outfit:build:hair:accessory`
+  rows (suit/slim, dress/heavy, chef/heavy, winter_coat/sturdy, worker; female and male slim/average/heavy), and the
+  cached restaurant scene with `index.html?…&skin=man:suit:heavy,woman:dress:slim` (seated heavy suit man, dotted
+  dress); console clean except the dead :8101 Kimodo health check. No new Nemotron plan was run.
+- 35: fixed a task 27 bug: accessories were placed in world coordinates but parented under the VRM scene, which
+  rotateVRM0 turns by 180°, so the cap's bill, glasses and apron sat behind the head/body (task 27 never saw them on
+  screen). Tie and apron now size from bone heights (the bounding box is 2.0 m: hair spring bones) and sit on the
+  body's measured front; the apron rides the spine bone so the hoodie pocket doesn't poke through it.
+- 35: not done: the outfit can't change the mesh (the male's hoodie stays a hoodie in a "suit", the female's tank top
+  in a winter coat); a heavy build's arms can graze the widened torso in arm-down idles; UV-space patterns follow
+  VRoid's UV islands, so stripes/bands can run at angles on some pieces. The apron is a flat card.
