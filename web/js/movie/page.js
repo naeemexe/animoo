@@ -346,7 +346,7 @@ export function createMoviePage(root, stage, look) {
 
   // ---- playback -----------------------------------------------------------
   function setPlaying(on) {
-    if (on && editor?.on) return; // no playback while editing
+    if (on && editor?.on) editor.off(); // Play leaves edit mode: the film re-directs around the edits, then plays
     if (on && state.t >= state.duration - 1e-3) seek(0);
     state.playing = on && state.duration > 0;
     timeline.setPlaying(state.playing);

@@ -906,7 +906,8 @@ INDOOR_SETTING = re.compile(r"\b(room|restaurant|kitchen|floor|inside|indoors|ca
 NOT_IN = {"city": re.compile(r"^(tree|pine|bush|rock|flower|mushroom|grass|stump|log|house|wooden-cottage|city-)"),
           "sea": re.compile(r"^(mushroom|stump|house|wooden-cottage|city-|lily|flower)"),
           "park": re.compile(r"^(mushroom|stump|log|rock|city-)")}
-SETTING = re.compile(r"\b(street|road|sidewalk|square|plaza|path|park|lawn|beach|shore|sand|ground|grass)\b", re.I)
+SETTING = re.compile(r"\b(street|road|sidewalk|square|plaza|path|park|lawn|beach|shore|sand|ground|grass"
+                     r"|hill|hilltop|hill-top|hillside|summit|ridge|meadow|clearing|field|viewpoint|overlook|lookout)\b", re.I)
 HOUSE_PART = re.compile(r"\b(window|door|doorstep|porch|balcony|room)\b", re.I)
 TOWN = re.compile(r"\b(village|street|town|houses?|cottages?|alley|square)\b", re.I)
 
