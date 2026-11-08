@@ -13,12 +13,41 @@
 #   bash gpu/setup.sh image
 set -euo pipefail
 
+# Bare VMs (Brev) have no /workspace, no torch and no nvcc. Bootstrap them so
+# every path below is the same as on the RunPod image.
+bootstrap() {
+  local SUDO=""; [ "$(id -u)" = 0 ] || SUDO="sudo"
+  $SUDO mkdir -p /workspace /opt/venvs /opt/src /opt/app
+  $SUDO chown -R "$(id -u):$(id -g)" /workspace /opt/venvs /opt/src /opt/app
+  if ! command -v nvcc >/dev/null && [ ! -x /usr/local/cuda/bin/nvcc ]; then
+    echo "=== installing CUDA 12.8 toolkit ==="
+    $SUDO apt-get update -qq && $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+      cuda-toolkit-12-8 python3-venv python3-dev build-essential git
+  fi
+  if ! command -v cmake >/dev/null || ! command -v g++ >/dev/null; then
+    $SUDO apt-get install -y -qq g++ build-essential cmake ninja-build libgl1 libglib2.0-0 ffmpeg
+  fi
+  if ! python3 -c "import torch" 2>/dev/null; then
+    echo "=== installing torch 2.8 (cu128) system-wide ==="
+    $SUDO python3 -m pip install -q torch==2.8.0 torchvision==0.23.0 \
+      --index-url https://download.pytorch.org/whl/cu128
+  fi
+}
+bootstrap
+
 export HF_HOME=/workspace/hf                  # HF login + model weights persist here
 export PIP_CACHE_DIR=/workspace/pip-cache
 WHEELS=/workspace/wheels                      # compiled CUDA extensions, built once
-export CUDA_HOME=/usr/local/cuda
-export TORCH_CUDA_ARCH_LIST="8.6"             # A40. Use "8.0" for A100, "8.9" for L40S/4090.
-export MAX_JOBS=${MAX_JOBS:-8}
+export CUDA_HOME=$( [ -d /usr/local/cuda-12.8 ] && echo /usr/local/cuda-12.8 || echo /usr/local/cuda )
+export PATH="$CUDA_HOME/bin:$PATH"
+# Compile CUDA extensions for whatever GPU this is (8.0 A100, 8.6 A40, 8.9 L40S, 9.0 H100).
+export TORCH_CUDA_ARCH_LIST="$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | head -1)"
+# Some images point gcc at a version whose C++ compiler isn't installed; use a
+# matching gcc/g++ pair for every compiler, nvcc included.
+if command -v g++-11 >/dev/null && [ ! -x "/usr/lib/gcc/x86_64-linux-gnu/$(gcc -dumpversion | cut -d. -f1)/cc1plus" ]; then
+  export CC=gcc-11 CXX=g++-11 CUDAHOSTCXX=g++-11 NVCC_PREPEND_FLAGS="-ccbin /usr/bin/g++-11"
+fi
+export MAX_JOBS=${MAX_JOBS:-$(( $(nproc) > 16 ? 16 : $(nproc) ))}
 mkdir -p "$WHEELS" /opt/venvs /opt/src
 
 PART=${1:-all}
@@ -37,9 +66,9 @@ wheel_install() {  # wheel_install <venv> <key> <source>
   # extension gets its own folder because wheel names don't match repo names.
   if ! ls "$dir"/*.whl >/dev/null 2>&1; then
     log "building $key (first time only)"
-    rm -rf /opt/wheels-build && mkdir -p /opt/wheels-build "$dir"
-    "$venv/bin/pip" wheel --no-deps --no-build-isolation -w /opt/wheels-build "$src"
-    for w in /opt/wheels-build/*.whl; do cat "$w" > "$dir/$(basename "$w")"; done
+    rm -rf /tmp/wheels-build && mkdir -p /tmp/wheels-build "$dir"
+    "$venv/bin/pip" wheel --no-deps --no-build-isolation -w /tmp/wheels-build "$src"
+    for w in /tmp/wheels-build/*.whl; do cat "$w" > "$dir/$(basename "$w")"; done
   fi
   "$venv/bin/pip" install -q --no-deps "$dir"/*.whl
 }
