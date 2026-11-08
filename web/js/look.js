@@ -133,9 +133,14 @@ export function createLook(renderer, scene, camera) {
   renderer.getDrawingBufferSize(size);
 
   // The scene goes to its own target so the composite can read colour and depth.
-  const sceneRT = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.HalfFloatType, samples: 4 });
+  // Frame cost (task 21, measured on an M4 at 1432×755, pixel ratio 2): 4× MSAA on this half-float
+  // target plus half-float normals held 45–47 fps; without MSAA and with 8-bit normals, 60. On a
+  // retina screen the ink outlines hide the jaggies, so MSAA is only kept below pixel ratio 1.75.
+  const samples = renderer.getPixelRatio() >= 1.75 ? 0 : 4;
+  const sceneRT = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.HalfFloatType, samples });
   sceneRT.depthTexture = new THREE.DepthTexture(size.x, size.y, THREE.UnsignedIntType);
-  const normalRT = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.HalfFloatType });
+  // Normals only feed the edge test, so 8 bits per channel are plenty.
+  const normalRT = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.UnsignedByteType });
   const normalMaterial = new THREE.MeshNormalMaterial();
 
   const composer = new EffectComposer(renderer);
