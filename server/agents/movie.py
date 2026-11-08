@@ -801,7 +801,8 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
             return f"{dist:.1f} m at {speed} m/s → {need:.1f} s" + (f" in {parts} beats" if parts > 1 else "")
 
         def travel_time(cid, dest, prompt):
-            return _dist(pos[cid], dest) / speed_of(prompt) + 0.7
+            need = _dist(pos[cid], dest) / speed_of(prompt) + 0.7
+            return max(need, 2.5) if need <= 9.0 else need
 
         def active(cid):
             return cursor[cid] > 0 or any(x["cast"] == cid for x in beats) or bool(at_place.get(cid))
@@ -820,10 +821,10 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
             pre = b.get("goto") if b.get("goto") in places and b.get("goto") != at_place.get(cid) else None
             if pre:
                 dest, _ = slot(pre, cid)
-                if _dist(pos[cid], dest) < 1.0:
+                if _dist(pos[cid], dest) < 0.5:
                     at_place[cid], pre = pre, None
             if pre:
-                mp = "A person runs forward fast." if fast[cid] else "A person walks forward."
+                mp = "A person runs forward fast." if fast[cid] and _dist(pos[cid], dest) > 3.0 else "A person walks forward."
                 t_go = max(cursor[cid], sync - travel_time(cid, dest, mp))
                 if active(cid):
                     idle(cid, t_go)
@@ -858,7 +859,7 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
                 else:
                     h = _heading(pos[cid], pt)
                 d = _dir(h)
-                dest = (pt[0] + d[0] * 4.0, pt[1] + d[1] * 4.0)
+                dest = (pt[0] + d[0] * 3.0, pt[1] + d[1] * 3.0)
                 if math.hypot(*dest) > ISLAND:
                     dest = (dest[0] * ISLAND / math.hypot(*dest), dest[1] * ISLAND / math.hypot(*dest))
                 dur = min(max(b["duration"], _dist(pos[cid], dest) / speed_of(b["prompt"]) + 0.5), MAX_BEAT)
