@@ -24,7 +24,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 08 | A | Movie: the orchestrator splits a scene into shots and beats, and the world agent builds the set | 3 h | todo | 04, 06 |
 | 09a | A | Movie page UI with a mocked scene script: agent log, world build from script, per-character timeline, play, export WebM | 2.5 h | done | 04, 05 |
 | 09b | A | Movie: wire the real agents in, motion agent generates clips on the pod, director merges | 1.5 h | todo | 08, 09a |
-| 10 | A | Chat page: a character talks (Nemotron + browser voice) and demonstrates moves | 2 h | doing | 05, 06 |
+| 10 | A | Chat page: a character talks (Nemotron + browser voice) and demonstrates moves | 2 h | done (mock replies; live Nemotron path untested) | 05, 06 |
 | 11 | A | Prop generation in the world agent (image → TRELLIS.2 → library) | 1.5 h | todo | 07, 08 |
 | 12 | A | Demo: cache the demo scenes, record the video, write the submission | 2 h | todo | 09, 10 |
 
@@ -171,3 +171,21 @@ license used.
   (2880×1800 on a retina screen): about 10.8 MB for the 23 s film as VP9 WebM.
 - 09a: navigating the browser pane to the same URL with a different `#hash` doesn't reload the
   page, and modules were served stale. The server now sends `Cache-Control: no-cache`.
+- 10: `POST /api/chat {messages} -> {reply, demonstrate: null | {prompt, duration}, source}` is in
+  `server/chat.py`. Without `NVIDIA_API_KEY` it answers from a rule-based mock (greetings, "show me /
+  teach me / how do I <known move>"). With the key it calls Nemotron (`NEMOTRON_MODEL`, default
+  `nvidia/llama-3.3-nemotron-super-49b-v1.5`) through urllib, with `CHAT_SYSTEM_PROMPT` asking for JSON;
+  `parse_reply()` strips `<think>` blocks and code fences. That path has never run: check it once the
+  key is in `.env` (task 06 can reuse the prompt and pick the model).
+- 10: the Chat page (`web/js/chat/`) reuses `buildSet()` and `motionFor()` from `web/js/movie/` for
+  the set and the Kimodo calls (browser cache, library fallback). `performer.js` merges every change of
+  motion from the current pose with `mergeClips()`, so talking can start mid-idle and a demo can start
+  mid-sentence. `#chat` flags: `?say=show+me+a+squat` sends a message on load, `?motion=URL` as on Movie.
+  `window.animo.pages.chat` has `send(text)`, `voice` and `state`.
+- 10: the browser pane picked "Samantha" (macOS). The voice ranking is in `web/js/chat/voice.js`;
+  a Premium/Enhanced voice wins if installed (System Settings → Accessibility → Spoken Content).
+- 10: "A person does a slow bodyweight squat and stands back up." (5 s) took 6.3 s on Kimodo the first
+  time; the squat itself is about 3 s and the hips drop from 0.87 m to 0.38 m.
+- 10: `web/js/demo.js` (the primitive test village) is no longer used by any page.
+- 10: the Movie page before "Make movie" shows the bare island close up and blurred by the tilt-shift
+  (same on a fresh `#movie` load), not the whole island as the old placeholder did.
