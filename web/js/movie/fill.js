@@ -265,16 +265,18 @@ function deal(rng, placements, ids) {
 
 // ---- ground, hills and sky -------------------------------------------------
 
-function groundTexture(P, rng) {
+function groundTexture(P, rng, snowy = false) {
   const c = document.createElement('canvas');
   c.width = c.height = 1024;
   const g = c.getContext('2d');
-  g.fillStyle = '#93c05a';
+  g.fillStyle = snowy ? '#e8eef5' : '#93c05a';
   g.fillRect(0, 0, 1024, 1024);
-  const greens = ['#86b551', '#9fc865', '#7aa94a', '#a6c46a', '#8fb85a'];
+  // Snow: white drifts with a few grass patches showing through.
+  const greens = snowy ? ['#f4f7fb', '#dde5ef', '#eef2f8', '#d3dde9', '#9fbb78']
+    : ['#86b551', '#9fc865', '#7aa94a', '#a6c46a', '#8fb85a'];
   for (let i = 0; i < 700; i++) {
     const x = rng() * 1024, y = rng() * 1024, r = 4 + rng() * 26;
-    g.fillStyle = rng() < 0.06 ? '#b9a46e' : greens[Math.floor(rng() * greens.length)];
+    g.fillStyle = rng() < 0.06 ? (snowy ? '#c9d3df' : '#b9a46e') : greens[Math.floor(rng() * greens.length)];
     g.beginPath();
     const n = 6 + Math.floor(rng() * 4);
     for (let k = 0; k < n; k++) {
@@ -291,8 +293,8 @@ function groundTexture(P, rng) {
   return tex;
 }
 
-function ground(rng) {
-  const mat = toonMaterial('#ffffff', { map: groundTexture(null, rng) });
+function ground(rng, snowy = false) {
+  const mat = toonMaterial('#ffffff', { map: groundTexture(null, rng, snowy) });
   const disc = new THREE.Mesh(new THREE.CircleGeometry(DOME_R * 0.95, 72), mat);
   disc.rotation.x = -Math.PI / 2;
   disc.position.y = -0.002;
@@ -432,7 +434,8 @@ export async function fillWorld(stage, script, set, { seed = 11 } = {}) {
   const fill = new THREE.Group();
   fill.name = 'fill';
   const sky = dome(P, seed);
-  fill.add(ground(rng), hills(rng, P), sky);
+  const snowy = script.terrain?.weather === 'snow';
+  fill.add(ground(rng, snowy), hills(rng, P), sky);
   if (stage.ground) stage.ground.visible = false; // the fill's ground replaces the island
 
   // Fog: the haze color is the dome's horizon, so the ground melts into it.
@@ -447,8 +450,8 @@ export async function fillWorld(stage, script, set, { seed = 11 } = {}) {
     density: (x, z, r) => (r < 13 ? 0.12 : r < 19 ? 0.4 : r < 50 ? 0.9 : 0.55),
   });
   const bushes = scatter(rng, { r0: 4, r1: 40, step: 2.2, margin: 0.7, blocked, scale: [0.7, 1.4], density: (x, z, r) => (r < 10 ? 0.15 : 0.45) });
-  const grass = scatter(rng, { r0: 0, r1: 34, step: 0.7, margin: 0.15, blocked, scale: [0.8, 1.5], density: (x, z) => 0.3 + 0.6 * meadow(x * 0.18, z * 0.18) });
-  const flowers = scatter(rng, { r0: 0, r1: 28, step: 1.0, margin: 0.1, blocked, scale: [0.8, 1.4], density: (x, z) => Math.max(0, drift(x * 0.22, z * 0.22) - 0.45) * 1.6 });
+  const grass = scatter(rng, { r0: 0, r1: 34, step: 0.7, margin: 0.15, blocked, scale: [0.8, 1.5], density: (x, z) => (snowy ? 0.25 : 1) * (0.3 + 0.6 * meadow(x * 0.18, z * 0.18)) });
+  const flowers = scatter(rng, { r0: 0, r1: 28, step: 1.0, margin: 0.1, blocked, scale: [0.8, 1.4], density: (x, z) => (snowy ? 0 : 1) * Math.max(0, drift(x * 0.22, z * 0.22) - 0.45) * 1.6 });
   const rocks = scatter(rng, { r0: 2, r1: 40, step: 3.2, margin: 0.3, blocked, scale: [0.7, 1.5], density: 0.14 });
   const big = scatter(rng, { r0: 10, r1: 60, step: 7, margin: 1, blocked, scale: [0.8, 1.8], density: 0.22 });
   const small = scatter(rng, { r0: 3, r1: 26, step: 4, margin: 0.2, blocked, scale: [0.8, 1.2], density: 0.12 });
