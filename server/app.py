@@ -58,6 +58,7 @@ def health() -> dict:
             "llm": llm.info(),
             "nvidia_api_key": bool(os.getenv("NVIDIA_API_KEY")),
             "hf_token": bool(os.getenv("HF_TOKEN")),
+            "elevenlabs_api_key": bool(os.getenv("ELEVENLABS_API_KEY")),
             "motion_url": os.getenv("MOTION_URL", "http://localhost:8101"),
             "asset_url": os.getenv("ASSET_URL", "http://localhost:8102"),
         },
@@ -183,6 +184,33 @@ def movie_script_save(req: ScriptEdit) -> dict:
         raise HTTPException(status_code=404, detail=str(e))
     return {"file": path.name, "props": len(req.props), "camera_paths": len(req.camera_paths or []),
             "walk_paths": len(req.walk_paths or [])}
+
+
+class AudioRequest(BaseModel):
+    ambience: str | None = None  # the script's audio.ambience.prompt
+    music: str | None = None  # the script's audio.music.prompt
+
+
+# Scene audio files (task 32): {ambience?, music?} prompts -> per kind {url, cached, seconds}
+# or null with the reason. Cached mp3s in library/audio/ come back without a key; new ones
+# need ELEVENLABS_API_KEY. A null tells the page to keep its procedural WebAudio.
+@app.post("/api/movie/audio")
+def movie_audio(req: AudioRequest) -> dict:
+    from . import elevenlabs
+    out = {"key": elevenlabs.has_key(), "errors": {}}
+    for kind in ("ambience", "music"):
+        prompt = (getattr(req, kind) or "").strip()
+        out[kind] = None
+        if not prompt:
+            continue
+        try:
+            out[kind] = elevenlabs.scene_audio(kind, prompt)
+        except elevenlabs.NoKey as e:
+            out["errors"][kind] = str(e)
+        except elevenlabs.ElevenLabsError as e:
+            print(f"[elevenlabs] {kind} failed: {e}")
+            out["errors"][kind] = str(e)[:200]
+    return out
 
 
 class PropRequest(BaseModel):

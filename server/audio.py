@@ -21,7 +21,7 @@ import re
 
 LAYERS = ["rain", "wind", "waves", "birds", "crickets", "traffic", "murmur", "fire"]
 MOODS = ["calm", "warm", "tender", "playful", "hopeful", "melancholy", "mysterious", "cozy"]
-VOLUME = 0.35  # the default master level: a quiet bed under the picture
+VOLUME = 0.25  # the default master level: a quiet bed under the picture (about -25 dBFS RMS)
 
 PLACE = {"forest": "in a quiet forest village", "city": "on a city street", "sea": "by the sea",
          "park": "in a city park", "room": "in a cozy room indoors", "restaurant": "in a small restaurant"}
