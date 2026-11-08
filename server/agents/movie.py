@@ -67,6 +67,23 @@ WEATHER_WORDS = [
 ]
 
 
+# The biome sets the ground, scatter, backdrop and decor (web/js/movie/fill.js).
+# First match wins: a "village street" stays a village (forest), a "city park" is a park.
+BIOMES = ["forest", "city", "sea", "park"]
+BIOME_WORDS = [
+    ("forest", r"\b(village|forest|woods?|camp\w*|cabin)\b"),
+    ("sea", r"\b(beach\w*|sea|seaside|ocean|harbou?r|coast\w*|seashore|surf\w*|sand castle|sandcastle)\b"),
+    ("park", r"\b(park|playground|picnic|garden)\b"),
+    ("city", r"\b(city|street|downtown|sidewalk|traffic|avenue|crosswalk|bus stop|skyscrapers?|market|plaza|town square|cafe|shop)\b"),
+    ("forest", r"\b(meadow|lake|pond|river)\b"),
+]
+
+
+def biome_from_text(text: str) -> str | None:
+    t = text.lower()
+    return next((k for k, rx in BIOME_WORDS if re.search(rx, t)), None)
+
+
 def time_from_text(text: str) -> str | None:
     t = text.lower()
     return next((k for k, rx in TIME_WORDS if re.search(rx, t)), None)
@@ -121,6 +138,7 @@ PLAN_EXAMPLE = {
                  "Places: their cottage, a bench, the jetty at the pond.",
                  "Grandpa walks to the bench and sits; the girl skips to the pond, feeds the ducks and waves at him once he sits."],
     "time_of_day": "golden",
+    "biome": "forest",
     "weather": "clear",
     "water": True,
     "places": [
@@ -149,6 +167,7 @@ PLAN_SCHEMA = {
         "thoughts": {"type": "array", "items": {"type": "string"}},
         "time_of_day": {"type": "string"},
         "weather": {"type": "string"},
+        "biome": {"type": "string"},
         "water": {"type": "boolean"},
         "places": {"type": "array", "items": {"type": "object", "required": ["key", "what"],
                    "properties": {"key": {"type": "string"}, "what": {"type": "string"}, "use": {"type": "string"}}}},
@@ -168,6 +187,8 @@ Reply with the whole plan in ONE JSON object. Rules:
 - places: 2 to 6 locations or objects the story needs, with a short key. use is "sit" for something to
   sit on (bench, log, stump), "water" for something at the water's edge (dock, jetty, boat), else "stand".
   Every place, cast member and beat must come from the scene; don't invent extra story.
+- biome: one of forest (also villages and camps), city (streets, markets, town squares), sea (beach,
+  seaside, harbor), park (a city park or garden).
 - water: true only if the scene has a pond, lake, river or sea.
 - time_of_day: one of sunrise, day, golden, dusk, night (what the scene says; golden if it says nothing).
 - weather: one of clear, rain, snow, fog, windy (clear unless the scene names weather).
@@ -230,9 +251,14 @@ lighthouse with a red roof"), size_m (real size in meters: the height, but the l
 At most {MAX_GENERATE} generates per film. Then add decor that sets the mood: 3 to 6 kinds of small library
 props with a count each (20 in all at most) that fit the setting: a market gets more stalls, crates,
 barrels, carts and lanterns; a camp gets logs, stumps, rocks and pines; a village gets fences, flowers,
-bushes and trees. near is a place key or "edge" (the rim of the island, good for trees).
+bushes and trees. The biome sets the rest of the world (fill code adds the ground, the buildings or
+forest around the set and the backdrop), so decor is only what stands near the action: a city street gets
+lantern-post, bench, hedge, crate, barrel and a truck (never trees or rocks); a sea or harbor scene
+gets dock, rowboat, canoe, barrel, crate, chest, rock-large; a park gets bench, hedge, fountain,
+lantern-post, flowers, tree-round. near is a place key or "edge" (the rim of the island, good for trees).
 A window, door or porch is part of a building: choose house or wooden-cottage for it, never generate a
-lone window. A village, street or town gets houses (house, wooden-cottage) and lantern-post in the decor.
+lone window. A village gets houses (house, wooden-cottage) and lantern-post in the decor; a city shop,
+cafe or apartment is a city-building-* prop.
 You don't place anything: layout code puts every prop in its spot. Reply with ONE JSON object."""
 
 
@@ -424,6 +450,9 @@ def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
             fixes.append(f"{name} {have} → {got} (from the scene text)")
     tod = time_from_text(scene) or tod
     wx = weather_from_text(scene) or wx
+    bio = str(raw.get("biome", "forest")).lower()
+    bio = biome_from_text(scene) or (bio if bio in BIOMES else {"beach": "sea", "harbor": "sea", "street": "city", "town": "city",
+                                                               "village": "forest", "garden": "park"}.get(bio, "forest"))
     shots = []
     for s in (raw.get("shots") or [])[:6]:
         if not isinstance(s, dict):
@@ -434,8 +463,8 @@ def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
         fr = s.get("framing") if s.get("framing") in ("wide", "medium", "close") else "medium"
         shots.append({"framing": fr, "subject": subj or [c["id"] for c in cast],
                       "until": str(s.get("until")) if str(s.get("until")) in bids else None})
-    plan = {"title": str(raw.get("title") or "Untitled"), "time_of_day": tod, "weather": wx,
-            "water": bool(WATER_WORDS.search(scene)) if scene else bool(raw.get("water")),
+    plan = {"title": str(raw.get("title") or "Untitled"), "time_of_day": tod, "weather": wx, "biome": bio,
+            "water": bio == "sea" or (bool(WATER_WORDS.search(scene)) if scene else bool(raw.get("water"))),
             "places": places, "cast": cast, "beats": beats, "shots": shots,
             "thoughts": [str(t) for t in (raw.get("thoughts") or [])][:4]}
     return plan, fixes
@@ -449,11 +478,24 @@ def default_world(plan: dict, manifest: dict) -> dict:
         hits = search_library(f"{p['key']} {p['what']}", 1, manifest, p["key"], p["use"])
         choices.append({"place": p["key"], "library": hits[0]["id"] if hits else
                         ("bench" if p["use"] == "sit" else "dock-small" if p["use"] == "water" else "signpost")})
-    decor = [{"library": "tree-oak", "count": 4, "near": "edge"}, {"library": "pine-round", "count": 2, "near": "edge"},
-             {"library": "bush", "count": 3}, {"library": "flower-yellow", "count": 3}, {"library": "rock-large", "count": 2}]
+    decor = BIOME_DECOR.get(plan.get("biome"), BIOME_DECOR["forest"])
     return {"choices": choices, "decor": [d for d in decor if d["library"] in ids], "thoughts": []}
 
 
+BIOME_DECOR = {
+    "forest": [{"library": "tree-oak", "count": 4, "near": "edge"}, {"library": "pine-round", "count": 2, "near": "edge"},
+               {"library": "bush", "count": 3}, {"library": "flower-yellow", "count": 3}, {"library": "rock-large", "count": 2}],
+    "city": [{"library": "lantern-post", "count": 4}, {"library": "bench", "count": 2}, {"library": "hedge", "count": 3},
+             {"library": "crate", "count": 2}, {"library": "truck", "count": 1, "near": "edge"}],
+    "sea": [{"library": "barrel", "count": 3}, {"library": "crate", "count": 3}, {"library": "rock-large", "count": 3},
+            {"library": "canoe", "count": 1}],
+    "park": [{"library": "tree-round", "count": 4, "near": "edge"}, {"library": "hedge", "count": 4}, {"library": "lantern-post", "count": 3},
+             {"library": "flower-red", "count": 3}, {"library": "bench", "count": 1}],
+}
+# Decor that doesn't belong in a biome (the fill adds the city's buildings itself).
+NOT_IN = {"city": re.compile(r"^(tree|pine|bush|rock|flower|mushroom|grass|stump|log|house|wooden-cottage|city-)"),
+          "sea": re.compile(r"^(mushroom|stump|house|wooden-cottage|city-)"),
+          "park": re.compile(r"^(mushroom|stump|log|rock|city-)")}
 HOUSE_PART = re.compile(r"\b(window|door|doorstep|porch|balcony|room)\b", re.I)
 TOWN = re.compile(r"\b(village|street|town|houses?|cottages?|alley|square)\b", re.I)
 
@@ -512,6 +554,10 @@ def repair_world(raw: dict, plan: dict, manifest: dict, scene: str = "") -> tupl
         if d["library"] in wet and not plan["water"]:
             fixes.append(f"decor {d['library']}: no water in this scene, dropped")
             continue
+        bad = NOT_IN.get(plan.get("biome"))
+        if bad and bad.match(d["library"]):
+            fixes.append(f"decor {d['library']}: not in a {plan['biome']} scene, dropped")
+            continue
         try:
             n = int(d.get("count", 1))
         except (TypeError, ValueError):
@@ -525,7 +571,7 @@ def repair_world(raw: dict, plan: dict, manifest: dict, scene: str = "") -> tupl
         decor = default_world(plan, manifest)["decor"]
     # A village street needs houses along it (and, at night, the lamps light it).
     blds = {p["id"] for p in manifest["props"] if p.get("category") == "buildings"}
-    if houses and TOWN.search(scene) and not any(d["library"] in blds for d in decor) \
+    if houses and plan.get("biome", "forest") == "forest" and TOWN.search(scene) and not any(d["library"] in blds for d in decor) \
             and sum(c["library"] in blds for c in by_place.values()) < 2:
         decor.append({"library": "house", "count": 2, "near": "edge"})
         if "lantern-post" in ids and not any(d["library"] == "lantern-post" for d in decor):
@@ -1135,7 +1181,7 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
                                   "rotation": rng.randrange(-180, 180, 15)})
                     break
 
-    terrain = {"time_of_day": plan["time_of_day"], "weather": plan.get("weather", "clear")}
+    terrain = {"time_of_day": plan["time_of_day"], "weather": plan.get("weather", "clear"), "biome": plan.get("biome", "forest")}
     if water:
         terrain["water"] = [water]
     if len(path_pts) > 1:
@@ -1330,7 +1376,7 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
                             + (", ".join(f"{h['id']} ({h['height_m']} m; {' '.join(h['tags'])})" for h in searches[p['key']]) or "nothing")
                             + ("" if matched(p) else f"  → NO MATCH: generate a {p['key']} unless the catalog has the same kind of thing")
                             for p in plan["places"])
-                + f"\n\nThe scene: {scene}\nTime of day: {plan['time_of_day']}. Weather: {plan['weather']}. Water: {'yes' if plan['water'] else 'no'}."
+                + f"\n\nThe scene: {scene}\nBiome: {plan.get('biome', 'forest')}. Time of day: {plan['time_of_day']}. Weather: {plan['weather']}. Water: {'yes' if plan['water'] else 'no'}."
                 + f"\n\nThe whole library catalog (ids by category):\n{catalog(manifest)}")
         yield step("world", "call", f"nemotron.pick_props({len(plan['places'])} places) · {llm.model('world')}")
         t0 = time.perf_counter()
