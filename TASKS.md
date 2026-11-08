@@ -22,7 +22,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 06a | B | Self-host Nemotron Nano 9B v2 (FP8) on the pod with vLLM (:8104, OpenAI-compatible, tool calling) | 1 h | dropped: use OpenRouter / OpenCode Zen instead | — |
 | 06 | A | Nemotron client + agent loop on the server (tool calling, streamed steps), via OpenCode's free Nemotron now and swappable to NVIDIA's API later | 1.5 h | done (free tier rate-limits after ~30 calls: get a key for 08) | — |
 | 07 | B | Text → concept image for props (pick a model, add an endpoint) | 1.5 h | done | 03 |
-| 08 | A | Movie: the orchestrator splits a scene into shots and beats, and the world agent builds the set | 3 h | todo | 04, 06 |
+| 08 | A | Movie: the orchestrator splits a scene into shots and beats, and the world agent builds the set | 3 h | doing | 04, 06 |
 | 09a | A | Movie page UI with a mocked scene script: agent log, world build from script, per-character timeline, play, export WebM | 2.5 h | done | 04, 05 |
 | 09b | A | Movie: wire the real agents in, motion agent generates clips on the pod, director merges | 1.5 h | todo | 08, 09a |
 | 10 | A | Chat page: a character talks (Nemotron + browser voice) and demonstrates moves | 2 h | done (mock replies; live Nemotron path untested) | 05, 06 |
