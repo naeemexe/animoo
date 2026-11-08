@@ -14,9 +14,10 @@ Routing (all from `.env`, re-read when it changes):
   chat; anything else counts as `default`). Its hosted model is
   `LLM_MODEL_<AGENT>` (DEFAULT_ROUTES below when unset), on the `nvidia`
   backend: `NVIDIA_API_KEY` at https://integrate.api.nvidia.com/v1.
-  `LLM_THINK_<AGENT>=1|0` turns the hosted model's reasoning on or off (on
-  only for the orchestrator by default); reasoning gets its own token budget
-  on top of `max_tokens`.
+  `LLM_THINK_<AGENT>=1|0` turns the hosted model's reasoning on or off (off
+  by default: with it the orchestrator took 30-70 s instead of 3 s, and once
+  spent the whole budget thinking); reasoning gets its own token budget on
+  top of `max_tokens`.
 - A call that fails (error, timeout, rate limit) falls to the next tier:
     1. `nvidia`   the agent's hosted model,
     2. `openai`   the self-hosted Nano 9B: `NEMOTRON_BASE_URL` (+ `NEMOTRON_API_KEY`),
@@ -65,7 +66,7 @@ DEFAULT_ROUTES = {
     "world": HOSTED_LIGHTNING, "motion": HOSTED_LIGHTNING, "director": HOSTED_LIGHTNING,
     "chat": HOSTED_LIGHTNING, "default": HOSTED_LIGHTNING,
 }
-DEFAULT_THINK = {"orchestrator"}
+DEFAULT_THINK: set[str] = set()  # reasoning on: 30-70 s per plan and it can use up the budget
 THINK_TOKENS = 4000  # extra max_tokens for a reasoning model's thinking
 SELF_HOSTED_MODEL = "nemotron"
 OPENCODE_MODEL = "opencode/nemotron-3.5-lightning-free"
