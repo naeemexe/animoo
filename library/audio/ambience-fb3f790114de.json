@@ -1,0 +1,14 @@
+{
+ "kind": "ambience",
+ "prompt": "Ambient soundscape in a quiet forest village at sunrise: birdsong, a gentle breeze, ocean waves washing on the shore. Seamless loop, natural, no music, no voices.",
+ "endpoint": "/v1/sound-generation",
+ "body": {
+  "model_id": "eleven_text_to_sound_v2",
+  "loop": true,
+  "duration_seconds": 22,
+  "prompt_influence": 0.35
+ },
+ "bytes": 353218,
+ "seconds": 4.6,
+ "created": "2026-11-08T15:51:45+00:00"
+}

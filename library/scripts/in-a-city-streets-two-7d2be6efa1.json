@@ -1,0 +1,501 @@
+{
+ "scene": "in a city streets two guys comes in and talk about something and dab each other. where thera are other people in the backgrounds mostly",
+ "created": "2026-11-08T15:54:02+00:00",
+ "model": "nvidia/nemotron-3.5-super-vl-120b-a12b + nvidia/nemotron-3.5-lightning-30b-a3b",
+ "backend": "nvidia",
+ "llm_calls": [
+  {
+   "agent": "orchestrator",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+   "ok": true,
+   "seconds": 6.82
+  },
+  {
+   "agent": "world",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+   "ok": true,
+   "seconds": 2.1
+  }
+ ],
+ "llm_seconds": [
+  6.82,
+  2.1
+ ],
+ "plan": {
+  "title": "Two guys on the street",
+  "thoughts": [
+   "Two male characters enter the city street together and talk, then dab each other.",
+   "Places: the city street where they start and talk, plus background people as a stand-in crowd.",
+   "They walk in, face each other to talk, then perform the dab together."
+  ],
+  "time_of_day": "day",
+  "biome": "city",
+  "weather": "clear",
+  "water": false,
+  "audio": {
+   "ambience": {
+    "prompt": "Busy city street during the day with distant traffic, footsteps, and murmuring pedestrians.",
+    "layers": {
+     "traffic": 0.5,
+     "murmur": 0.5,
+     "wind": 0.2
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow instrumental bed with gentle piano and light strings, no drums, no vocals.",
+    "mood": "calm"
+   }
+  },
+  "places": [
+   {
+    "key": "street",
+    "what": "a busy city street",
+    "use": "stand"
+   }
+  ],
+  "cast": [
+   {
+    "id": "guy1",
+    "name": "Guy 1",
+    "character": "avatar_male",
+    "kid": false,
+    "starts_at": "street",
+    "look": {
+     "height_m": 1.75,
+     "top": "navy",
+     "bottom": "khaki",
+     "hair": "brown",
+     "skin": "light",
+     "accessory": "none",
+     "outfit": "casual",
+     "build": "average"
+    }
+   },
+   {
+    "id": "guy2",
+    "name": "Guy 2",
+    "character": "avatar_male",
+    "kid": false,
+    "starts_at": "street",
+    "look": {
+     "height_m": 1.8,
+     "top": "red",
+     "bottom": "navy",
+     "hair": "black",
+     "skin": "tan",
+     "accessory": "cap",
+     "outfit": "casual",
+     "build": "sturdy"
+    }
+   }
+  ],
+  "beats": [
+   {
+    "id": "b1",
+    "cast": "guy1",
+    "action": "walks into the street",
+    "prompt": "A person walks forward.",
+    "duration": 4,
+    "move_to": "street"
+   },
+   {
+    "id": "b2",
+    "cast": "guy2",
+    "action": "walks into the street",
+    "prompt": "A person walks forward.",
+    "duration": 4,
+    "move_to": "street"
+   },
+   {
+    "id": "b3",
+    "cast": "guy1",
+    "action": "turns to guy2",
+    "prompt": "A person turns to face someone.",
+    "duration": 2,
+    "face": "guy2"
+   },
+   {
+    "id": "b4",
+    "cast": "guy2",
+    "action": "turns to guy1",
+    "prompt": "A person turns to face someone.",
+    "duration": 2,
+    "face": "guy1"
+   },
+   {
+    "id": "b5",
+    "cast": "guy1",
+    "action": "talks with guy2",
+    "prompt": "A person stands and talks while gesturing slightly.",
+    "duration": 5,
+    "face": "guy2"
+   },
+   {
+    "id": "b6",
+    "cast": "guy2",
+    "action": "talks with guy1",
+    "prompt": "A person stands and talks while gesturing slightly.",
+    "duration": 5,
+    "face": "guy1",
+    "with": "b5"
+   },
+   {
+    "id": "b7",
+    "cast": "guy1",
+    "action": "dabs guy2",
+    "prompt": "A person leans forward and dabs with one arm.",
+    "duration": 3,
+    "face": "guy2"
+   },
+   {
+    "id": "b8",
+    "cast": "guy2",
+    "action": "dabs guy1",
+    "prompt": "A person leans forward and dabs with one arm.",
+    "duration": 3,
+    "face": "guy1",
+    "with": "b7"
+   }
+  ]
+ },
+ "world": {
+  "thoughts": [
+   "The street is a busy city sidewalk with two characters and background people.",
+   "A daytime city scene with clear weather and no water."
+  ],
+  "choices": [
+   {
+    "place": "street",
+    "library": "city-building-low"
+   },
+   {
+    "place": "bench",
+    "library": "bench"
+   },
+   {
+    "place": "other-people",
+    "library": "city-building-tall"
+   },
+   {
+    "place": "background-buildings",
+    "library": "city-building-corner"
+   }
+  ],
+  "decor": [
+   {
+    "library": "bush",
+    "count": 5,
+    "near": "street"
+   },
+   {
+    "library": "flower-red",
+    "count": 4,
+    "near": "street"
+   },
+   {
+    "library": "lantern-post",
+    "count": 3,
+    "near": "street"
+   },
+   {
+    "library": "crate",
+    "count": 4,
+    "near": "street"
+   },
+   {
+    "library": "bench",
+    "count": 2,
+    "near": "edge"
+   },
+   {
+    "library": "tree-oak",
+    "count": 3,
+    "near": "edge"
+   }
+  ]
+ },
+ "script": {
+  "version": 1,
+  "title": "Two guys on the street",
+  "scene": "in a city streets two guys comes in and talk about something and dab each other. where thera are other people in the backgrounds mostly",
+  "terrain": {
+   "time_of_day": "day",
+   "weather": "clear",
+   "biome": "city"
+  },
+  "props": [
+   {
+    "key": "street",
+    "library": "lantern-post",
+    "position": [
+     0.87,
+     -0.95
+    ],
+    "rotation": -18.0
+   },
+   {
+    "key": "lantern-post-1",
+    "library": "lantern-post",
+    "position": [
+     3.12,
+     1.91
+    ],
+    "rotation": -45
+   },
+   {
+    "key": "lantern-post-2",
+    "library": "lantern-post",
+    "position": [
+     1.69,
+     -3.36
+    ],
+    "rotation": -75
+   },
+   {
+    "key": "lantern-post-3",
+    "library": "lantern-post",
+    "position": [
+     -1.24,
+     -0.68
+    ],
+    "rotation": 135
+   },
+   {
+    "key": "crate-4",
+    "library": "crate",
+    "position": [
+     -1.65,
+     -0.17
+    ],
+    "rotation": 120
+   },
+   {
+    "key": "crate-5",
+    "library": "crate",
+    "position": [
+     -1.08,
+     -3.6
+    ],
+    "rotation": -75
+   },
+   {
+    "key": "crate-6",
+    "library": "crate",
+    "position": [
+     1.74,
+     -4.31
+    ],
+    "rotation": 0
+   },
+   {
+    "key": "crate-7",
+    "library": "crate",
+    "position": [
+     0.93,
+     -2.63
+    ],
+    "rotation": -45
+   },
+   {
+    "key": "bench-8",
+    "library": "bench",
+    "position": [
+     -11.52,
+     -4.61
+    ],
+    "rotation": 165
+   },
+   {
+    "key": "bench-9",
+    "library": "bench",
+    "position": [
+     -11.72,
+     5.94
+    ],
+    "rotation": -15
+   }
+  ],
+  "cast": [
+   {
+    "id": "guy1",
+    "name": "Guy 1",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      1.67,
+      6.01
+     ],
+     "facing": -173.0
+    },
+    "scale": 0.871,
+    "look": {
+     "top": "#23305e",
+     "bottom": "#b5a46e",
+     "hair": "#5a3a22",
+     "skin": "#efc9ab",
+     "outfit": "casual"
+    }
+   },
+   {
+    "id": "guy2",
+    "name": "Guy 2",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      1.67,
+      6.01
+     ],
+     "facing": -173.0
+    },
+    "scale": 0.896,
+    "look": {
+     "top": "#c8352e",
+     "bottom": "#23305e",
+     "hair": "#1d1a1c",
+     "skin": "#c48a5e",
+     "accessory": "cap",
+     "outfit": "casual",
+     "build": "sturdy"
+    }
+   }
+  ],
+  "beats": [
+   {
+    "id": "guy1-1",
+    "cast": "guy1",
+    "start": 0.0,
+    "duration": 5.0,
+    "prompt": "A person walks forward.",
+    "action": "walks into the street",
+    "to": [
+     0.59,
+     -0.12
+    ],
+    "motion": "walk"
+   },
+   {
+    "id": "guy2-1",
+    "cast": "guy2",
+    "start": 0.0,
+    "duration": 5.0,
+    "prompt": "A person walks forward.",
+    "action": "walks into the street",
+    "to": [
+     1.33,
+     -0.2
+    ],
+    "seed": 1,
+    "motion": "walk"
+   },
+   {
+    "id": "guy1-2",
+    "cast": "guy1",
+    "start": 5.0,
+    "duration": 2.0,
+    "prompt": "A person turns to face someone.",
+    "action": "turns to guy2",
+    "facing": "guy2"
+   },
+   {
+    "id": "guy2-2",
+    "cast": "guy2",
+    "start": 5.0,
+    "duration": 2.0,
+    "prompt": "A person turns to face someone.",
+    "action": "turns to guy1",
+    "facing": "guy1",
+    "seed": 1
+   },
+   {
+    "id": "guy1-3",
+    "cast": "guy1",
+    "start": 7.0,
+    "duration": 5.0,
+    "prompt": "A person stands and talks while gesturing slightly.",
+    "action": "talks with guy2",
+    "facing": "guy2",
+    "motion": "talk"
+   },
+   {
+    "id": "guy2-3",
+    "cast": "guy2",
+    "start": 7.0,
+    "duration": 5.0,
+    "prompt": "A person stands and talks while gesturing slightly.",
+    "action": "talks with guy1",
+    "facing": "guy1",
+    "seed": 1,
+    "motion": "talk"
+   },
+   {
+    "id": "guy1-4",
+    "cast": "guy1",
+    "start": 12.0,
+    "duration": 3.0,
+    "prompt": "A person leans forward and dabs with one arm.",
+    "action": "dabs guy2",
+    "facing": "guy2"
+   },
+   {
+    "id": "guy2-4",
+    "cast": "guy2",
+    "start": 12.0,
+    "duration": 3.0,
+    "prompt": "A person leans forward and dabs with one arm.",
+    "action": "dabs guy1",
+    "facing": "guy1",
+    "seed": 1
+   }
+  ],
+  "shots": [
+   {
+    "id": "s1",
+    "start": 0.0,
+    "duration": 5.0,
+    "framing": "wide",
+    "subject": [
+     "guy1",
+     "guy2"
+    ],
+    "angle": 35
+   },
+   {
+    "id": "s2",
+    "start": 5.0,
+    "duration": 5.0,
+    "framing": "medium",
+    "subject": "guy1",
+    "angle": -25
+   },
+   {
+    "id": "s3",
+    "start": 10.0,
+    "duration": 5.0,
+    "framing": "wide",
+    "subject": [
+     "guy1",
+     "guy2"
+    ],
+    "angle": 55
+   }
+  ],
+  "audio": {
+   "ambience": {
+    "prompt": "Busy city street during the day with distant traffic, footsteps, and murmuring pedestrians.",
+    "layers": {
+     "traffic": 0.5,
+     "murmur": 0.5,
+     "wind": 0.2
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow instrumental bed with gentle piano and light strings, no drums, no vocals.",
+    "mood": "calm"
+   },
+   "volume": 0.25,
+   "source": "nemotron"
+  }
+ }
+}
