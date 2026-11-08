@@ -29,6 +29,7 @@ os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 import httpx
 import torch
 from diffusers import SanaSprintPipeline
+from diffusers.hooks import apply_layerwise_casting
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
@@ -39,17 +40,27 @@ ASSET_URL = os.environ.get("ASSET_URL", "http://127.0.0.1:8102")
 CACHE = os.environ.get("IMAGE_CACHE", "/workspace/cache/images")
 os.makedirs(CACHE, exist_ok=True)
 
-STYLE = ("{prompt}, a single isolated object, centered, whole object in frame, "
-         "three-quarter view from slightly above, low-poly storybook style, stylized 3D game asset, "
-         "simple chunky shapes, flat soft colors, soft studio lighting, "
-         "plain light grey background, no ground, no shadow, no text")
+# Name the object first; SANA ignores negatives ("no base") and tends to add the
+# thing named, so phrase everything positively. A small ground disc still shows up
+# under some props (strong prior of "low-poly game asset"); task 11 handles it.
+STYLE = ("a single {prompt} cut out and isolated on a plain light grey background, "
+         "three-quarter view, low-poly storybook 3D render, stylized cartoon game asset, "
+         "simple chunky shapes, flat soft pastel colors, soft even lighting, centered, "
+         "entire object visible")
 
 app = FastAPI(title="Image server")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"],
                    allow_headers=["*"], expose_headers=["X-Cache", "X-Gen-Seconds", "X-Image-Key"])
 
 t0 = time.time()
-pipe = SanaSprintPipeline.from_pretrained(MODEL, torch_dtype=torch.bfloat16).to("cuda")
+pipe = SanaSprintPipeline.from_pretrained(MODEL, torch_dtype=torch.bfloat16)  # diffusers 0.35 ignores dtype=
+if os.environ.get("SANA_FP8", "1") == "1":
+    # Store the transformer's and Gemma's linear weights in fp8 and compute in bf16:
+    # ~10 -> ~7 GiB peak, so TRELLIS.2 keeps its headroom on the shared A40.
+    for m in (pipe.transformer, pipe.text_encoder):
+        apply_layerwise_casting(m, storage_dtype=torch.float8_e4m3fn, compute_dtype=torch.bfloat16,
+                                skip_modules_pattern=("norm", "embed"))
+pipe.to("cuda")
 pipe.set_progress_bar_config(disable=True)
 print(f"Loaded {MODEL} in {time.time() - t0:.0f}s, "
       f"{torch.cuda.memory_allocated() / 2**30:.1f} GiB on GPU")
@@ -71,31 +82,39 @@ class PropReq(ImageReq):
 
 
 def styled(req: ImageReq) -> str:
-    return req.prompt.strip() if req.raw else STYLE.format(prompt=req.prompt.strip().rstrip("."))
+    if req.raw:
+        return req.prompt.strip()
+    p = req.prompt.strip().rstrip(".")
+    for article in ("a ", "an ", "the "):  # the style template supplies "a single"
+        if p.lower().startswith(article):
+            p = p[len(article):]
+            break
+    return STYLE.format(prompt=p)
 
 
-def make_image(req: ImageReq) -> tuple[str, str, float]:
-    """Return (cache key, png path, seconds spent generating; 0 for a cache hit)."""
+def make_image(req: ImageReq) -> tuple[str, bytes, float]:
+    """Return (cache key, PNG bytes, seconds spent generating; 0 for a cache hit)."""
     if not req.prompt.strip():
         raise HTTPException(400, "empty prompt")
     text = styled(req)
     key = hashlib.sha1(f"{MODEL}|{text}|{req.seed}|{req.steps}|{req.size}".encode()).hexdigest()[:16]
     path = os.path.join(CACHE, f"{key}.png")
     if os.path.exists(path):
-        return key, path, 0.0
+        with open(path, "rb") as f:
+            return key, f.read(), 0.0
     with gpu_lock:
         t = time.time()
         img = pipe(prompt=text, num_inference_steps=req.steps, height=req.size, width=req.size,
                    generator=torch.Generator("cuda").manual_seed(req.seed)).images[0]
         dt = time.time() - t
     buf = io.BytesIO()
-    img.save(buf, format="PNG")
+    img.save(buf, format="PNG", compress_level=1)
     with open(path, "wb") as f:  # plain write: the volume rejects chmod, so no shutil.copy
         f.write(buf.getvalue())
     with open(os.path.join(CACHE, f"{key}.json"), "w") as f:
         json.dump({"prompt": req.prompt, "styled": text, "seed": req.seed, "steps": req.steps,
                    "size": req.size, "model": MODEL, "seconds": round(dt, 2)}, f, indent=1)
-    return key, path, dt
+    return key, buf.getvalue(), dt
 
 
 @app.get("/health")
@@ -106,8 +125,8 @@ def health():
 
 @app.post("/generate-image")
 def generate_image(req: ImageReq):
-    key, path, dt = make_image(req)
-    return FileResponse(path, media_type="image/png", headers={
+    key, png, dt = make_image(req)
+    return Response(png, media_type="image/png", headers={
         "X-Cache": "hit" if dt == 0 else "miss", "X-Gen-Seconds": f"{dt:.2f}", "X-Image-Key": key})
 
 
@@ -122,9 +141,7 @@ def get_image(key: str):
 @app.post("/generate-prop")
 def generate_prop(req: PropReq):
     t = time.time()
-    key, path, _ = make_image(req)
-    with open(path, "rb") as f:
-        png = f.read()
+    key, png, _ = make_image(req)
     try:
         r = httpx.post(f"{ASSET_URL}/generate-asset", timeout=900,
                        files={"image": (f"{key}.png", png, "image/png")},
