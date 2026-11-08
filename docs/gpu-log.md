@@ -43,3 +43,4 @@ Notes:
 | 2026-11-07 | ~1.5 | ~$0.90 | TRELLIS.2 built and serving; Kimodo and TRELLIS.2 smoke tests pass |
 | 2026-11-07 | ~0.35 | ~$0.21 | SANA-Sprint image server (:8103) installed; 5 sample images and one windmill GLB via /generate-prop |
 | 2026-11-07 | ~0.05 | ~$0.03 | Task 11: one /generate-prop windmill (64 s) plus a cache hit. The pod was already running for other work and was left running. |
+| 2026-11-07 | ~0.7 | ~$0.42 | Task 06a: tried Kimodo with the text encoder on the CPU (OOM at the 50 GB container RAM cap, then 2x slower), installed vLLM and downloaded Nemotron Nano 9B, then dropped it for hosted Nemotron. Kimodo is back on the GPU; motion (4.5 s), TRELLIS.2 and /generate-prop (68 s) checked. The pod was left running. |

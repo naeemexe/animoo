@@ -19,7 +19,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 03 | B | TRELLIS.2 asset server on the pod (:8102) | 2 h | done | — |
 | 04 | A | Library: the old project's VRMs, props and sample BVHs, plus a CC0 low-poly kit and `manifest.json` | 1.5 h | done | 01 |
 | 05 | A | Characters: load VRMs, retarget Kimodo BVH, play a clip, planted feet | 2.5 h | done | 04 |
-| 06a | B | Self-host Nemotron Nano 9B v2 (FP8) on the pod with vLLM (:8104, OpenAI-compatible, tool calling) | 1 h | doing | — |
+| 06a | B | Self-host Nemotron Nano 9B v2 (FP8) on the pod with vLLM (:8104, OpenAI-compatible, tool calling) | 1 h | dropped: use OpenRouter / OpenCode Zen instead | — |
 | 06 | A | Nemotron client + agent loop on the server (tool calling, streamed steps) | 1.5 h | todo | 06a (or `NVIDIA_API_KEY`) |
 | 07 | B | Text → concept image for props (pick a model, add an endpoint) | 1.5 h | done | 03 |
 | 08 | A | Movie: the orchestrator splits a scene into shots and beats, and the world agent builds the set | 3 h | todo | 04, 06 |
@@ -92,6 +92,18 @@ license used.
 
 ## Found along the way
 
+- 06a dropped (2026-11-07): Nemotron is hosted with tool calling on OpenRouter
+  (`https://openrouter.ai/api/v1`: `nvidia/nemotron-3-super-120b-a12b`, `nvidia/nemotron-3-nano-30b-a3b`,
+  `nvidia/nemotron-3.5-lightning`, plus `:free` variants) and on OpenCode Zen (`https://opencode.ai/zen/v1`:
+  `nemotron-3.5-super-vl-free`, `nemotron-3.5-lightning-free`). That beats a self-hosted 9B and uses no VRAM.
+  Task 06 and the "through the NVIDIA API" line in `CLAUDE.md` should change to match.
+  Tool calling through either one hasn't been tested yet, because there's no key in `.env`.
+- The pod container is capped at 50 GB of RAM and about 7.6 CPUs (cgroup). With Kimodo's text encoder
+  on the CPU (`TEXT_ENCODER_DEVICE=cpu`), the OOM killer took TRELLIS.2 and Kimodo. When it did fit,
+  a 5 s clip took 16 s, or 6 to 8 s with `OMP_NUM_THREADS=7` (3.8 s on the GPU). That change was reverted.
+- Left over from 06a: a vLLM venv at `/opt/venvs/vllm` (container disk, goes away on reset) and the
+  Nemotron-Nano-9B-v2-FP8 weights (~10 GB) in `/workspace/hf` (billed as volume storage; delete them if
+  we don't self-host).
 - Kimodo prints LoRA weights as "MISSING" while loading its LLM2Vec text encoder.
   Check whether the text encoding is right (task 05).
 - `.claude/` is gitignored, so `.claude/launch.json` (`animo-world-server`,
