@@ -108,6 +108,11 @@ html, body {
   gap: 8px;
   overflow: hidden;
 }
+/* Covers the 3D view until the set, its props and the character are all in,
+   so they appear together instead of popping in one by one. */
+.chat-cover { position: fixed; inset: 0; display: grid; place-items: center; background: #f1d4a6; transition: opacity 0.7s ease; }
+.chat-cover span { font-size: 18px; font-style: italic; opacity: 0.7; animation: blink 1.6s infinite; }
+.chat-cover.gone { opacity: 0; pointer-events: none; }
 .chat-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .chat-head .pill { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chat-log { flex: 1; min-height: 60px; margin: 0; padding: 0; list-style: none; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }

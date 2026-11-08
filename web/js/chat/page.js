@@ -43,6 +43,7 @@ export function createChatPage(root, stage, look) {
     status: $('#chat-status'),
     voice: $('#chat-voice'),
     brain: $('#chat-brain'),
+    cover: $('#chat-cover'),
   };
 
   const state = {
@@ -129,12 +130,18 @@ export function createChatPage(root, stage, look) {
       setVisible(state.visible);
       // Arrival: a wave, then idle.
       state.performer.perform(state.clips.wave);
+      // Compile every shader and draw a couple of frames under the cover, then
+      // lift it: set, props and character appear at once, already moving.
+      await stage.renderer.compileAsync?.(stage.scene, stage.camera).catch(() => {});
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      ui.cover.classList.add('gone');
       setStatus(NAME, 'ok');
       motionServerUp().then((up) => {
         if (!up) setStatus(`${NAME} · Kimodo offline, using library moves`, 'warn');
       });
     })().catch((err) => {
       console.error(err);
+      ui.cover.classList.add('gone');
       setStatus(`failed to load: ${err.message}`, 'bad');
     });
     return state.ready;
