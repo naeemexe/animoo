@@ -1,0 +1,14 @@
+{
+ "kind": "ambience",
+ "prompt": "A busy city street during the day with distant traffic, car horns, and footsteps on pavement.",
+ "endpoint": "/v1/sound-generation",
+ "body": {
+  "model_id": "eleven_text_to_sound_v2",
+  "loop": true,
+  "duration_seconds": 22,
+  "prompt_influence": 0.35
+ },
+ "bytes": 353218,
+ "seconds": 4.2,
+ "created": "2026-11-08T16:30:10+00:00"
+}

@@ -1,0 +1,572 @@
+{
+ "scene": "a girl and her friend walk together through the park to a bench, shake hands with an old man sitting there, then the girl climbs a tree",
+ "created": "2026-11-08T16:32:57+00:00",
+ "model": "nvidia/nemotron-3.5-super-vl-120b-a12b + nvidia/nemotron-3.5-lightning-30b-a3b",
+ "backend": "nvidia",
+ "llm_calls": [
+  {
+   "agent": "orchestrator",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+   "ok": true,
+   "seconds": 6.36
+  },
+  {
+   "agent": "world",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+   "ok": true,
+   "seconds": 2.77
+  }
+ ],
+ "llm_seconds": [
+  6.36,
+  2.77
+ ],
+ "plan": {
+  "title": "Girl and friend meet old man at the park bench",
+  "thoughts": [
+   "Two characters: a girl and her friend walk side by side through the park to the bench where an old man is already sitting.",
+   "Places: the park entrance, the bench, and the tree.",
+   "The girl and friend shake hands with the old man together, then the girl climbs the tree while the friend watches."
+  ],
+  "time_of_day": "golden",
+  "biome": "park",
+  "weather": "clear",
+  "water": false,
+  "audio": {
+   "ambience": {
+    "prompt": "A peaceful city park in the late afternoon: distant birdsong, rustling leaves, and soft footsteps on gravel.",
+    "layers": {
+     "birds": 0.5,
+     "wind": 0.3
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow acoustic guitar and piano bed, gentle and sparse, no drums, no vocals.",
+    "mood": "calm"
+   }
+  },
+  "places": [
+   {
+    "key": "entrance",
+    "what": "the park entrance",
+    "use": "stand"
+   },
+   {
+    "key": "bench",
+    "what": "a wooden park bench",
+    "use": "sit"
+   },
+   {
+    "key": "tree",
+    "what": "a sturdy park tree",
+    "use": "stand"
+   }
+  ],
+  "cast": [
+   {
+    "id": "girl",
+    "name": "Girl",
+    "character": "avatar_female",
+    "kid": true,
+    "starts_at": "entrance",
+    "look": {
+     "height_m": 1.35,
+     "top": "pink",
+     "bottom": "blue",
+     "hair": "brown",
+     "skin": "light",
+     "accessory": "none",
+     "outfit": "casual",
+     "build": "slim"
+    }
+   },
+   {
+    "id": "friend",
+    "name": "Friend",
+    "character": "avatar_female",
+    "kid": true,
+    "starts_at": "entrance",
+    "look": {
+     "height_m": 1.3,
+     "top": "yellow",
+     "bottom": "khaki",
+     "hair": "blonde",
+     "skin": "light",
+     "accessory": "none",
+     "outfit": "casual",
+     "build": "slim"
+    }
+   },
+   {
+    "id": "old_man",
+    "name": "Old Man",
+    "character": "avatar_male",
+    "kid": false,
+    "starts_at": "bench",
+    "look": {
+     "height_m": 1.7,
+     "top": "brown",
+     "bottom": "gray",
+     "hair": "gray",
+     "skin": "tan",
+     "accessory": "cap",
+     "outfit": "casual",
+     "build": "average"
+    }
+   }
+  ],
+  "beats": [
+   {
+    "id": "b1",
+    "cast": "girl",
+    "action": "walks to the bench with friend",
+    "do": "walk",
+    "duration": 6,
+    "move_to": "bench",
+    "with": "b2"
+   },
+   {
+    "id": "b2",
+    "cast": "friend",
+    "action": "walks to the bench with girl",
+    "do": "walk",
+    "duration": 6,
+    "move_to": "bench",
+    "with": "b1"
+   },
+   {
+    "id": "b3",
+    "cast": "old_man",
+    "action": "sits on the bench",
+    "do": "sit",
+    "duration": 4
+   },
+   {
+    "id": "b4",
+    "cast": "girl",
+    "action": "shakes hands with old man",
+    "do": "handshake",
+    "duration": 3,
+    "face": "old_man",
+    "with": "b5"
+   },
+   {
+    "id": "b5",
+    "cast": "old_man",
+    "action": "shakes hands with girl",
+    "do": "handshake",
+    "duration": 3,
+    "face": "girl",
+    "with": "b4"
+   },
+   {
+    "id": "b6",
+    "cast": "friend",
+    "action": "shakes hands with old man",
+    "do": "handshake",
+    "duration": 3,
+    "face": "old_man",
+    "after": "b5"
+   },
+   {
+    "id": "b7",
+    "cast": "old_man",
+    "action": "shakes hands with friend",
+    "do": "handshake",
+    "duration": 3,
+    "face": "friend",
+    "after": "b6"
+   },
+   {
+    "id": "b8",
+    "cast": "girl",
+    "action": "climbs the tree",
+    "do": "custom",
+    "prompt": "A person climbs a tree.",
+    "duration": 7,
+    "move_to": "tree"
+   }
+  ]
+ },
+ "world": {
+  "thoughts": [
+   "The bench and tree are in the library; the park setting is established.",
+   "A sunny park scene: a bench under a tree where a girl shakes hands with an old man, then climbs the tree."
+  ],
+  "choices": [
+   {
+    "place": "bench",
+    "library": "bench"
+   },
+   {
+    "place": "tree",
+    "library": "tree-oak"
+   },
+   {
+    "place": "well",
+    "generate": {
+     "name": "village well",
+     "prompt": "a round stone village well with a little wooden roof",
+     "size_m": 2.5,
+     "category": "village"
+    }
+   }
+  ],
+  "decor": [
+   {
+    "library": "tree-oak",
+    "count": 1,
+    "near": "edge"
+   },
+   {
+    "library": "bush",
+    "count": 2,
+    "near": "bench"
+   },
+   {
+    "library": "flower-yellow",
+    "count": 3,
+    "near": "bench"
+   },
+   {
+    "library": "lily-pad",
+    "count": 2,
+    "near": "edge"
+   }
+  ]
+ },
+ "script": {
+  "version": 1,
+  "title": "Girl and friend meet old man at the park bench",
+  "scene": "a girl and her friend walk together through the park to a bench, shake hands with an old man sitting there, then the girl climbs a tree",
+  "terrain": {
+   "time_of_day": "golden",
+   "weather": "clear",
+   "biome": "park",
+   "paths": [
+    {
+     "points": [
+      [
+       -3.53,
+       -1.18
+      ],
+      [
+       4.36,
+       -0.93
+      ]
+     ],
+     "width": 1.4
+    }
+   ]
+  },
+  "props": [
+   {
+    "key": "bench",
+    "library": "bench",
+    "position": [
+     -3.25,
+     -2.03
+    ],
+    "rotation": 72.0
+   },
+   {
+    "key": "tree",
+    "library": "tree-oak",
+    "position": [
+     5.48,
+     1.32
+    ],
+    "rotation": -153.0
+   },
+   {
+    "key": "tree-oak-1",
+    "library": "tree-oak",
+    "position": [
+     -0.32,
+     14.36
+    ],
+    "rotation": 120
+   },
+   {
+    "key": "bush-2",
+    "library": "bush",
+    "position": [
+     -4.32,
+     2.23
+    ],
+    "rotation": 0
+   },
+   {
+    "key": "bush-3",
+    "library": "bush",
+    "position": [
+     -1.94,
+     1.24
+    ],
+    "rotation": -135
+   },
+   {
+    "key": "flower-yellow-4",
+    "library": "flower-yellow",
+    "position": [
+     -5.07,
+     -5.33
+    ],
+    "rotation": 90
+   },
+   {
+    "key": "flower-yellow-5",
+    "library": "flower-yellow",
+    "position": [
+     -5.51,
+     -2.13
+    ],
+    "rotation": 120
+   },
+   {
+    "key": "flower-yellow-6",
+    "library": "flower-yellow",
+    "position": [
+     -4.27,
+     1.05
+    ],
+    "rotation": 105
+   }
+  ],
+  "cast": [
+   {
+    "id": "girl",
+    "name": "Girl",
+    "character": "avatar_female",
+    "start": {
+     "position": [
+      -9.67,
+      -4.95
+     ],
+     "facing": 56.0
+    },
+    "scale": 0.877,
+    "look": {
+     "top": "#e88aa8",
+     "bottom": "#2f5fb0",
+     "hair": "#5a3a22",
+     "skin": "#efc9ab",
+     "outfit": "casual",
+     "build": "slim"
+    }
+   },
+   {
+    "id": "friend",
+    "name": "Friend",
+    "character": "avatar_female",
+    "start": {
+     "position": [
+      -10.06,
+      -4.14
+     ],
+     "facing": 64.0
+    },
+    "scale": 0.844,
+    "look": {
+     "top": "#efc93a",
+     "bottom": "#b5a46e",
+     "hair": "#e0c070",
+     "skin": "#efc9ab",
+     "outfit": "casual",
+     "build": "slim"
+    }
+   },
+   {
+    "id": "old-man",
+    "name": "Old Man",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      -3.75,
+      -1.94
+     ],
+     "facing": -18.0
+    },
+    "scale": 0.846,
+    "look": {
+     "top": "#7a5233",
+     "bottom": "#8a8a8f",
+     "hair": "#9a9a9a",
+     "skin": "#c48a5e",
+     "accessory": "cap",
+     "outfit": "casual"
+    }
+   }
+  ],
+  "beats": [
+   {
+    "id": "friend-1",
+    "cast": "friend",
+    "start": 0.0,
+    "duration": 5.9,
+    "prompt": "A person walks forward.",
+    "action": "walks to the bench with girl",
+    "to": [
+     -3.29,
+     -0.84
+    ],
+    "seed": 1,
+    "motion": "walk"
+   },
+   {
+    "id": "girl-1",
+    "cast": "girl",
+    "start": 0.0,
+    "duration": 5.9,
+    "prompt": "A person walks forward.",
+    "action": "walks to the bench with friend",
+    "to": [
+     -2.9,
+     -1.65
+    ],
+    "motion": "walk"
+   },
+   {
+    "id": "old-man-1",
+    "cast": "old-man",
+    "start": 0.0,
+    "duration": 5.9,
+    "prompt": "A person sits still on a bench and rests.",
+    "action": "sits on the bench",
+    "facing": -18.0,
+    "motion": "sit_bench_idle"
+   },
+   {
+    "id": "friend-2",
+    "cast": "friend",
+    "start": 5.9,
+    "duration": 4.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits",
+    "motion": "idle"
+   },
+   {
+    "id": "girl-2",
+    "cast": "girl",
+    "start": 5.9,
+    "duration": 3.0,
+    "prompt": "A person reaches out their right hand and shakes hands.",
+    "action": "shakes hands with old man",
+    "facing": "old-man",
+    "motion": "handshake"
+   },
+   {
+    "id": "old-man-2",
+    "cast": "old-man",
+    "start": 5.9,
+    "duration": 4.0,
+    "prompt": "A person sits and reaches out their right hand and shakes hands.",
+    "action": "shakes hands with girl",
+    "facing": -18.0
+   },
+   {
+    "id": "girl-3",
+    "cast": "girl",
+    "start": 8.9,
+    "duration": 5.8,
+    "prompt": "A person walks forward.",
+    "action": "walks to the tree",
+    "to": [
+     4.49,
+     -0.66
+    ],
+    "motion": "walk"
+   },
+   {
+    "id": "friend-3",
+    "cast": "friend",
+    "start": 9.9,
+    "duration": 3.0,
+    "prompt": "A person reaches out their right hand and shakes hands.",
+    "action": "shakes hands with old man",
+    "facing": "old-man",
+    "seed": 1,
+    "motion": "handshake"
+   },
+   {
+    "id": "old-man-3",
+    "cast": "old-man",
+    "start": 9.9,
+    "duration": 4.0,
+    "prompt": "A person sits and reaches out their right hand and shakes hands.",
+    "action": "shakes hands with friend",
+    "facing": -18.0,
+    "seed": 1
+   },
+   {
+    "id": "friend-4",
+    "cast": "friend",
+    "start": 12.9,
+    "duration": 7.8,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits",
+    "motion": "idle"
+   },
+   {
+    "id": "girl-4",
+    "cast": "girl",
+    "start": 14.7,
+    "duration": 6.0,
+    "prompt": "A person climbs a tree.",
+    "action": "climbs the tree",
+    "facing": "tree"
+   }
+  ],
+  "shots": [
+   {
+    "id": "s1",
+    "start": 0.0,
+    "duration": 6.9,
+    "framing": "wide",
+    "subject": [
+     "girl",
+     "friend",
+     "old-man"
+    ],
+    "angle": 35
+   },
+   {
+    "id": "s2",
+    "start": 6.9,
+    "duration": 6.9,
+    "framing": "medium",
+    "subject": "girl",
+    "angle": -25
+   },
+   {
+    "id": "s3",
+    "start": 13.8,
+    "duration": 6.9,
+    "framing": "wide",
+    "subject": [
+     "girl",
+     "friend",
+     "old-man"
+    ],
+    "angle": 55
+   }
+  ],
+  "audio": {
+   "ambience": {
+    "prompt": "A peaceful city park in the late afternoon: distant birdsong, rustling leaves, and soft footsteps on gravel.",
+    "layers": {
+     "birds": 0.5,
+     "wind": 0.3
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow acoustic guitar and piano bed, gentle and sparse, no drums, no vocals.",
+    "mood": "calm"
+   },
+   "volume": 0.25,
+   "source": "nemotron"
+  }
+ }
+}
