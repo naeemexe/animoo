@@ -22,9 +22,9 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 06a | B | Self-host Nemotron Nano 9B v2 (FP8) on the pod with vLLM (:8104, OpenAI-compatible, tool calling) | 1 h | dropped: use OpenRouter / OpenCode Zen instead | — |
 | 06 | A | Nemotron client + agent loop on the server (tool calling, streamed steps), via OpenCode's free Nemotron now and swappable to NVIDIA's API later | 1.5 h | done (free tier rate-limits after ~30 calls: get a key for 08) | — |
 | 07 | B | Text → concept image for props (pick a model, add an endpoint) | 1.5 h | done | 03 |
-| 08 | A | Movie: the orchestrator splits a scene into shots and beats, and the world agent builds the set | 3 h | doing | 04, 06 |
+| 08 | A | Movie: the orchestrator splits a scene into shots and beats, and the world agent builds the set | 3 h | done | 04, 06 |
 | 09a | A | Movie page UI with a mocked scene script: agent log, world build from script, per-character timeline, play, export WebM | 2.5 h | done | 04, 05 |
-| 09b | A | Movie: wire the real agents in, motion agent generates clips on the pod, director merges | 1.5 h | todo | 08, 09a |
+| 09b | A | Movie: wire the real agents in, motion agent generates clips on the pod, director merges | 1.5 h | done (with 08: real agents over SSE, Kimodo clips, merge, export) | 08, 09a |
 | 10 | A | Chat page: a character talks (Nemotron + browser voice) and demonstrates moves | 2 h | done (mock replies; live Nemotron path untested) | 05, 06 |
 | 11 | A | Prop generation in the world agent (image → TRELLIS.2 → library) | 1.5 h | done (mechanics; the world agent calls it in 08) | 07, 08 |
 | 12 | A | Demo: cache the demo scenes, record the video, write the submission | 2 h | todo | 09, 10 |
@@ -289,3 +289,30 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
 - 06: `/api/chat` now goes through `llm.complete()` with `REPLY_SCHEMA` (30 s timeout, 1 re-ask). It returns
   `source: "nemotron" | "mock"` and `seconds`; the Chat page already shows "brain: Nemotron". `CLAUDE.md` still
   says Nemotron goes "through the NVIDIA API" (a main-session edit).
+- 08: `server/agents/movie.py`. A movie costs **2 Nemotron calls**: the orchestrator returns a story plan (cast,
+  named places, beats with "A person ..." prompts, `move_to`/`face`/`after`/`with`, shots, no coordinates), then
+  `search_library` runs per place (code), and the world agent makes one call to choose a library prop or
+  `generate` (≤2) per place, plus decor. `layout()` (code) does positions along a walking route, the pond, seat
+  and stand slots, walk durations from distance and speed, idle fillers, shots and decor; then a Python port of
+  `validateScript`. Raw answers are cached in `library/scripts/` per scene text, so a replay costs 0 calls and
+  layout changes still apply. `GET /api/movie/plan?scene=&fresh=1` streams it as SSE. Fallback: closest cached
+  scene by word overlap, then the mock. `.env` now has `LLM_BACKEND=openai`, `NEMOTRON_BASE_URL=http://localhost:8104/v1`,
+  `NEMOTRON_MODEL=nemotron`, `NEMOTRON_NO_THINK=1` (self-hosted Nano 9B v2 on Brev); `llm.py` re-reads `.env` on change.
+- 08: timings (2026-11-07, Nano 9B v2 via vLLM): orchestrator 6.3–9.3 s, world 2.6–8.2 s, layout 2–6 ms. Market
+  chase 28 s end to end (5 clips), campfire 45 s (7 clips), fisherman 43 s (8 clips). Full e2e, a new prompt
+  (girl, lighthouse, grandpa's rowboat): plan 7.9 s → script 16.1 s → generated `wooden-cottage` 52 s and
+  `stone-lighthouse` 25 s → set at 93.7 s → 9 clips (Kimodo 3.3–4.2 s each) → film ready at 120.9 s (merge 36 ms)
+  → WebM export 24.5 s, 11.4 MB. Cached replays of all four scenes take 0.7–7.9 s.
+- 08: Nano 9B v2 plans are thin and need repair (all in `repair_plan`): it puts `move_to` on action beats
+  ("trips over the cart" + move_to cart → go there, then act; "stands up" + move_to → stand up, then go), invents
+  abstract places ("open ground", merged into the first real place), says `water: true` for a fountain (now only if
+  the scene text names water), skips actions (the market plan dropped "gives the apple back" once), gives both
+  thief and keeper `avatar_male`, and never starts the campfire friends sitting despite the prompt rule. Each Kimodo
+  clip starts standing, so a sit followed by "laughs" stands up. The world agent picked a rock for "well" and, until
+  NO MATCH hints were added, a rock for a lighthouse; "cottage" finds nothing (`house` lacks a cottage tag).
+- 08: "slow" walks fall short: several walk beats hit the director's ×1.35 stretch limit even at 0.85 m/s. Measure
+  Kimodo's "walks forward slowly" distance. In the fisherman film the director camera stood behind the dock, which
+  filled the frame (fixed shot angles in `camera.js`, 09a).
+- 08: one "the scene script is invalid" console error remains in the pane's log. It was raised during the campfire run
+  that hit the duplicate-beat-id bug (fixed); the browser pane keeps the log across navigations, so I couldn't prove
+  it isn't from the later check of all four cached scenes, though none of those runs logged an error in the agent log.
