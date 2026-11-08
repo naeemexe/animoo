@@ -75,7 +75,8 @@ export function createTimeline(root, { onPlay, onSeek, onDirectorCam, onExport }
     const shots = lane('camera', 'shots');
     for (const s of script.shots) {
       const subj = [].concat(s.subject).join(' + ');
-      block(shots, s.start, s.start + s.duration, `${s.framing} · ${subj}`, 'shot', `${s.id}: ${s.framing} on ${subj}, from ${s.angle ?? 35}°`);
+      const type = s.type ?? s.framing;
+      block(shots, s.start, s.start + s.duration, `${type}${s.move && s.move !== 'static' ? ` ${s.move}` : ''} · ${subj}`, 'shot', `${s.id}: ${type}${s.move ? ` (${s.move})` : ''} on ${subj}${s.partner ? ` over ${s.partner}'s shoulder` : ''}, from ${s.angle ?? 35}°`);
     }
     for (const c of script.cast) {
       const l = lane(c.name, 'cast');

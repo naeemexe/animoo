@@ -194,6 +194,12 @@ export function createMoviePage(root, stage, look) {
         log('director', 'call', `add_to_timeline(${id}, ${row.beats.length} clips) → ${row.offset.toFixed(1)}–${row.end.toFixed(1)} s${stretched.length ? ` · stretched ${stretched.join(', ')}` : ''}`);
       }
       state.duration = Math.max(plannedDuration(script), ...Object.values(state.rows).map((r) => r.end));
+      // Camera: cut the film into shots from the merged beats.
+      const shots = cam.planShots(state.rows, state.duration, state.set);
+      log('director', 'thought', `Cutting ${state.duration.toFixed(1)} s into shots: establish wide, then one shot per new action; every cut changes the size or the angle by 35°+, the camera stays on one side of the line between the characters, and swings around props that block the view.`);
+      for (const s of shots) log('director', 'call', `shot(${s.id}, ${s.start.toFixed(1)}–${(s.start + s.duration).toFixed(1)} s, ${s.type} ${s.move} on ${[].concat(s.subject).join(' + ')}${s.partner ? ` over ${s.partner}'s shoulder` : ''}, from ${s.angle}°) · ${s.action}`);
+      script.shots = shots;
+      ui.scriptView.textContent = JSON.stringify(script, null, 2);
       timeline.setRows(state.rows, state.duration);
       log('director', 'result', `film ready · ${state.duration.toFixed(1)} s · merged in ${(performance.now() - t0).toFixed(0)} ms`);
       seek(0);
