@@ -1,0 +1,5 @@
+City models from Kenney's "Starter Kit City Builder" (https://github.com/KenneyNL/Starter-Kit-City-Builder),
+created/distributed by Kenney (www.kenney.nl).
+
+The repository's README: "Assets included in this package (2D sprites, 3D models and sound effects)
+are CC0 licensed" (https://creativecommons.org/publicdomain/zero/1.0/). The kit's code is MIT; no code is used here.

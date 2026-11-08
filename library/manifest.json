@@ -1114,6 +1114,118 @@
    "source": "generated",
    "prompt": "a round stone village well with a little wooden roof",
    "thumbnail": "props/generated/stone-well.png"
+  },
+  {
+   "id": "city-building-low",
+   "file": "props/kenney-city/building-small-a.glb",
+   "category": "city",
+   "size": [
+    10.0,
+    9.5,
+    10.0
+   ],
+   "tags": [
+    "building",
+    "shop",
+    "city",
+    "street",
+    "storefront"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Starter Kit City Builder, https://github.com/KenneyNL/Starter-Kit-City-Builder (models CC0)"
+  },
+  {
+   "id": "city-building-tall",
+   "file": "props/kenney-city/building-small-b.glb",
+   "category": "city",
+   "size": [
+    10.0,
+    16.3,
+    10.0
+   ],
+   "tags": [
+    "building",
+    "apartment",
+    "city",
+    "street",
+    "tower"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Starter Kit City Builder, https://github.com/KenneyNL/Starter-Kit-City-Builder (models CC0)"
+  },
+  {
+   "id": "city-building-tower",
+   "file": "props/kenney-city/building-small-c.glb",
+   "category": "city",
+   "size": [
+    10.0,
+    17.5,
+    10.0
+   ],
+   "tags": [
+    "building",
+    "office",
+    "city",
+    "street",
+    "tower"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Starter Kit City Builder, https://github.com/KenneyNL/Starter-Kit-City-Builder (models CC0)"
+  },
+  {
+   "id": "city-building-corner",
+   "file": "props/kenney-city/building-small-d.glb",
+   "category": "city",
+   "size": [
+    10.0,
+    10.0,
+    10.5
+   ],
+   "tags": [
+    "building",
+    "shop",
+    "city",
+    "street",
+    "corner"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Starter Kit City Builder, https://github.com/KenneyNL/Starter-Kit-City-Builder (models CC0)"
+  },
+  {
+   "id": "city-garage",
+   "file": "props/kenney-city/building-garage.glb",
+   "category": "city",
+   "size": [
+    10.0,
+    5.5,
+    10.0
+   ],
+   "tags": [
+    "building",
+    "garage",
+    "city",
+    "street"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Starter Kit City Builder, https://github.com/KenneyNL/Starter-Kit-City-Builder (models CC0)"
+  },
+  {
+   "id": "city-park-block",
+   "file": "props/kenney-city/grass-trees-tall.glb",
+   "category": "city",
+   "size": [
+    10.7,
+    7.6,
+    10.1
+   ],
+   "tags": [
+    "park",
+    "trees",
+    "city",
+    "block"
+   ],
+   "license": "CC0-1.0",
+   "source": "Kenney Starter Kit City Builder, https://github.com/KenneyNL/Starter-Kit-City-Builder (models CC0)"
   }
  ]
 }
