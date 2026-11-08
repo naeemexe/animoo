@@ -1,6 +1,6 @@
 {
  "scene": "In a small restaurant at night, a man sits at a table for two, a woman walks in and waves, sits down across from him, and they talk and laugh.",
- "created": "2026-11-08T08:39:40+00:00",
+ "created": "2026-11-08T13:57:23+00:00",
  "model": "nvidia/nemotron-3.5-super-vl-120b-a12b + nvidia/nemotron-3.5-lightning-30b-a3b",
  "backend": "nvidia",
  "llm_calls": [
@@ -9,31 +9,44 @@
    "backend": "nvidia",
    "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
    "ok": true,
-   "seconds": 3.14
+   "seconds": 5.79
   },
   {
    "agent": "world",
    "backend": "nvidia",
    "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
    "ok": true,
-   "seconds": 2.05
+   "seconds": 4.26
   }
  ],
  "llm_seconds": [
-  3.14,
-  2.05
+  5.79,
+  4.26
  ],
  "plan": {
-  "title": "Dinner for two",
+  "title": "Night at the restaurant",
   "thoughts": [
-   "Two characters: a man already seated at a table for two, and a woman who enters the restaurant.",
-   "Places: the restaurant interior, the table for two, and the entrance where the woman walks in.",
-   "The man starts sitting and talks/laughs; the woman walks in, waves, sits across from him, then they talk and laugh together."
+   "Two characters: a man already seated at a table for two, and a woman who enters, waves, sits across from him, then they talk and laugh together.",
+   "Places: the restaurant interior and the table for two where they sit.",
+   "The man stays seated the whole time; the woman walks in, waves while standing, sits down, then both talk and laugh together."
   ],
   "time_of_day": "night",
   "biome": "restaurant",
   "weather": "clear",
   "water": false,
+  "audio": {
+   "ambience": {
+    "prompt": "A quiet restaurant at night with soft chatter, clinking cutlery and distant traffic outside.",
+    "layers": {
+     "murmur": 0.5,
+     "traffic": 0.2
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow warm piano and strings, gentle and sparse, no drums, no vocals.",
+    "mood": "warm"
+   }
+  },
   "places": [
    {
     "key": "restaurant",
@@ -44,11 +57,6 @@
     "key": "table",
     "what": "a table for two",
     "use": "sit"
-   },
-   {
-    "key": "entrance",
-    "what": "the restaurant entrance",
-    "use": "stand"
    }
   ],
   "cast": [
@@ -57,14 +65,30 @@
     "name": "Man",
     "character": "avatar_male",
     "kid": false,
-    "starts_at": "table"
+    "starts_at": "table",
+    "look": {
+     "height_m": 1.75,
+     "top": "navy",
+     "bottom": "khaki",
+     "hair": "brown",
+     "skin": "light",
+     "accessory": "none"
+    }
    },
    {
     "id": "woman",
     "name": "Woman",
     "character": "avatar_female",
     "kid": false,
-    "starts_at": "entrance"
+    "starts_at": "restaurant",
+    "look": {
+     "height_m": 1.65,
+     "top": "red",
+     "bottom": "navy",
+     "hair": "blonde",
+     "skin": "light",
+     "accessory": "none"
+    }
    }
   ],
   "beats": [
@@ -72,7 +96,7 @@
     "id": "b1",
     "cast": "man",
     "action": "sits at the table",
-    "prompt": "A person sits at a table for two.",
+    "prompt": "A person sits still at a table for two.",
     "duration": 4
    },
    {
@@ -89,40 +113,57 @@
     "action": "waves at the man",
     "prompt": "A person waves hello with their right hand.",
     "duration": 3,
-    "face": "man",
-    "after": "b2"
+    "face": "man"
    },
    {
     "id": "b4",
     "cast": "woman",
-    "action": "sits down across from him",
+    "action": "sits down across from the man",
     "prompt": "A person sits down at a table across from someone.",
-    "duration": 4,
-    "face": "man"
+    "duration": 4
    },
    {
     "id": "b5",
     "cast": "man",
-    "action": "talks and laughs",
-    "prompt": "A person sits and talks and laughs with big arm gestures.",
-    "duration": 6,
-    "face": "woman"
+    "action": "talks with the woman",
+    "prompt": "A person sits and talks while seated at a table.",
+    "duration": 5,
+    "face": "woman",
+    "with": "b6"
    },
    {
     "id": "b6",
     "cast": "woman",
-    "action": "talks and laughs back",
-    "prompt": "A person sits and talks and laughs with big arm gestures.",
-    "duration": 6,
+    "action": "talks with the man",
+    "prompt": "A person sits and talks while seated at a table.",
+    "duration": 5,
     "face": "man",
-    "after": "b5"
+    "with": "b5"
+   },
+   {
+    "id": "b7",
+    "cast": "man",
+    "action": "laughs with the woman",
+    "prompt": "A person sits and laughs heartily.",
+    "duration": 4,
+    "face": "woman",
+    "with": "b8"
+   },
+   {
+    "id": "b8",
+    "cast": "woman",
+    "action": "laughs with the man",
+    "prompt": "A person sits and laughs heartily.",
+    "duration": 4,
+    "face": "man",
+    "with": "b7"
    }
   ]
  },
  "world": {
   "thoughts": [
-   "The restaurant is at night, cozy with warm light. A table for two is set. The woman enters and sits opposite.",
-   "The restaurant interior: tables, chairs, soft lighting, a counter with stools."
+   "The restaurant interior is cozy with a table for two and a counter. Outside at night, a street has a bench and lantern-post.",
+   "A night restaurant scene: a lone tree outside the window, a bench on the sidewalk, and lantern light."
   ],
   "choices": [
    {
@@ -140,6 +181,15 @@
    {
     "place": "counter",
     "library": "counter"
+   },
+   {
+    "place": "street-cafe",
+    "generate": {
+     "name": "outdoor table",
+     "prompt": "a small round cafe table with awning",
+     "size_m": 1.2,
+     "category": "buildings"
+    }
    }
   ],
   "decor": [
@@ -149,9 +199,14 @@
     "near": "edge"
    },
    {
-    "library": "bush",
-    "count": 2,
-    "near": "table"
+    "library": "tree-oak",
+    "count": 1,
+    "near": "edge"
+   },
+   {
+    "library": "bench",
+    "count": 1,
+    "near": "edge"
    },
    {
     "library": "flower-yellow",
@@ -159,15 +214,15 @@
     "near": "table"
    },
    {
-    "library": "potted-plant",
-    "count": 1,
+    "library": "mushrooms",
+    "count": 2,
     "near": "counter"
    }
   ]
  },
  "script": {
   "version": 1,
-  "title": "Dinner for two",
+  "title": "Night at the restaurant",
   "scene": "In a small restaurant at night, a man sits at a table for two, a woman walks in and waves, sits down across from him, and they talk and laugh.",
   "terrain": {
    "time_of_day": "night",
@@ -230,10 +285,28 @@
     "key": "potted-plant-1",
     "library": "potted-plant",
     "position": [
-     -4.41,
-     -0.43
+     -3.21,
+     -0.32
     ],
     "rotation": 84.0
+   },
+   {
+    "key": "potted-plant-2",
+    "library": "potted-plant",
+    "position": [
+     -2.73,
+     1.15
+    ],
+    "rotation": 113.0
+   },
+   {
+    "key": "floor-lamp-3",
+    "library": "floor-lamp",
+    "position": [
+     0.63,
+     2.89
+    ],
+    "rotation": -168.0
    }
   ],
   "cast": [
@@ -248,7 +321,13 @@
      ],
      "facing": -108.0
     },
-    "scale": 0.876
+    "scale": 0.871,
+    "look": {
+     "top": "#23305e",
+     "bottom": "#b5a46e",
+     "hair": "#5a3a22",
+     "skin": "#efc9ab"
+    }
    },
    {
     "id": "woman",
@@ -261,7 +340,13 @@
      ],
      "facing": -96.0
     },
-    "scale": 1.104
+    "scale": 1.071,
+    "look": {
+     "top": "#c8352e",
+     "bottom": "#23305e",
+     "hair": "#e0c070",
+     "skin": "#efc9ab"
+    }
    }
   ],
   "beats": [
@@ -270,10 +355,10 @@
     "cast": "man",
     "start": 0.0,
     "duration": 4.0,
-    "prompt": "A person sits at a table for two.",
+    "prompt": "A person sits still at a table for two.",
     "action": "sits at the table",
     "facing": -108.0,
-    "motion": "sit_bench"
+    "motion": "sit_bench_idle"
    },
    {
     "id": "woman-1",
@@ -314,7 +399,7 @@
     "start": 6.6,
     "duration": 4.0,
     "prompt": "A person sits down at a table across from someone.",
-    "action": "sits down across from him",
+    "action": "sits down across from the man",
     "facing": 72.0,
     "motion": "sit_bench"
    },
@@ -322,9 +407,9 @@
     "id": "man-3",
     "cast": "man",
     "start": 10.6,
-    "duration": 6.0,
-    "prompt": "A person sits and talks and laughs with big arm gestures.",
-    "action": "talks and laughs",
+    "duration": 5.0,
+    "prompt": "A person sits and talks while seated at a table.",
+    "action": "talks with the woman",
     "facing": -108.0,
     "motion": "sit_bench_talk"
    },
@@ -332,9 +417,30 @@
     "id": "woman-4",
     "cast": "woman",
     "start": 10.6,
-    "duration": 6.0,
-    "prompt": "A person sits and talks and laughs with big arm gestures.",
-    "action": "talks and laughs back",
+    "duration": 5.0,
+    "prompt": "A person sits and talks while seated at a table.",
+    "action": "talks with the man",
+    "facing": 72.0,
+    "seed": 1,
+    "motion": "sit_bench_talk"
+   },
+   {
+    "id": "man-4",
+    "cast": "man",
+    "start": 15.6,
+    "duration": 4.0,
+    "prompt": "A person sits and laughs heartily.",
+    "action": "laughs with the woman",
+    "facing": -108.0,
+    "motion": "sit_bench_talk"
+   },
+   {
+    "id": "woman-5",
+    "cast": "woman",
+    "start": 15.6,
+    "duration": 4.0,
+    "prompt": "A person sits and laughs heartily.",
+    "action": "laughs with the man",
     "facing": 72.0,
     "seed": 1,
     "motion": "sit_bench_talk"
@@ -344,7 +450,7 @@
    {
     "id": "s1",
     "start": 0.0,
-    "duration": 5.53,
+    "duration": 6.53,
     "framing": "wide",
     "subject": [
      "man",
@@ -354,16 +460,16 @@
    },
    {
     "id": "s2",
-    "start": 5.53,
-    "duration": 5.54,
+    "start": 6.53,
+    "duration": 6.54,
     "framing": "medium",
     "subject": "man",
     "angle": -25
    },
    {
     "id": "s3",
-    "start": 11.07,
-    "duration": 5.53,
+    "start": 13.07,
+    "duration": 6.53,
     "framing": "wide",
     "subject": [
      "man",
@@ -371,6 +477,21 @@
     ],
     "angle": 55
    }
-  ]
+  ],
+  "audio": {
+   "ambience": {
+    "prompt": "A quiet restaurant at night with soft chatter, clinking cutlery and distant traffic outside.",
+    "layers": {
+     "murmur": 0.5,
+     "traffic": 0.2
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow warm piano and strings, gentle and sparse, no drums, no vocals.",
+    "mood": "warm"
+   },
+   "volume": 0.25,
+   "source": "nemotron"
+  }
  }
 }

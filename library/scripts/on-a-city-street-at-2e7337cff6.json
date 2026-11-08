@@ -1,6 +1,6 @@
 {
  "scene": "On a city street at noon, a man sits on a bench by the cafe, a woman walks around the fountain to him and waves, he stands up and waves back, and they talk.",
- "created": "2026-11-08T08:22:29+00:00",
+ "created": "2026-11-08T13:57:05+00:00",
  "model": "nvidia/nemotron-3.5-super-vl-120b-a12b + nvidia/nemotron-3.5-lightning-30b-a3b",
  "backend": "nvidia",
  "llm_calls": [
@@ -9,31 +9,44 @@
    "backend": "nvidia",
    "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
    "ok": true,
-   "seconds": 4.78
+   "seconds": 6.52
   },
   {
    "agent": "world",
    "backend": "nvidia",
    "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
    "ok": true,
-   "seconds": 2.25
+   "seconds": 2.87
   }
  ],
  "llm_seconds": [
-  4.78,
-  2.25
+  6.52,
+  2.87
  ],
  "plan": {
-  "title": "Cafe bench meeting",
+  "title": "Bench by the cafe",
   "thoughts": [
-   "Two characters: a man already sitting on the bench and a woman who walks to him.",
-   "Places: the city street, the cafe, the fountain, and the bench.",
-   "The man starts seated, waves back after she waves, then they talk while seated; the woman walks around the fountain to the bench, waves, then sits and talks."
+   "Two characters: a man already seated on a bench by the cafe and a woman walking from around the fountain.",
+   "Places: a city street, a bench by the cafe, and a fountain.",
+   "The man sits still first, the woman walks around the fountain to him and waves, he stands up and waves back, then they talk together."
   ],
   "time_of_day": "day",
   "biome": "city",
   "weather": "clear",
   "water": false,
+  "audio": {
+   "ambience": {
+    "prompt": "A city street at noon with distant traffic, footsteps, and the murmur of people near a cafe.",
+    "layers": {
+     "traffic": 0.5,
+     "murmur": 0.5
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow acoustic guitar and light piano, gentle and sparse, no drums, no vocals.",
+    "mood": "calm"
+   }
+  },
   "places": [
    {
     "key": "street",
@@ -41,19 +54,14 @@
     "use": "stand"
    },
    {
-    "key": "cafe",
-    "what": "a cafe on the street",
-    "use": "stand"
-   },
-   {
-    "key": "fountain",
-    "what": "a fountain on the street",
-    "use": "stand"
-   },
-   {
     "key": "bench",
     "what": "a bench by the cafe",
     "use": "sit"
+   },
+   {
+    "key": "fountain",
+    "what": "a city fountain",
+    "use": "stand"
    }
   ],
   "cast": [
@@ -62,31 +70,47 @@
     "name": "Man",
     "character": "avatar_male",
     "kid": false,
-    "starts_at": "bench"
+    "starts_at": "bench",
+    "look": {
+     "height_m": 1.75,
+     "top": "navy",
+     "bottom": "khaki",
+     "hair": "brown",
+     "skin": "light",
+     "accessory": "none"
+    }
    },
    {
     "id": "woman",
     "name": "Woman",
     "character": "avatar_female",
     "kid": false,
-    "starts_at": "street"
+    "starts_at": "fountain",
+    "look": {
+     "height_m": 1.68,
+     "top": "red",
+     "bottom": "navy",
+     "hair": "blonde",
+     "skin": "light",
+     "accessory": "none"
+    }
    }
   ],
   "beats": [
    {
     "id": "b1",
     "cast": "man",
-    "action": "sits on the bench",
-    "prompt": "A person sits on a bench by the cafe.",
+    "action": "sits still on the bench",
+    "prompt": "A person sits still on a bench.",
     "duration": 4
    },
    {
     "id": "b2",
     "cast": "woman",
-    "action": "walks around the fountain to the bench",
-    "prompt": "A person walks forward around the fountain.",
+    "action": "walks around the fountain to the man",
+    "prompt": "A person walks forward around a fountain.",
     "duration": 6,
-    "move_to": "bench"
+    "move_to": "man"
    },
    {
     "id": "b3",
@@ -94,65 +118,42 @@
     "action": "waves at the man",
     "prompt": "A person waves hello with their right hand.",
     "duration": 3,
-    "face": "man"
+    "face": "man",
+    "after": "b2"
    },
    {
     "id": "b4",
     "cast": "man",
-    "action": "stands up",
-    "prompt": "A person stands up from the bench.",
-    "duration": 4,
+    "action": "stands up and waves back",
+    "prompt": "A person stands up from a bench and waves hello with their right hand.",
+    "duration": 5,
+    "face": "woman",
     "after": "b3"
    },
    {
     "id": "b5",
     "cast": "man",
-    "action": "waves back at the woman",
-    "prompt": "A person waves hello with their right hand.",
-    "duration": 3,
+    "action": "talks with the woman",
+    "prompt": "A person stands and talks.",
+    "duration": 5,
     "face": "woman",
-    "after": "b4"
+    "with": "b6"
    },
    {
     "id": "b6",
-    "cast": "man",
-    "action": "sits back down",
-    "prompt": "A person sits down on the bench.",
-    "duration": 4,
-    "after": "b5"
-   },
-   {
-    "id": "b7",
-    "cast": "woman",
-    "action": "sits on the bench",
-    "prompt": "A person sits down on the bench.",
-    "duration": 4,
-    "after": "b3"
-   },
-   {
-    "id": "b8",
-    "cast": "man",
-    "action": "talks with the woman",
-    "prompt": "A person sits and talks with hand gestures.",
-    "duration": 5,
-    "face": "woman",
-    "after": "b6"
-   },
-   {
-    "id": "b9",
     "cast": "woman",
     "action": "talks with the man",
-    "prompt": "A person sits and talks with hand gestures.",
+    "prompt": "A person stands and talks.",
     "duration": 5,
     "face": "man",
-    "after": "b7"
+    "with": "b5"
    }
   ]
  },
  "world": {
   "thoughts": [
-   "The street, cafe, fountain, and bench are all in the library; the cafe needs a generated prop.",
-   "A city noon scene: a bench, a cafe, a fountain, and a man and woman interacting."
+   "The bench and the fountain are in the library; the street is a city street with a shop.",
+   "A city street at noon: a bench, a fountain, and a shop building."
   ],
   "choices": [
    {
@@ -160,29 +161,15 @@
     "library": "city-building-low"
    },
    {
-    "place": "cafe",
-    "generate": {
-     "name": "street cafe",
-     "prompt": "a small city cafe with outdoor tables and a awning",
-     "size_m": 4.0,
-     "category": "buildings"
-    }
+    "place": "bench",
+    "library": "bench"
    },
    {
     "place": "fountain",
     "library": "fountain"
-   },
-   {
-    "place": "bench",
-    "library": "bench"
    }
   ],
   "decor": [
-   {
-    "library": "lantern-post",
-    "count": 2,
-    "near": "street"
-   },
    {
     "library": "tree-oak",
     "count": 2,
@@ -190,19 +177,24 @@
    },
    {
     "library": "bush",
-    "count": 2,
-    "near": "cafe"
+    "count": 3,
+    "near": "bench"
    },
    {
     "library": "flower-yellow",
-    "count": 2,
+    "count": 3,
     "near": "bench"
+   },
+   {
+    "library": "lily-pad",
+    "count": 2,
+    "near": "fountain"
    }
   ]
  },
  "script": {
   "version": 1,
-  "title": "Cafe bench meeting",
+  "title": "Bench by the cafe",
   "scene": "On a city street at noon, a man sits on a bench by the cafe, a woman walks around the fountain to him and waves, he stands up and waves back, and they talk.",
   "terrain": {
    "time_of_day": "day",
@@ -216,12 +208,12 @@
        -3.29
       ],
       [
-       0.5,
-       0.17
+       -1.02,
+       4.72
       ],
       [
-       7.91,
-       -3.6
+       7.89,
+       -3.12
       ]
      ],
      "width": 1.4
@@ -233,60 +225,136 @@
     "key": "bench",
     "library": "bench",
     "position": [
-     -2.93,
-     0.68
+     -6.69,
+     -4.04
     ],
-    "rotation": 147.0
-   },
-   {
-    "key": "street",
-    "library": "city-building-low",
-    "position": [
-     -3.86,
-     -8.28
-    ],
-    "rotation": -34.0
-   },
-   {
-    "key": "cafe",
-    "library": "street-cafe",
-    "position": [
-     -0.26,
-     2.44
-    ],
-    "rotation": 162.0,
-    "generate": {
-     "prompt": "a small city cafe with outdoor tables and a awning",
-     "size_m": 4.0,
-     "category": "buildings"
-    }
+    "rotation": 56.0
    },
    {
     "key": "fountain",
     "library": "fountain",
     "position": [
-     5.77,
-     -4.45
+     -0.29,
+     2.54
     ],
-    "rotation": 68.0
+    "rotation": -18.0
+   },
+   {
+    "key": "street",
+    "library": "lantern-post",
+    "position": [
+     6.89,
+     -3.75
+    ],
+    "rotation": 58.0
    },
    {
     "key": "lantern-post-1",
     "library": "lantern-post",
     "position": [
-     -9.51,
-     -5.34
+     0.41,
+     6.13
     ],
-    "rotation": -60
+    "rotation": -150
    },
    {
     "key": "lantern-post-2",
     "library": "lantern-post",
     "position": [
-     2.44,
-     -12.17
+     -6.29,
+     1.1
     ],
-    "rotation": -150
+    "rotation": 60
+   },
+   {
+    "key": "lantern-post-3",
+    "library": "lantern-post",
+    "position": [
+     -8.67,
+     -6.28
+    ],
+    "rotation": 75
+   },
+   {
+    "key": "lantern-post-4",
+    "library": "lantern-post",
+    "position": [
+     -6.0,
+     2.76
+    ],
+    "rotation": -105
+   },
+   {
+    "key": "bench-5",
+    "library": "bench",
+    "position": [
+     11.28,
+     -2.44
+    ],
+    "rotation": 75
+   },
+   {
+    "key": "bench-6",
+    "library": "bench",
+    "position": [
+     -3.5,
+     -10.94
+    ],
+    "rotation": -90
+   },
+   {
+    "key": "hedge-7",
+    "library": "hedge",
+    "position": [
+     -8.14,
+     9.08
+    ],
+    "rotation": -60
+   },
+   {
+    "key": "hedge-8",
+    "library": "hedge",
+    "position": [
+     -10.69,
+     -2.85
+    ],
+    "rotation": -120
+   },
+   {
+    "key": "hedge-9",
+    "library": "hedge",
+    "position": [
+     2.77,
+     -3.0
+    ],
+    "rotation": 150
+   },
+   {
+    "key": "crate-10",
+    "library": "crate",
+    "position": [
+     6.89,
+     9.43
+    ],
+    "rotation": -60
+   },
+   {
+    "key": "crate-11",
+    "library": "crate",
+    "position": [
+     -8.98,
+     -2.15
+    ],
+    "rotation": -135
+   },
+   {
+    "key": "truck-12",
+    "library": "truck",
+    "position": [
+     -0.22,
+     -11.74
+    ],
+    "rotation": 135
    }
   ],
   "cast": [
@@ -296,12 +364,18 @@
     "character": "avatar_male",
     "start": {
      "position": [
-      -2.97,
-      1.19
+      -7.2,
+      -4.08
      ],
-     "facing": 57.0
+     "facing": -34.0
     },
-    "scale": 0.876
+    "scale": 0.871,
+    "look": {
+     "top": "#23305e",
+     "bottom": "#b5a46e",
+     "hair": "#5a3a22",
+     "skin": "#efc9ab"
+    }
    },
    {
     "id": "woman",
@@ -309,12 +383,18 @@
     "character": "avatar_female",
     "start": {
      "position": [
-      -7.02,
-      -3.54
+      -0.99,
+      4.63
      ],
-     "facing": 47.0
+     "facing": 162.0
     },
-    "scale": 1.104
+    "scale": 1.091,
+    "look": {
+     "top": "#c8352e",
+     "bottom": "#23305e",
+     "hair": "#e0c070",
+     "skin": "#efc9ab"
+    }
    }
   ],
   "beats": [
@@ -322,29 +402,39 @@
     "id": "man-1",
     "cast": "man",
     "start": 0.0,
-    "duration": 7.9,
-    "prompt": "A person sits on a bench by the cafe.",
-    "action": "sits on the bench",
-    "facing": 57.0,
-    "motion": "sit_bench"
+    "duration": 4.0,
+    "prompt": "A person sits still on a bench.",
+    "action": "sits still on the bench",
+    "facing": -34.0,
+    "motion": "sit_bench_idle"
    },
    {
     "id": "woman-1",
     "cast": "woman",
     "start": 0.0,
-    "duration": 4.9,
-    "prompt": "A person walks forward around the fountain.",
-    "action": "walks around the fountain to the bench",
+    "duration": 7.3,
+    "prompt": "A person walks forward around a fountain.",
+    "action": "walks around the fountain to the man",
     "to": [
-     -2.47,
-     0.44
+     -6.56,
+     -3.19
     ],
     "motion": "walk"
    },
    {
+    "id": "man-2",
+    "cast": "man",
+    "start": 4.0,
+    "duration": 6.3,
+    "prompt": "A person sits still and looks around.",
+    "action": "waits",
+    "facing": -34.0,
+    "motion": "sit_bench_idle"
+   },
+   {
     "id": "woman-2",
     "cast": "woman",
-    "start": 4.9,
+    "start": 7.3,
     "duration": 3.0,
     "prompt": "A person waves hello with their right hand.",
     "action": "waves at the man",
@@ -352,74 +442,52 @@
     "motion": "wave"
    },
    {
-    "id": "man-2",
+    "id": "man-3",
     "cast": "man",
-    "start": 7.9,
-    "duration": 4.0,
-    "prompt": "A person stands up from the bench.",
-    "action": "stands up",
-    "facing": 57.0,
+    "start": 10.3,
+    "duration": 5.0,
+    "prompt": "A person stands up from a bench and waves hello with their right hand.",
+    "action": "stands up and waves back",
+    "facing": "woman",
     "motion": "stand_up_chair"
    },
    {
     "id": "woman-3",
     "cast": "woman",
-    "start": 7.9,
-    "duration": 4.0,
-    "prompt": "A person sits down on the bench.",
-    "action": "sits on the bench",
-    "facing": 57.0,
-    "seed": 1,
-    "motion": "sit_bench"
-   },
-   {
-    "id": "man-3",
-    "cast": "man",
-    "start": 11.9,
-    "duration": 3.0,
-    "prompt": "A person waves hello with their right hand.",
-    "action": "waves back at the woman",
-    "facing": "woman",
-    "seed": 1,
-    "motion": "wave"
-   },
-   {
-    "id": "woman-4",
-    "cast": "woman",
-    "start": 11.9,
+    "start": 10.3,
     "duration": 5.0,
-    "prompt": "A person sits and talks with hand gestures.",
-    "action": "talks with the man",
-    "facing": 57.0,
-    "seed": 1,
-    "motion": "sit_bench_talk"
+    "prompt": "A person stands still and looks around.",
+    "action": "waits",
+    "facing": "man",
+    "motion": "idle"
    },
    {
     "id": "man-4",
     "cast": "man",
-    "start": 14.9,
-    "duration": 4.0,
-    "prompt": "A person sits down on the bench.",
-    "action": "sits back down",
-    "facing": 57.0,
-    "motion": "sit_bench"
+    "start": 15.3,
+    "duration": 5.0,
+    "prompt": "A person stands and talks.",
+    "action": "talks with the woman",
+    "facing": "woman",
+    "motion": "talk"
    },
    {
-    "id": "man-5",
-    "cast": "man",
-    "start": 18.9,
+    "id": "woman-4",
+    "cast": "woman",
+    "start": 15.3,
     "duration": 5.0,
-    "prompt": "A person sits and talks with hand gestures.",
-    "action": "talks with the woman",
-    "facing": 57.0,
-    "motion": "sit_bench_talk"
+    "prompt": "A person stands and talks.",
+    "action": "talks with the man",
+    "facing": "man",
+    "seed": 1,
+    "motion": "talk"
    }
   ],
   "shots": [
    {
     "id": "s1",
     "start": 0.0,
-    "duration": 7.97,
+    "duration": 6.77,
     "framing": "wide",
     "subject": [
      "man",
@@ -429,16 +497,16 @@
    },
    {
     "id": "s2",
-    "start": 7.97,
-    "duration": 7.96,
+    "start": 6.77,
+    "duration": 6.76,
     "framing": "medium",
     "subject": "man",
     "angle": -25
    },
    {
     "id": "s3",
-    "start": 15.93,
-    "duration": 7.97,
+    "start": 13.53,
+    "duration": 6.77,
     "framing": "wide",
     "subject": [
      "man",
@@ -446,6 +514,21 @@
     ],
     "angle": 55
    }
-  ]
+  ],
+  "audio": {
+   "ambience": {
+    "prompt": "A city street at noon with distant traffic, footsteps, and the murmur of people near a cafe.",
+    "layers": {
+     "traffic": 0.5,
+     "murmur": 0.5
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow acoustic guitar and light piano, gentle and sparse, no drums, no vocals.",
+    "mood": "calm"
+   },
+   "volume": 0.25,
+   "source": "nemotron"
+  }
  }
 }

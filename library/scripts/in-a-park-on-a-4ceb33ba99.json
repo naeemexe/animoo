@@ -1,6 +1,6 @@
 {
  "scene": "In a park on a sunny afternoon, a boy sits on the grass, slowly stands up, walks around the park bench to his friend and waves to her, and she waves back.",
- "created": "2026-11-08T07:56:06+00:00",
+ "created": "2026-11-08T13:56:56+00:00",
  "model": "nvidia/nemotron-3.5-super-vl-120b-a12b + nvidia/nemotron-3.5-lightning-30b-a3b",
  "backend": "nvidia",
  "llm_calls": [
@@ -9,45 +9,55 @@
    "backend": "nvidia",
    "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
    "ok": true,
-   "seconds": 2.51
+   "seconds": 4.09
   },
   {
    "agent": "world",
    "backend": "nvidia",
    "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
    "ok": true,
-   "seconds": 1.62
+   "seconds": 2.39
   }
  ],
  "llm_seconds": [
-  2.51,
-  1.62
+  4.09,
+  2.39
  ],
  "plan": {
   "title": "Boy waves to friend in the park",
   "thoughts": [
-   "Two characters: a boy and his friend in a sunny park.",
-   "Places: the grass where the boy starts, the park bench he walks around, and his friend's spot.",
-   "The boy sits, stands up, walks around the bench to his friend, and waves; she waves back in reaction."
+   "Two children: a boy and his friend in a sunny park.",
+   "Places: the grass where the boy starts and a park bench he walks around.",
+   "The boy stands up, walks around the bench to his friend and waves; she waves back after his wave."
   ],
   "time_of_day": "day",
+  "biome": "park",
   "weather": "clear",
   "water": false,
+  "audio": {
+   "ambience": {
+    "prompt": "A sunny city park in the afternoon with distant birdsong, children playing and a light breeze in the trees.",
+    "layers": {
+     "birds": 0.5,
+     "wind": 0.2,
+     "murmur": 0.4
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow warm acoustic guitar and felt piano, gentle and sparse, no drums, no vocals.",
+    "mood": "warm"
+   }
+  },
   "places": [
    {
     "key": "grass",
-    "what": "a grassy area in the park",
-    "use": "sit"
+    "what": "a patch of grass",
+    "use": "stand"
    },
    {
     "key": "bench",
     "what": "a park bench",
     "use": "sit"
-   },
-   {
-    "key": "friend_spot",
-    "what": "a spot near the bench where the friend stands",
-    "use": "stand"
    }
   ],
   "cast": [
@@ -56,41 +66,50 @@
     "name": "Boy",
     "character": "avatar_male",
     "kid": true,
-    "starts_at": "grass"
+    "starts_at": "grass",
+    "look": {
+     "height_m": 1.35,
+     "top": "red",
+     "bottom": "khaki",
+     "hair": "brown",
+     "skin": "light",
+     "accessory": "none"
+    }
    },
    {
     "id": "friend",
     "name": "Friend",
     "character": "avatar_female",
     "kid": true,
-    "starts_at": "friend_spot"
+    "starts_at": "bench",
+    "look": {
+     "height_m": 1.3,
+     "top": "blue",
+     "bottom": "white",
+     "hair": "blonde",
+     "skin": "light",
+     "accessory": "none"
+    }
    }
   ],
   "beats": [
    {
     "id": "b1",
     "cast": "boy",
-    "action": "sits on the grass",
-    "prompt": "A person sits on the grass.",
-    "duration": 4
-   },
-   {
-    "id": "b2",
-    "cast": "boy",
     "action": "stands up",
     "prompt": "A person stands up from the grass.",
     "duration": 4
    },
    {
-    "id": "b3",
+    "id": "b2",
     "cast": "boy",
     "action": "walks around the bench to his friend",
     "prompt": "A person walks forward around a bench.",
-    "duration": 6,
-    "move_to": "friend_spot"
+    "duration": 5,
+    "move_to": "friend"
    },
    {
-    "id": "b4",
+    "id": "b3",
     "cast": "boy",
     "action": "waves to his friend",
     "prompt": "A person waves hello with their right hand.",
@@ -98,39 +117,48 @@
     "face": "friend"
    },
    {
-    "id": "b5",
+    "id": "b4",
     "cast": "friend",
     "action": "waves back",
     "prompt": "A person waves hello with their right hand.",
     "duration": 3,
     "face": "boy",
-    "after": "b4"
+    "after": "b3"
    }
   ]
  },
  "world": {
   "thoughts": [
-   "The bench and grass are in the library; the park bench is the sit target.",
-   "A sunny park scene: oak trees, bushes, flowers and a bench."
+   "The boy sits on grass, uses a park bench, and walks to a friend across the park.",
+   "A sunny park scene with a bench, scattered flowers, and a friend waving."
   ],
   "choices": [
-   {
-    "place": "bench",
-    "library": "bench"
-   },
    {
     "place": "grass",
     "library": "grass-tuft"
    },
    {
-    "place": "bench-target",
+    "place": "bench",
     "library": "bench"
+   },
+   {
+    "place": "friend",
+    "library": "bench"
+   },
+   {
+    "place": "well",
+    "generate": {
+     "name": "village well",
+     "prompt": "a round stone village well with a little wooden roof",
+     "size_m": 2.5,
+     "category": "village"
+    }
    }
   ],
   "decor": [
    {
     "library": "tree-oak",
-    "count": 3,
+    "count": 2,
     "near": "edge"
    },
    {
@@ -141,7 +169,7 @@
    {
     "library": "flower-yellow",
     "count": 3,
-    "near": "grass"
+    "near": "bench"
    },
    {
     "library": "lily-pad",
@@ -157,6 +185,7 @@
   "terrain": {
    "time_of_day": "golden",
    "weather": "clear",
+   "biome": "park",
    "paths": [
     {
      "points": [
@@ -165,8 +194,8 @@
        -1.18
       ],
       [
-       4.36,
-       -0.93
+       6.39,
+       0.36
       ]
      ],
      "width": 1.4
@@ -176,10 +205,10 @@
   "props": [
    {
     "key": "grass",
-    "library": "stump",
+    "library": "grass-tuft",
     "position": [
-     -3.25,
-     -2.03
+     -3.1,
+     -2.47
     ],
     "rotation": -18.0
    },
@@ -190,7 +219,7 @@
      4.76,
      -0.12
     ],
-    "rotation": -63.0
+    "rotation": 163.0
    },
    {
     "key": "tree-oak-1",
@@ -211,11 +240,11 @@
     "rotation": 135
    },
    {
-    "key": "tree-oak-3",
-    "library": "tree-oak",
+    "key": "bush-3",
+    "library": "bush",
     "position": [
-     8.4,
-     -7.18
+     6.38,
+     -1.51
     ],
     "rotation": -45
    },
@@ -238,11 +267,11 @@
     "rotation": -120
    },
    {
-    "key": "bush-6",
-    "library": "bush",
+    "key": "flower-yellow-6",
+    "library": "flower-yellow",
     "position": [
-     7.54,
-     -0.47
+     4.62,
+     -4.32
     ],
     "rotation": 60
    },
@@ -250,26 +279,17 @@
     "key": "flower-yellow-7",
     "library": "flower-yellow",
     "position": [
-     -4.76,
-     -3.3
+     8.85,
+     -0.94
     ],
-    "rotation": -45
+    "rotation": 150
    },
    {
     "key": "flower-yellow-8",
     "library": "flower-yellow",
     "position": [
-     -4.33,
-     -4.31
-    ],
-    "rotation": 150
-   },
-   {
-    "key": "flower-yellow-9",
-    "library": "flower-yellow",
-    "position": [
-     -1.51,
-     -3.95
+     6.8,
+     -2.37
     ],
     "rotation": 75
    }
@@ -281,12 +301,18 @@
     "character": "avatar_male",
     "start": {
      "position": [
-      -3.33,
-      -1.79
+      -3.44,
+      -1.46
      ],
-     "facing": -18.0
+     "facing": 162.0
     },
-    "scale": 0.7
+    "scale": 0.672,
+    "look": {
+     "top": "#c8352e",
+     "bottom": "#b5a46e",
+     "hair": "#5a3a22",
+     "skin": "#efc9ab"
+    }
    },
    {
     "id": "friend",
@@ -294,12 +320,18 @@
     "character": "avatar_female",
     "start": {
      "position": [
-      -6.8,
-      -5.04
+      4.87,
+      0.38
      ],
-     "facing": 56.0
+     "facing": 73.0
     },
-    "scale": 0.883
+    "scale": 0.844,
+    "look": {
+     "top": "#2f5fb0",
+     "bottom": "#f2f0ea",
+     "hair": "#e0c070",
+     "skin": "#efc9ab"
+    }
    }
   ],
   "beats": [
@@ -307,36 +339,28 @@
     "id": "boy-1",
     "cast": "boy",
     "start": 0.0,
-    "duration": 4.0,
-    "prompt": "A person sits on the grass.",
-    "action": "sits on the grass",
-    "facing": -18.0,
-    "motion": "sit_ground"
+    "duration": 5.8,
+    "prompt": "A person walks forward around a bench.",
+    "action": "walks around the bench to his friend",
+    "to": [
+     3.8,
+     0.14
+    ],
+    "motion": "walk"
+   },
+   {
+    "id": "friend-1",
+    "cast": "friend",
+    "start": 0.0,
+    "duration": 5.8,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits",
+    "motion": "idle"
    },
    {
     "id": "boy-2",
     "cast": "boy",
-    "start": 4.0,
-    "duration": 4.0,
-    "prompt": "A person stands up from the grass.",
-    "action": "stands up",
-    "facing": -18.0,
-    "motion": "stand_up_ground"
-   },
-   {
-    "id": "boy-3",
-    "cast": "boy",
-    "start": 8.0,
-    "duration": 6.0,
-    "prompt": "A person walks forward around a bench.",
-    "action": "walks around the bench to his friend",
-    "facing": "grass",
-    "motion": "walk"
-   },
-   {
-    "id": "boy-4",
-    "cast": "boy",
-    "start": 14.0,
+    "start": 5.8,
     "duration": 3.0,
     "prompt": "A person waves hello with their right hand.",
     "action": "waves to his friend",
@@ -344,9 +368,9 @@
     "motion": "wave"
    },
    {
-    "id": "friend-1",
+    "id": "friend-2",
     "cast": "friend",
-    "start": 14.0,
+    "start": 5.8,
     "duration": 3.0,
     "prompt": "A person waves hello with their right hand.",
     "action": "waves back",
@@ -359,7 +383,7 @@
    {
     "id": "s1",
     "start": 0.0,
-    "duration": 5.67,
+    "duration": 2.93,
     "framing": "wide",
     "subject": [
      "boy",
@@ -369,16 +393,16 @@
    },
    {
     "id": "s2",
-    "start": 5.67,
-    "duration": 5.66,
+    "start": 2.93,
+    "duration": 2.94,
     "framing": "medium",
     "subject": "boy",
     "angle": -25
    },
    {
     "id": "s3",
-    "start": 11.33,
-    "duration": 5.67,
+    "start": 5.87,
+    "duration": 2.93,
     "framing": "wide",
     "subject": [
      "boy",
@@ -386,6 +410,22 @@
     ],
     "angle": 55
    }
-  ]
+  ],
+  "audio": {
+   "ambience": {
+    "prompt": "A sunny city park in the afternoon with distant birdsong, children playing and a light breeze in the trees.",
+    "layers": {
+     "birds": 0.5,
+     "murmur": 0.4,
+     "wind": 0.2
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow warm acoustic guitar and felt piano, gentle and sparse, no drums, no vocals.",
+    "mood": "warm"
+   },
+   "volume": 0.25,
+   "source": "nemotron"
+  }
  }
 }

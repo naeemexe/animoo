@@ -222,7 +222,13 @@ Reply with the whole plan in ONE JSON object. Rules:
   arms."), duration in seconds (2 to 10). Each clip is made on its own, so a character who sat down
   stays seated only if the next prompts say so: every beat until they stand up starts "A person sits
   and ..." ("A person sits and tells a story with big arm gestures.", "A person sits and laughs.").
-  If the scene starts with someone sitting, their first beat is "A person sits ..." at that place.
+  If the scene starts with someone sitting, their first beat is "A person sits still ..." at that place
+  (already seated, no sit-down).
+  Posture: keep track of who is standing and who is seated. A character sits down or stands up only
+  when the scene says so (or to walk somewhere); never sit, stand up, then sit again. Someone seated
+  waves, talks and laughs from the seat ("A person sits and waves hello with their right hand.");
+  a reply ("waves back") is made in the replier's current posture. Each character greets another at
+  most once; after that they talk. "They talk" means both talk at the same time (with).
   move_to: a place key or cast id, when the character goes somewhere; then the prompt must be a
   forward locomotion and nothing else ("A person walks forward.", "A person runs forward fast."); put
   what they do on arrival in the next beat, without move_to.
@@ -489,7 +495,7 @@ def scene_postures(scene: str, cast: list[dict]) -> dict[str, dict[str, int]]:
 def natural_beats(beats: list[dict], cast: list[dict], scene: str) -> tuple[list[dict], list[str]]:
     """Per-character posture through the beats (see above). Returns the beats and fixes."""
     budget = scene_postures(scene, cast) if scene else None
-    fixes, drop, state, greeted, seen = [], {}, {}, set(), set()
+    fixes, drop, state, greeted, seen, out, split = [], {}, {}, set(), set(), [], {}
 
     def allow(cid, kind):
         if budget is None:
@@ -527,6 +533,7 @@ def natural_beats(beats: list[dict], cast: list[dict], scene: str) -> tuple[list
         return p if len(p) > len("A person .") + 2 and re.search(r"[a-z]{3,}", p[9:]) else None
 
     for i, b in enumerate(beats):
+        out.append(b)
         cid, first = b["cast"], b["cast"] not in seen
         seen.add(cid)
         st = state.get(cid, "stand")
@@ -554,6 +561,17 @@ def natural_beats(beats: list[dict], cast: list[dict], scene: str) -> tuple[list
             or (not stands and re.match(r"^sits\b(?! and)", b["action"].strip(), re.I) and not SEATED_ACT.match(b["prompt"]))
         if first and not stands and SEATED_ACT.match(b["prompt"]) and not b.get("after") and not b.get("with"):
             sits = True  # "A person sits and talks." as the first beat: seated from the start
+        if stands and st == "stand" and first and not b.get("after") and not b.get("with") \
+                and budget is not None and budget.get(cid, {}).get("sit", 0) > 0 and allow(cid, "sit"):
+            # "A person stands up from the grass." first, and the scene has them sitting: they start seated.
+            ground = bool(GROUND_WORDS.search(text))
+            where = re.search(r"\b(?:from|off) ((?:the |a |an |his |her )?[a-z]+(?: [a-z]+)?)", b["prompt"], re.I)
+            on = where.group(1) if where else ("the ground" if ground else "the seat")
+            sb = {"id": f"{b['id']}s", "cast": cid, "action": f"sits on {on}", "duration": 3.0,
+                  "prompt": f"A person sits still on {on}."}
+            out.insert(len(out) - 1, sb)
+            st = "ground" if ground else "sit"
+            fixes.append(f"{b['id']}: {cid} stands up first but the scene has them sitting → starts seated: “{sb['prompt']}”")
         if stands:
             if st == "stand":
                 p = strip_posture(b["prompt"], STAND_UP)
@@ -565,6 +583,18 @@ def natural_beats(beats: list[dict], cast: list[dict], scene: str) -> tuple[list
                     fixes.append(f"{b['id']}: {cid} is already standing → dropped “{b['action']}”")
             elif st == "down" or allow(cid, "stand") or any(x.get("move_to") or NEEDS_FEET.search(x["prompt"]) for x in later[:1]):
                 st = "stand"
+                p = strip_posture(b["prompt"], STAND_UP)
+                if p and not re.match(r"^A person (slowly|\.)", p):
+                    # "stands up and waves back": the stand-up clip, then the wave as its own beat.
+                    nb = {k: v for k, v in b.items() if k not in ("after", "with", "id")}
+                    nb.update({"id": f"{b['id']}w", "prompt": standing_prompt(p),
+                               "action": re.sub(r"^.*?\b(stands? up|gets? up|rises)( and| to)?\s*", "", b["action"]).strip() or b["action"],
+                               "duration": max(2.5, b["duration"] - 2.5)})
+                    b.update({"prompt": "A person stands up.", "action": "stands up", "duration": 2.5})
+                    b.pop("face", None)
+                    out.append(nb)
+                    split[b["id"]] = nb["id"]
+                    fixes.append(f"{b['id']}: “stands up and …” → stands up, then “{nb['prompt']}”")
             else:
                 p = strip_posture(b["prompt"], STAND_UP)
                 if p:
@@ -616,6 +646,11 @@ def natural_beats(beats: list[dict], cast: list[dict], scene: str) -> tuple[list
                 b["prompt"], b["action"] = talk, f"talks to {b['face']}" if b.get("face") else "talks"
             greeted.add(key)
         state[cid] = st
+    beats = out
+    for b in beats:  # a reaction to "stands up and waves" reacts to the wave
+        for f in ("after", "with"):
+            if b.get(f) in split and b["id"] != split[b[f]]:
+                b[f] = split[b[f]]
     if drop:
         kept = [b for b in beats if b["id"] not in drop]
 
@@ -747,7 +782,8 @@ def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
             if str(b.get(f)) in bids and str(b.get(f)) != bid:
                 nb[f] = str(b[f])
         prev = next((x for x in beats if x["id"] == nb.get("after")), None)
-        if prev and prev["cast"] != nb["cast"] and (prev.get("then") or prev["prompt"]) == (nb.get("then") or nb["prompt"]):
+        if prev and prev["cast"] != nb["cast"] and (prev.get("then") or prev["prompt"]) == (nb.get("then") or nb["prompt"]) \
+                and not re.search(r"\bback\b", nb["action"]):  # "waves back" answers the wave: after it
             nb["with"] = nb.pop("after")  # "they both stand up": together, not one after the other
             fixes.append(f"{bid}: same action as {prev['id']} → starts with it")
         text = f"{nb['action']} {prompt}".lower()
