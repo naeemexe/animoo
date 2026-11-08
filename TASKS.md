@@ -22,7 +22,8 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 06 | A | Nemotron client + agent loop on the server (tool calling, streamed steps) | 1.5 h | waiting | `NVIDIA_API_KEY` in `.env` |
 | 07 | B | Text → concept image for props (pick a model, add an endpoint) | 1.5 h | done | 03 |
 | 08 | A | Movie: the orchestrator splits a scene into shots and beats, and the world agent builds the set | 3 h | todo | 04, 06 |
-| 09 | A | Movie: the motion agent makes clips, the director merges them on a timeline, play and export | 3 h | todo | 05, 08 |
+| 09a | A | Movie page UI with a mocked scene script: agent log, world build from script, per-character timeline, play, export WebM | 2.5 h | todo | 04, 05 |
+| 09b | A | Movie: wire the real agents in, motion agent generates clips on the pod, director merges | 1.5 h | todo | 08, 09a |
 | 10 | A | Chat page: a character talks (Nemotron + browser voice) and demonstrates moves | 2 h | todo | 05, 06 |
 | 11 | A | Prop generation in the world agent (image → TRELLIS.2 → library) | 1.5 h | todo | 07, 08 |
 | 12 | A | Demo: cache the demo scenes, record the video, write the submission | 2 h | todo | 09, 10 |
@@ -61,6 +62,8 @@ give usable images in under 10 s each.
 beats of 10 s or less, props, terrain) → the world agent places library props
 using layout code. *Done when* three different scenes produce sensible sets and
 scripts.
+
+**09a Movie UI (mocked).** The script format the orchestrator will emit, defined as JSON in `web/js/movie/script.js` with an example (the fisherman scene from `PLAN.md`). The page shows a streamed agent log (replayed from the mock), builds the set from library props, runs one timeline row per character, fetches each beat's clip from the motion server (`localhost:8101`, through the tunnel) or falls back to `library/motions`, merges with `web/js/characters/merge.js`, and plays and exports WebM. *Done when* the mocked fisherman scene plays end to end.
 
 **09 Motion + director.** For each beat and each character: a Kimodo prompt, a
 clip, and the facing and position worked out from the script. The director lines
