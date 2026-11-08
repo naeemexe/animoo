@@ -30,7 +30,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 11 | A | Prop generation in the world agent (image → TRELLIS.2 → library) | 1.5 h | done (mechanics; the world agent calls it in 08) | 07, 08 |
 | 12 | A | Demo: cache the demo scenes, record the video, write the submission | 2 h | todo | 09, 10 |
 | 13 | A | Chat: remove the canned mock lines and suggestion chips ("Hi! I can show you a squat…"); Nemotron persona only | 0.5 h | done | 06 |
-| 14 | A | Scale + placement: characters and props at consistent real-world size; grounded, no overlaps, positions that follow the script | 2 h | doing | 08 |
+| 14 | A | Scale + placement: characters and props at consistent real-world size; grounded, no overlaps, positions that follow the script | 2 h | done | 08 |
 | 15 | A | World fill + backdrop: no empty island. Ground scatter (grass, flowers, rocks), a dense tree/hill ring, a painted sky/backdrop that fills the frame | 2.5 h | todo | 08 |
 | 16 | A | Cinematic camera: the director picks shots per beat (wide, medium, close, side, over-the-shoulder, low), with cuts and moves (dolly, orbit, crane) | 2.5 h | todo | 08 |
 | 17 | A | Time of day + weather: day/dusk/night lighting with glowing lamps and windows at night, plus rain/snow/fog. The orchestrator sets it from the prompt | 2 h | todo | 15 |
@@ -341,3 +341,19 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
   grandpa has no beats (he sits in the rowboat for the whole film).
 - 08b: the `animo-world-server` launch config moved to :8002 because :8000 and :8001 already had
   uvicorn servers running (both `--reload`, so they picked up the changes too).
+- 14 (2026-11-08): checked on the Movie page (scene + probe of bone/mesh positions at several times) for all four
+  cached scenes: characters 1.76–1.79 m standing (kids 1.32 m), props grounded (min y 0), no prop overlaps,
+  the fisherman and kid sit together on a bench at the dock, the friends sit on stumps by the fire and stand up
+  and dance together, the keeper chases past the fountain to the cart, grandpa rows and waves back. No console errors.
+- 14: the VRMs aren't the same height (male 2.01 m, female 1.54 m); `HEIGHT` in `movie.py` scales them to 1.78/1.66 m
+  through the cast `scale`. If the VRMs change, re-measure.
+- 14: Kimodo's sit-down clips step back 0.1–0.45 m depending on the clip, so a sitter can end on a seat's front or
+  back edge (the girl sits on the bench's front edge). Pinning the clip's end to the seat in the director would fix it.
+- 14: "sits on the dock" puts a bench in front of the dock (a sit at a place that is no seat). Sitting on the dock's
+  edge with dangling legs needs a dock-height seat and a matching clip.
+- 14: the campfire's second stump sits on the drawn path; the tent stays 8 m from the fire ("next to their tent" is
+  in the scene text, not in the plan's place descriptions, so the anchor rule doesn't see it).
+- 14: the thief hands the apple back from 2.8 m away (the keeper stops at his own slot by the cart).
+- 14: user idea (2026-11-08): make the set an explicit, visible part of the plan: a "set designer" step that writes
+  each prop's position, footprint and collision radius (and the seats and walk lines) into the script and the agent
+  log, instead of leaving it implicit in `layout()`.
