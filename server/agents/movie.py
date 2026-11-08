@@ -139,13 +139,16 @@ Reply with the whole plan in ONE JSON object. Rules:
   Every place, cast member and beat must come from the scene; don't invent extra story.
 - water: true only if the scene has a pond, lake, river or sea.
 - time_of_day: one of sunrise, day, golden, dusk.
-- beats: 3 to 12 in story order, ids b1, b2, ... Each beat: cast (a cast id), action (a few words for
+- beats: 3 to 12 in story order, ids b1, b2, ... Give every action the scene names its own beat, for
+  every character (e.g. grabs, runs off, shouts, chases, trips, gives back: six beats). Each beat: cast (a cast id), action (a few words for
   the timeline), prompt (for the motion model: starts with "A person", one simple full-body action,
   present tense, no names, e.g. "A person walks forward.", "A person jumps up and cheers with both
   arms."), duration in seconds (2 to 10). Each clip is made on its own, so a character who sat down
   stays seated only if the next prompts say so ("A person sits and laughs, slapping their knee.").
+  If the scene starts with someone sitting, their first beat is "A person sits ..." at that place.
   move_to: a place key or cast id, when the character goes somewhere; then the prompt must be a
-  forward locomotion ("A person walks forward.", "A person runs forward fast.", "A person sneaks forward.").
+  forward locomotion and nothing else ("A person walks forward.", "A person runs forward fast."); put
+  what they do on arrival in the next beat, without move_to.
   face: a place key or cast id to turn to at the start of the beat (talking, waving, looking).
   after: the id of an earlier beat of another character; this beat starts when that one ends (a
   reaction). with: the id of an earlier beat of another character; both start together.
@@ -190,8 +193,9 @@ a tent a camp). Only when nothing in the library fits a KEY place, use generate 
 (an image-to-3D model makes it, about a minute): name (short), prompt (one object, e.g. "a stone
 lighthouse with a red roof"), size_m (real height in meters), category ({' | '.join(GEN_CATEGORIES)}).
 At most {MAX_GENERATE} generates per film. Then add decor that sets the mood: 3 to 6 kinds of small library
-props (trees, bushes, flowers, rocks, barrels, crates, fences, lanterns, ...) with a count each (20 in all
-at most); near is a place key or "edge" (the rim of the island, good for trees).
+props with a count each (20 in all at most) that fit the setting: a market gets more stalls, crates,
+barrels, carts and lanterns; a camp gets logs, stumps, rocks and pines; a village gets fences, flowers,
+bushes and trees. near is a place key or "edge" (the rim of the island, good for trees).
 You don't place anything: layout code puts every prop in its spot. Reply with ONE JSON object."""
 
 
@@ -240,7 +244,12 @@ def person_prompt(prompt: str) -> str:
     return p + "."
 
 
-def repair_plan(raw: dict) -> tuple[dict, list[str]]:
+WATER_WORDS = re.compile(r"\b(pond|lake|river|sea|ocean|dock|pier|jetty|shore|beach|harbou?r|boat|canoe|fish(ing|erman)?|swim\w*|water)\b", re.I)
+PURE_MOVE = re.compile(r"^A person (walks|runs|jogs|sneaks|skips|strolls|sprints|dashes|hurries|marches|wanders|limps|tiptoes)"
+                       r"( \w+ly)? (forward|ahead|away|off|along)?[\w ,]*\.$")
+
+
+def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
     """Make a plan consistent: unique keys, known references, clamped numbers.
     Returns the plan and what was fixed (for the log)."""
     fixes = []
@@ -253,6 +262,17 @@ def repair_plan(raw: dict) -> tuple[dict, list[str]]:
         pmap[str(p.get("key"))] = k
         use = str(p.get("use", "stand")).lower()
         places.append({"key": k, "what": str(p.get("what") or k), "use": use if use in ("sit", "water") else "stand"})
+    # "open ground", "the area": not a prop. Fold them into the first real place.
+    vague = re.compile(r"^(open |the )?(ground|area|space|clearing|spot|field|middle|center|centre)\b", re.I)
+    real = [p for p in places if not (vague.match(p["key"]) or vague.match(p["what"].removeprefix("an ").removeprefix("a ")))]
+    if real and len(real) < len(places):
+        for p in places:
+            if p not in real:
+                for raw_k, k in list(pmap.items()):
+                    if k == p["key"]:
+                        pmap[raw_k] = real[0]["key"]
+                fixes.append(f"place {p['key']} ({p['what']}) is no prop: merged into {real[0]['key']}")
+        places = real
     cast, cmap = [], {}
     for i, c in enumerate((raw.get("cast") or [])[:3]):
         if not isinstance(c, dict):
@@ -273,7 +293,7 @@ def repair_plan(raw: dict) -> tuple[dict, list[str]]:
         if x is None:
             return None
         x = str(x)
-        return pmap.get(x) or cmap.get(x) or (x if x in used else None)
+        return pmap.get(x) or cmap.get(x) or (x if x in [p["key"] for p in places] or x in cmap.values() else None)
 
     for c in cast:
         s = ref(c["starts_at"])
@@ -300,9 +320,18 @@ def repair_plan(raw: dict) -> tuple[dict, list[str]]:
             r = ref(b.get(f))
             if r and r != nb["cast"]:
                 nb[f] = r
-        if nb.get("move_to") and not LOCOMOTION.search(prompt.lower()):
-            nb["prompt"] = "A person walks forward."
-            fixes.append(f"{bid}: moves, so prompt → “A person walks forward.”")
+        if nb.get("move_to"):
+            nb["still_prompt"] = prompt  # used if it turns out they are already there
+            if not PURE_MOVE.match(prompt) or not LOCOMOTION.search(prompt.lower()):
+                # "trips over the cart" with move_to cart: get there first, then do it.
+                fast = re.search(r"\b(run|runs|chase|chases|flee|flees|sprint|dash|hurr)", prompt.lower())
+                nb["prompt"] = "A person runs forward fast." if fast else "A person walks forward."
+                if re.search(r"\b(stands? up|gets? up|rises|jumps? up)\b", prompt.lower()):
+                    nb["first"] = prompt  # stand up, then go
+                    fixes.append(f"{bid}: “{prompt}” with move_to → that, then {nb['prompt']}")
+                else:
+                    nb["then"] = prompt
+                    fixes.append(f"{bid}: “{prompt}” with move_to → {nb['prompt']} then the action there")
         for f in ("after", "with"):
             if str(b.get(f)) in bids and str(b.get(f)) != bid:
                 nb[f] = str(b[f])
@@ -323,7 +352,7 @@ def repair_plan(raw: dict) -> tuple[dict, list[str]]:
         shots.append({"framing": fr, "subject": subj or [c["id"] for c in cast],
                       "until": str(s.get("until")) if str(s.get("until")) in bids else None})
     plan = {"title": str(raw.get("title") or "Untitled"), "time_of_day": tod,
-            "water": bool(raw.get("water")) or any(p["use"] == "water" for p in places),
+            "water": bool(WATER_WORDS.search(scene)) if scene else bool(raw.get("water")),
             "places": places, "cast": cast, "beats": beats, "shots": shots,
             "thoughts": [str(t) for t in (raw.get("thoughts") or [])][:4]}
     return plan, fixes
@@ -374,8 +403,12 @@ def repair_world(raw: dict, plan: dict, manifest: dict) -> tuple[dict, list[str]
             by_place[k] = {"library": lib}
             fixes.append(f"{k}: no choice → {lib}")
     decor, total = [], 0
+    wet = {p["id"] for p in manifest["props"] if p.get("category") == "water"}
     for d in raw.get("decor") or []:
         if not isinstance(d, dict) or d.get("library") not in ids:
+            continue
+        if d["library"] in wet and not plan["water"]:
+            fixes.append(f"decor {d['library']}: no water in this scene, dropped")
             continue
         try:
             n = int(d.get("count", 1))
@@ -573,7 +606,7 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
     def add(cid, start, dur, prompt, action, **kw):
         count[cid] = count.get(cid, 0) + 1
         start, dur = _r(start), _r(dur, 1)
-        b = {"id": f"{cid[:6]}{count[cid]}", "cast": cid, "start": start, "duration": dur,
+        b = {"id": f"{cid}-{count[cid]}", "cast": cid, "start": start, "duration": dur,
              "prompt": prompt, "action": action, **kw}
         beats.append(b)
         cursor[cid] = _r(start + dur)
@@ -607,6 +640,9 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
         start = max(start, cursor[cid])
         t0 = start
         mv = b.get("move_to")
+        if mv and b.get("first"):
+            add(cid, start, 3.0, b["first"], b["action"])
+            start = cursor[cid]
         extra = {}
         if b.get("face"):
             extra["facing"] = b["face"]
@@ -618,8 +654,12 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
                 h = _heading(other, pos[cid])
                 dest, face = (other[0] + _dir(h)[0] * 1.1, other[1] + _dir(h)[1] * 1.1), h + 180
             dist = _dist(pos[cid], dest)
-            if dist < 1.0:
-                add(cid, start, min(b["duration"], 3), "A person turns around and looks.", b["action"], facing=_r(face, 0))
+            if dist < 1.0 and b.get("first"):
+                pass  # stood up already, and is already there
+            elif dist < 1.0:  # already there: do the action in place
+                add(cid, start, b["duration"] if b.get("still_prompt") else min(b["duration"], 3),
+                    b.get("still_prompt") or "A person turns around and looks.", b["action"],
+                    facing=extra.get("facing", mv if mv in places else _r(face, 0)))
             else:
                 speed = speed_of(b["prompt"])
                 need = dist / speed + 0.7
@@ -635,6 +675,10 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
                              + (f" in {parts} beats" if parts > 1 else ""))
             pos[cid] = dest
             at_place[cid] = mv if mv in places else None
+            if b.get("then") and dist >= 1.0:
+                here = mv if mv in places else (mv if mv in pos else None)
+                add(cid, cursor[cid], min(max(b["duration"], 2.0), 6.0), b["then"], b["action"],
+                    **({"facing": here} if here else {}))
         else:
             here = at_place.get(cid)
             if "facing" not in extra and here in places:
@@ -880,7 +924,7 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
                 return
 
     try:
-        plan, fixes = repair_plan(raw_plan)
+        plan, fixes = repair_plan(raw_plan, scene)
     except ValueError as err:
         yield step("orchestrator", "error", f"unusable plan: {err}; playing the mock fisherman scene.")
         yield {"script": None, "source": "mock", "llm_calls": len(llm.CALLS) - calls_before}
@@ -940,6 +984,9 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
     if problems:
         for p in problems[:8]:
             yield step("orchestrator", "error", f"script check: {p}")
+        yield step("orchestrator", "note", "The laid-out script is invalid (a layout bug): playing the mock fisherman scene.")
+        yield {"script": None, "source": "mock", "llm_calls": len(llm.CALLS) - calls_before}
+        return
     film = max(b["start"] + b["duration"] for b in script["beats"])
     yield step("orchestrator", "result", f"script laid out in {(time.perf_counter() - t0) * 1000:.0f} ms · "
                f"{len(script['beats'])} beats · {len(script['props'])} props · {film:.1f} s", (time.perf_counter() - t0) * 1000)
