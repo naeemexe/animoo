@@ -703,7 +703,7 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
         if p.get("seats"):  # sit on it, facing its front
             (q, face) = p["seats"][i % len(p["seats"])]
             f = _dir(face)
-            return (q[0] + f[0] * SIT_BACK, q[1] + f[1] * SIT_BACK), face
+            return (q[0] + f[0] * (SIT_BACK - 0.2), q[1] + f[1] * (SIT_BACK - 0.2)), face  # a stump is small
         if is_boat(k):  # in the boat
             return p["center"], p["face"]
         if p["library"] == "bench" or p.get("bench"):
