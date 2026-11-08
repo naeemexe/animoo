@@ -161,6 +161,14 @@ def _call(messages, **kw) -> str:
 # ---- backends ----------------------------------------------------------------
 
 def _openai_compatible(base: str, key: str, messages, m, *, temperature, max_tokens, timeout, **_) -> str:
+    if re.search(r"(?i)nano-9b-v2", m):
+        # Nemotron Nano 9B v2 reasons first unless the system prompt says /no_think;
+        # the reasoning can use up max_tokens before any answer.
+        messages = [dict(x) for x in messages]
+        if messages and messages[0]["role"] == "system":
+            messages[0]["content"] = "/no_think\n" + messages[0]["content"]
+        else:
+            messages.insert(0, {"role": "system", "content": "/no_think"})
     body = {"model": m, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
     headers = {"Content-Type": "application/json", "Accept": "application/json"}
     if key:
