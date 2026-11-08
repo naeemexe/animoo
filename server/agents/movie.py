@@ -283,8 +283,10 @@ def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
         use = str(p.get("use", "stand")).lower()
         places.append({"key": k, "what": str(p.get("what") or k), "use": use if use in ("sit", "water") else "stand"})
     # "open ground", "the area": not a prop. Fold them into the first real place.
-    vague = re.compile(r"^(open |the )?(ground|area|space|clearing|spot|field|middle|center|centre)\b", re.I)
+    vague = re.compile(r"^(open |the )?(ground|area|space|clearing|spot|field|middle|center|centre|start|starting|"
+                       r"beginning|entrance|offscreen)\b", re.I)
     real = [p for p in places if not (vague.match(p["key"]) or vague.match(p["what"].removeprefix("an ").removeprefix("a ")))]
+    nowhere = {raw_k for raw_k, k in pmap.items() if k not in [p["key"] for p in real]}
     if real and len(real) < len(places):
         for p in places:
             if p not in real:
@@ -316,7 +318,7 @@ def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
         return pmap.get(x) or cmap.get(x) or (x if x in [p["key"] for p in places] or x in cmap.values() else None)
 
     for c in cast:
-        s = ref(c["starts_at"])
+        s = None if str(c["starts_at"]) in nowhere else ref(c["starts_at"])
         c["starts_at"] = s if s in [p["key"] for p in places] else None
     beats, bids = [], set()
     for i, b in enumerate((raw.get("beats") or [])[:12]):
@@ -355,6 +357,22 @@ def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
         for f in ("after", "with"):
             if str(b.get(f)) in bids and str(b.get(f)) != bid:
                 nb[f] = str(b[f])
+        prev = next((x for x in beats if x["id"] == nb.get("after")), None)
+        if prev and prev["cast"] != nb["cast"] and (prev.get("then") or prev["prompt"]) == (nb.get("then") or nb["prompt"]):
+            nb["with"] = nb.pop("after")  # "they both stand up": together, not one after the other
+            fixes.append(f"{bid}: same action as {prev['id']} → starts with it")
+        text = f"{nb['action']} {prompt}".lower()
+        if re.search(r"\bchas", text):
+            who = next((c["id"] for c in cast if c["id"] != nb["cast"] and
+                        (c["id"] in text or c["name"].lower() in text or nb.get("face") == c["id"])), None)
+            if who:
+                nb["chase"] = who
+        if not nb.get("move_to"):
+            for m in re.finditer(r"\b(on|onto|at|by|to|in|into|near|beside|past)\s+(?:the |a |an |his |her |their )?([a-z]+)", text):
+                k = next((p["key"] for p in places if m.group(2) in (p["key"], p["key"].rstrip("s"))), None)
+                if k:
+                    nb["past" if m.group(1) == "past" else "goto"] = k
+                    break
         beats.append(nb)
     if not beats:
         raise ValueError("the plan has no usable beats")
@@ -422,6 +440,14 @@ def repair_world(raw: dict, plan: dict, manifest: dict) -> tuple[dict, list[str]
         if k not in by_place:
             by_place[k] = {"library": lib}
             fixes.append(f"{k}: no choice → {lib}")
+    seats = {p["id"] for p in manifest["props"] if "seat" in p.get("tags", [])}
+    for pl in plan["places"]:  # a seat must be something to sit on (a log stack is too tall)
+        c = by_place[pl["key"]]
+        if pl["use"] == "sit" and not c.get("generate") and c["library"] not in seats and seats:
+            new = "bench" if "bench" in pl["what"].lower() and "bench" in seats else \
+                "stump" if "stump" in seats else sorted(seats)[0]
+            fixes.append(f"{pl['key']}: {c['library']} is no seat → {new}")
+            by_place[pl["key"]] = {"library": new}
     decor, total = [], 0
     wet = {p["id"] for p in manifest["props"] if p.get("category") == "water"}
     for d in raw.get("decor") or []:
@@ -511,16 +537,44 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
         elif p["use"] == "water" and not plan["water"]:
             p["use"] = "stand"
 
+    # Who uses each place (slot order): who starts there, then who goes there.
+    users: dict[str, list[str]] = {}
+    for c in plan["cast"]:
+        if c["starts_at"] in places:
+            users.setdefault(c["starts_at"], []).append(c["id"])
+    chase_to = {}  # beat id → where the chased one ends up
+    for i, b in enumerate(plan["beats"]):
+        for k in (b.get("move_to"), b.get("goto")):
+            if k in places and b["cast"] not in users.setdefault(k, []):
+                users[k].append(b["cast"])
+        if b.get("chase"):
+            later = [x.get("move_to") or x.get("goto") for x in plan["beats"][i + 1:] if x["cast"] == b["chase"]]
+            later = [k for k in later if k in places]
+            if later:
+                chase_to[b["id"]] = later[-1]
+                if b["cast"] not in users.setdefault(later[-1], []):
+                    users[later[-1]].append(b["cast"])
+
     # Visit order: where characters start, then where beats go.
     order = []
-    for k in [c["starts_at"] for c in plan["cast"]] + [b.get("move_to") for b in plan["beats"]] + list(places):
+    for k in [c["starts_at"] for c in plan["cast"]] + [b.get("move_to") or b.get("goto") for b in plan["beats"]] + list(places):
         if k in places and k not in order:
             order.append(k)
     water = None
     if plan["water"]:
         water = {"shape": "pond", "center": [7.5, 8.5], "radius": 4.8}
-    land = [k for k in order if places[k]["use"] != "water" or not water]
-    wet = [k for k in order if k not in land]
+    # "A log by the fire", "a bench near the lighthouse": next to that place, not on the route.
+    anchor = {}
+    for k in order:
+        for m in re.finditer(r"\b(?:by|near|beside|next to|around)\s+(?:the |a |an )?([a-z]+)", places[k]["what"].lower()):
+            w = m.group(1)
+            a = next((o for o in order if o != k and len(w) >= 3 and (w in o or o in w) and o not in anchor
+                      and not (places[o]["use"] == "water" and water)), None)
+            if a and places[k]["use"] != "water":
+                anchor[k] = a
+                break
+    land = [k for k in order if (places[k]["use"] != "water" or not water) and k not in anchor]
+    wet = [k for k in order if k not in land and k not in anchor]
 
     # The walking route across the island; land places sit beside it.
     route = ([(-10.5, -7.5), (-5.5, -2.5), (-0.5, 1.5), (3.5, 3.5)] if water
@@ -558,38 +612,70 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
             p["center"] = (c[0] + d[0] * off, c[1] + d[1] * off)
             p["foot"] = (c[0] + d[0] * (r + 1.1), c[1] + d[1] * (r + 1.1))
             p["face"] = _heading(p["center"], c) if not in_water else ang + 90
+    for i, (k, a) in enumerate(anchor.items()):
+        p, A = places[k], places[a]
+        p["R"] = R = footprint(entries.get(p["library"]), p.get("generate"))
+        base = _heading(A["center"], A["foot"])  # toward the route
+        d = _dir(base + (75 if i % 2 == 0 else -75))
+        gap = A["R"] + R + (0.9 if p["use"] == "sit" else 1.2)
+        p["center"] = (A["center"][0] + d[0] * gap, A["center"][1] + d[1] * gap)
+        if A["R"] < 1.5:  # a fire, a well: face it
+            p["face"] = _heading(p["center"], A["center"])
+        elif water:  # a bench by the lighthouse looks at the water
+            p["face"] = _heading(p["center"], water["center"])
+        else:
+            p["face"] = _heading(A["center"], p["center"])
+        f = _dir(p["face"])
+        p["foot"] = (p["center"][0] + f[0] * (R + 0.8), p["center"][1] + f[1] * (R + 0.8))
+        p["anchor"] = a
+    # Single seats (a stump): one per person who sits there.
+    for k, p in places.items():
+        e = entries.get(p["library"])
+        if not e or "seat" not in e.get("tags", []) or p["library"] == "bench":
+            continue
+        n_seat = max(1, len(users.get(k, [])))
+        A = places.get(p.get("anchor"))
+        if A and A["R"] < 1.5 and n_seat > 1:  # around the fire, facing it and each other
+            base = _heading(A["center"], p["center"])
+            gap = _dist(A["center"], p["center"])
+            pts = [(A["center"][0] + _dir(base + 110 * j)[0] * gap, A["center"][1] + _dir(base + 110 * j)[1] * gap)
+                   for j in range(n_seat)]
+            p["seats"] = [(q, _heading(q, A["center"])) for q in pts]
+        else:  # side by side
+            along = _dir(p["face"] + 90)
+            p["seats"] = [((p["center"][0] + along[0] * 1.1 * j, p["center"][1] + along[1] * 1.1 * j), p["face"])
+                          for j in range(n_seat)]
     # A path from the first place to the last, through each place's foot.
-    path_pts = [_pt(places[k]["foot"]) for k in order]
+    path_pts = [_pt(places[k]["foot"]) for k in order if k not in anchor]
 
     # Props for places.
     props = []
     for k in order:
         p = places[k]
         rot = p["face"] + 90 if p["library"] == "bench" else p["face"]  # the bench's front is its -x side
-        prop = {"key": k, "library": p["library"], "position": _pt(p["center"]), "rotation": _r(((rot + 180) % 360) - 180, 0)}
-        if p.get("generate"):
-            prop["generate"] = p["generate"]
-        props.append(prop)
+        for j, (pt, face) in enumerate(p.get("seats") or [(p["center"], rot)]):
+            prop = {"key": k if j == 0 else f"{k}-{j + 1}", "library": p["library"], "position": _pt(pt),
+                    "rotation": _r(((face + 180) % 360) - 180, 0)}
+            if p.get("generate"):
+                prop["generate"] = p["generate"]
+            props.append(prop)
 
-    # Slots: where each character stands at a place (and which way a seat faces).
-    users: dict[str, list[str]] = {}
-    for b in plan["beats"]:
-        if b.get("move_to") in places:
-            users.setdefault(b["move_to"], [])
-            if b["cast"] not in users[b["move_to"]]:
-                users[b["move_to"]].append(b["cast"])
-    for c in plan["cast"]:
-        if c["starts_at"]:
-            users.setdefault(c["starts_at"], [])
-            if c["id"] not in users[c["starts_at"]]:
-                users[c["starts_at"]].insert(0, c["id"])
+    def is_boat(k):
+        return bool(water and k in places and places[k]["use"] == "water" and re.search(r"boat|canoe|raft", places[k]["library"]))
+
+    def is_seat(k):
+        return k in places and (places[k]["library"] in SEATS or bool(places[k].get("seats")) or is_boat(k))
 
     def slot(k, cid):
         p = places[k]
         i = users.get(k, [cid]).index(cid) if cid in users.get(k, []) else 0
-        if p["library"] in SEATS and (p["library"] == "bench" or i == 0):  # sit on it, facing its front
+        if p.get("seats"):  # sit on it, facing its front
+            return p["seats"][i % len(p["seats"])]
+        if is_boat(k):  # in the boat
+            return p["center"], p["face"]
+        if p["library"] == "bench":
             along = _dir(p["face"] + 90)
-            off = [-0.45, 0.45, 0.0][i % 3] if p["library"] == "bench" else 0.0
+            off = [-0.45, 0.45, 0.0][i % 3]
             back = _dir(p["face"] + 180)
             return (p["center"][0] + along[0] * off + back[0] * 0.15, p["center"][1] + along[1] * off + back[1] * 0.15), p["face"]
         if p["use"] == "water" and water:
@@ -604,119 +690,218 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
         pt = (p["center"][0] + dd[0] * rr, p["center"][1] + dd[1] * rr)
         return pt, _heading(pt, p["center"])
 
-    # Cast start positions.
-    cast_out, pos = [], {}
-    for i, c in enumerate(plan["cast"]):
-        if c["starts_at"]:
-            pt, face = slot(c["starts_at"], c["id"])
-            first_move = next((b["move_to"] for b in plan["beats"] if b["cast"] == c["id"] and b.get("move_to")), None)
-            if first_move in places and first_move != c["starts_at"]:
-                face = _heading(pt, places[first_move]["foot"])  # about to leave for it
-        else:
-            foot, h = _along(route, 1.0 + 2.0 * i)
-            pt, face = (foot[0] + 1.2 * i, foot[1] - 1.2 * i), h
-        pos[c["id"]] = pt
-        out = {"id": c["id"], "name": c["name"], "character": c["character"],
-               "start": {"position": _pt(pt), "facing": _r(((face + 180) % 360) - 180, 0)}}
-        if c["kid"]:
-            out["scale"] = 0.8
-        cast_out.append(out)
-
-    # Beats: timing from the sync links, walks fitted to their distance.
-    cursor = {c["id"]: 0.0 for c in plan["cast"]}
-    at_place = {c["id"]: c["starts_at"] for c in plan["cast"]}
-    timing: dict[str, tuple[float, float]] = {}
-    beats = []
-    count = {}
-
-    def add(cid, start, dur, prompt, action, **kw):
-        count[cid] = count.get(cid, 0) + 1
-        start, dur = _r(start), _r(dur, 1)
-        b = {"id": f"{cid}-{count[cid]}", "cast": cid, "start": start, "duration": dur,
-             "prompt": prompt, "action": action, **kw}
-        beats.append(b)
-        cursor[cid] = _r(start + dur)
-        return b
-
-    def idle(cid, until):
-        # A short wait stretches the last beat if it stays in place (a sit keeps
-        # sitting); otherwise an idle beat fills it.
-        mine = [x for x in beats if x["cast"] == cid]
-        transition = mine and re.search(r"\b(stands? up|gets? up|rises|trips|falls|stumbles|jumps)\b", mine[-1]["prompt"].lower())
-        if mine and "to" not in mine[-1] and not transition and until - cursor[cid] > 0.05 and \
-                mine[-1]["duration"] + until - cursor[cid] <= MAX_BEAT:
-            mine[-1]["duration"] = _r(until - mine[-1]["start"], 1)
-            cursor[cid] = _r(mine[-1]["start"] + mine[-1]["duration"])
-            return
-        t = cursor[cid]
-        while until - t > 1.0:
-            d = min(until - t, 8.0)
-            add(cid, t, d, "A person stands still and looks around.", "waits")
-            t = cursor[cid]
-
-    for b in plan["beats"]:
-        cid = b["cast"]
-        start = cursor[cid]
-        if b.get("after") in timing:
-            start = max(start, timing[b["after"]][1])
-        if b.get("with") in timing:
-            start = max(start, timing[b["with"]][0])
-        # Someone placed at the start is on screen from 0 s (without starts_at, they enter later).
-        if cursor[cid] > 0 or any(x["cast"] == cid for x in beats) or at_place.get(cid):
-            idle(cid, start)
-        start = max(start, cursor[cid])
-        t0 = start
-        mv = b.get("move_to")
-        if mv and b.get("first"):
-            add(cid, start, 3.0, b["first"], b["action"])
-            start = cursor[cid]
-        extra = {}
-        if b.get("face"):
-            extra["facing"] = b["face"]
-        if mv:
-            if mv in places:
-                dest, face = slot(mv, cid)
-            else:  # another character: stop a meter short of them
-                other = pos.get(mv, (0, 0))
-                h = _heading(other, pos[cid])
-                dest, face = (other[0] + _dir(h)[0] * 1.1, other[1] + _dir(h)[1] * 1.1), h + 180
-            dist = _dist(pos[cid], dest)
-            if dist < 1.0 and b.get("first"):
-                pass  # stood up already, and is already there
-            elif dist < 1.0:  # already there: do the action in place
-                add(cid, start, b["duration"] if b.get("still_prompt") else min(b["duration"], 3),
-                    b.get("still_prompt") or "A person turns around and looks.", b["action"],
-                    facing=extra.get("facing", mv if mv in places else _r(face, 0)))
+    # Beats are laid out up to three times: a beat that must start "with" another but
+    # could only start later holds the other one back (hold) on the next pass.
+    hold: dict[str, float] = {}
+    n_notes = len(notes)
+    for _pass in range(3):
+        del notes[n_notes:]
+        # Cast start positions.
+        cast_out, pos = [], {}
+        for i, c in enumerate(plan["cast"]):
+            if c["starts_at"]:
+                pt, face = slot(c["starts_at"], c["id"])
+                first_move = next((b.get("move_to") or b.get("goto") for b in plan["beats"]
+                                   if b["cast"] == c["id"] and (b.get("move_to") or b.get("goto"))), None)
+                if first_move in places and first_move != c["starts_at"] and not is_seat(c["starts_at"]):
+                    face = _heading(pt, places[first_move]["foot"])  # about to leave for it
             else:
-                speed = speed_of(b["prompt"])
-                need = dist / speed + 0.7
-                parts = max(1, math.ceil(need / 9.0))
-                src = pos[cid]
-                for j in range(parts):
-                    f = (j + 1) / parts
-                    to = (src[0] + (dest[0] - src[0]) * f, src[1] + (dest[1] - src[1]) * f)
-                    dur = min(max(need / parts, 2.5), MAX_BEAT)
-                    add(cid, cursor[cid] if j else start, dur, b["prompt"], b["action"], to=_pt(to),
-                        **(extra if j == 0 else {}))
-                notes.append(f"{b['id']} {cid} → {mv}: {dist:.1f} m at {speed} m/s → {need:.1f} s"
-                             + (f" in {parts} beats" if parts > 1 else ""))
+                foot, h = _along(route, 1.0 + 2.0 * i)
+                pt, face = (foot[0] + 1.2 * i, foot[1] - 1.2 * i), h
+            pos[c["id"]] = pt
+            out = {"id": c["id"], "name": c["name"], "character": c["character"],
+                   "start": {"position": _pt(pt), "facing": _r(((face + 180) % 360) - 180, 0)}}
+            if c["kid"]:
+                out["scale"] = 0.8
+            cast_out.append(out)
+        cast_by = {c["id"]: c for c in cast_out}
+
+        # Beats: timing from the sync links, walks fitted to their distance.
+        cursor = {c["id"]: 0.0 for c in plan["cast"]}
+        at_place = {c["id"]: c["starts_at"] for c in plan["cast"]}
+        fast = {c["id"]: False for c in plan["cast"]}  # their last move was a run
+        timing: dict[str, tuple[float, float]] = {}
+        beats = []
+        count = {}
+
+        def add(cid, start, dur, prompt, action, **kw):
+            count[cid] = count.get(cid, 0) + 1
+            start, dur = _r(start), _r(dur, 1)
+            b = {"id": f"{cid}-{count[cid]}", "cast": cid, "start": start, "duration": dur,
+                 "prompt": prompt, "action": action, **kw}
+            beats.append(b)
+            cursor[cid] = _r(start + dur)
+            return b
+
+        def idle(cid, until):
+            # A short wait stretches the last beat if it stays in place (a sit keeps
+            # sitting); otherwise an idle beat fills it.
+            mine = [x for x in beats if x["cast"] == cid]
+            transition = mine and re.search(r"\b(stands? up|gets? up|rises|trips|falls|stumbles|jumps)\b", mine[-1]["prompt"].lower())
+            if mine and "to" not in mine[-1] and not transition and until - cursor[cid] > 0.05 and \
+                    mine[-1]["duration"] + until - cursor[cid] <= MAX_BEAT:
+                mine[-1]["duration"] = _r(until - mine[-1]["start"], 1)
+                cursor[cid] = _r(mine[-1]["start"] + mine[-1]["duration"])
+                return
+            seated = mine and re.search(r"\bsits?\b", mine[-1]["prompt"].lower()) and not transition
+            t = cursor[cid]
+            while until - t > 1.0:
+                d = min(until - t, 8.0)
+                add(cid, t, d, "A person sits still and looks around." if seated else "A person stands still and looks around.",
+                    "waits", **({"facing": mine[-1]["facing"]} if seated and "facing" in mine[-1] else {}))
+                t = cursor[cid]
+
+        def go(cid, dest, prompt, action, start, **extra):
+            """Walk (or run) to dest in clips of at most 9 s; later clips are plain locomotion."""
+            dist = _dist(pos[cid], dest)
+            speed = speed_of(prompt)
+            need = dist / speed + 0.7
+            parts = max(1, math.ceil(need / 9.0))
+            plain = "A person runs forward fast." if speed >= 2.0 else "A person walks forward."
+            src = pos[cid]
+            for j in range(parts):
+                f = (j + 1) / parts
+                to = (src[0] + (dest[0] - src[0]) * f, src[1] + (dest[1] - src[1]) * f)
+                dur = min(max(need / parts, 2.5), MAX_BEAT)
+                add(cid, cursor[cid] if j else start, dur, prompt if j == 0 else plain, action, to=_pt(to),
+                    **(extra if j == 0 else {}))
             pos[cid] = dest
-            at_place[cid] = mv if mv in places else None
-            if b.get("then") and dist >= 1.0:
-                here = mv if mv in places else (mv if mv in pos else None)
-                add(cid, cursor[cid], min(max(b["duration"], 2.0), 6.0), b["then"], b["action"],
-                    **({"facing": here} if here else {}))
-        else:
+            fast[cid] = speed >= 2.0
+            return f"{dist:.1f} m at {speed} m/s → {need:.1f} s" + (f" in {parts} beats" if parts > 1 else "")
+
+        def travel_time(cid, dest, prompt):
+            return _dist(pos[cid], dest) / speed_of(prompt) + 0.7
+
+        def active(cid):
+            return cursor[cid] > 0 or any(x["cast"] == cid for x in beats) or bool(at_place.get(cid))
+
+        for bi, b in enumerate(plan["beats"]):
+            cid = b["cast"]
+            sync = hold.get(b["id"], 0.0)
+            if b.get("after") in timing:
+                sync = max(sync, timing[b["after"]][1])
+            if b.get("with") in timing:
+                sync = max(sync, timing[b["with"]][0])
+            start = max(cursor[cid], sync)
+            t0 = start
+            # A place the action names ("sits on the dock", "trips by the cart"): go there first,
+            # leaving early enough to arrive in time.
+            pre = b.get("goto") if b.get("goto") in places and b.get("goto") != at_place.get(cid) else None
+            if pre:
+                dest, _ = slot(pre, cid)
+                if _dist(pos[cid], dest) < 1.0:
+                    at_place[cid], pre = pre, None
+            if pre:
+                mp = "A person runs forward fast." if fast[cid] else "A person walks forward."
+                t_go = max(cursor[cid], sync - travel_time(cid, dest, mp))
+                if active(cid):
+                    idle(cid, t_go)
+                t0 = max(t_go, cursor[cid])
+                notes.append(f"{b['id']} {cid} → {pre} first: " + go(cid, dest, mp, b["action"], t0))
+                at_place[cid] = pre
+                start = max(cursor[cid], sync)
+            # Someone placed at the start is on screen from 0 s (without starts_at, they enter later).
+            if active(cid):
+                idle(cid, start)
+            start = max(start, cursor[cid])
+            if not pre:
+                t0 = start
+            mv = b.get("move_to")
+            if mv and b.get("first"):
+                add(cid, start, 3.0, b["first"], b["action"])
+                start = cursor[cid]
+            extra = {}
+            if b.get("face"):
+                extra["facing"] = b["face"]
+            if b.get("past") in places:  # "runs past the well": from a few meters before it to a few meters after
+                k = b["past"]
+                pt, _ = slot(k, cid)
+                nxt = next((x.get("move_to") or x.get("goto") for x in plan["beats"][bi + 1:]
+                            if x["cast"] == cid and (x.get("move_to") or x.get("goto")) in places), None)
+                if _dist(pos[cid], pt) < 2.0:
+                    h = _heading(pt, places[nxt]["foot"]) if nxt and nxt != k else _heading(places[k]["center"], pt) + 90
+                    if not any(x["cast"] == cid for x in beats):  # first beat: start before the place
+                        d = _dir(h + 180)
+                        pos[cid] = (pt[0] + d[0] * 4.0, pt[1] + d[1] * 4.0)
+                        cast_by[cid]["start"] = {"position": _pt(pos[cid]), "facing": _r(((h + 180) % 360) - 180, 0)}
+                else:
+                    h = _heading(pos[cid], pt)
+                d = _dir(h)
+                dest = (pt[0] + d[0] * 4.0, pt[1] + d[1] * 4.0)
+                if math.hypot(*dest) > ISLAND:
+                    dest = (dest[0] * ISLAND / math.hypot(*dest), dest[1] * ISLAND / math.hypot(*dest))
+                dur = min(max(b["duration"], _dist(pos[cid], dest) / speed_of(b["prompt"]) + 0.5), MAX_BEAT)
+                add(cid, start, dur, b["prompt"], b["action"], to=_pt(dest))
+                pos[cid], at_place[cid] = dest, None
+                fast[cid] = speed_of(b["prompt"]) >= 2.0
+            elif mv:
+                if mv in places:
+                    dest, face = slot(mv, cid)
+                else:  # another character: stop a meter short of them
+                    other = pos.get(mv, (0, 0))
+                    h = _heading(other, pos[cid])
+                    dest, face = (other[0] + _dir(h)[0] * 1.1, other[1] + _dir(h)[1] * 1.1), h + 180
+                dist = _dist(pos[cid], dest)
+                if dist < 1.0 and b.get("first"):
+                    pass  # stood up already, and is already there
+                elif dist < 1.0:  # already there: do the action in place
+                    add(cid, start, b["duration"] if b.get("still_prompt") else min(b["duration"], 3),
+                        b.get("still_prompt") or "A person turns around and looks.", b["action"],
+                        facing=extra.get("facing", mv if mv in places else _r(face, 0)))
+                else:
+                    notes.append(f"{b['id']} {cid} → {mv}: " + go(cid, dest, b["prompt"], b["action"], start, **extra))
+                at_place[cid] = mv if mv in places else None
+                fin = chase_to.get(b["id"])
+                if fin and fin != mv:  # a chase goes on to where the chased one ends up
+                    dest2, _ = slot(fin, cid)
+                    notes.append(f"{b['id']} {cid} chases on → {fin}: " + go(cid, dest2, b["prompt"], b["action"], cursor[cid]))
+                    at_place[cid] = fin
+                if b.get("then") and dist >= 1.0:
+                    here = at_place[cid] if at_place[cid] else (mv if mv in pos else None)
+                    add(cid, cursor[cid], min(max(b["duration"], 2.0), 6.0), b["then"], b["action"],
+                        **({"facing": here} if here else {}))
+            else:
+                here = at_place.get(cid)
+                seated = re.search(r"\bsits?\b", b["prompt"].lower())
+                if here in places and ("facing" not in extra or (seated and is_seat(here))):
+                    _, face = slot(here, cid)
+                    extra["facing"] = _r(((face + 180) % 360) - 180, 0) if is_seat(here) or \
+                        (places[here]["use"] == "water" and water) else here
+                dur = b["duration"]
+                if seated:
+                    dur = max(dur, 4.0)
+                add(cid, start, dur, b["prompt"], b["action"], **extra)
+            timing[b["id"]] = (t0, cursor[cid])
+
+        # Cast without beats of their own (grandpa in his boat): they stay busy, and wave back.
+        end = max(cursor.values())
+        for c in plan["cast"]:
+            cid = c["id"]
+            if any(x["cast"] == cid for x in beats):
+                continue
             here = at_place.get(cid)
-            if "facing" not in extra and here in places:
-                _, face = slot(here, cid)
-                extra["facing"] = _r(((face + 180) % 360) - 180, 0) if places[here]["library"] in SEATS or \
-                    (places[here]["use"] == "water" and water) else here
-            dur = b["duration"]
-            if re.search(r"\bsits?\b", b["prompt"].lower()):
-                dur = max(dur, 4.0)
-            add(cid, start, dur, b["prompt"], b["action"], **extra)
-        timing[b["id"]] = (t0, cursor[cid])
+            sit = is_seat(here)
+            base = ("A person sits and rows a boat with both arms." if is_boat(here) else
+                    "A person sits and looks around." if sit else "A person stands still and looks around.")
+            face = {"facing": _r(((slot(here, cid)[1] + 180) % 360) - 180, 0)} if here in places else {}
+
+            def fill(until):
+                while until - cursor[cid] > 1.0:
+                    add(cid, cursor[cid], min(until - cursor[cid], 8.0), base, "rows" if is_boat(here) else "waits", **face)
+
+            for w in [x for x in sorted(beats, key=lambda x: x["start"]) if x["cast"] != cid and "wave" in x["prompt"].lower()
+                      and (x.get("facing") == cid or (here and x.get("facing") == here))]:
+                fill(w["start"] + 0.6)
+                add(cid, cursor[cid], 3.0, ("A person sits and waves back with one hand." if sit else
+                                            "A person waves back with one hand."), "waves back", facing=w["cast"])
+                notes.append(f"{cid} has no beats: waves back at {w['cast']} at {w['start'] + 0.6:.1f} s")
+            fill(end)
+
+        late = {x["with"]: timing[x["id"]][0] for x in plan["beats"] if x.get("with") in timing and x["id"] in timing
+                and timing[x["id"]][0] > timing[x["with"]][0] + 0.3 and timing[x["id"]][0] > hold.get(x["with"], 0)}
+        if not late:
+            break
+        hold.update(late)
 
     end = max(cursor.values())
     # Nobody freezes at the end: a short idle tail, unless they sat down.
@@ -725,6 +910,14 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
         if last and end - cursor[c["id"]] > 1.5 and not re.search(r"\bsit", last[0]["prompt"].lower()):
             idle(c["id"], end)
 
+    # Someone who is talked to, handed something or waved at looks at them while waiting.
+    ids = {c["id"] for c in plan["cast"]}
+    for x in beats:
+        if x.get("facing") in ids:
+            for y in beats:
+                if y["cast"] == x["facing"] and y["action"] == "waits" and "facing" not in y and \
+                        y["start"] <= x["start"] + 0.5 < y["start"] + y["duration"]:
+                    y["facing"] = x["cast"]
     # Same prompt and length for two beats would give the same clip: vary the seed.
     seen = {}
     for x in beats:
