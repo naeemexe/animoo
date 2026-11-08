@@ -40,7 +40,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 22 | A | Motion control: a game-style action library (cached clips) plus position control: paths around props, facing, gestures aimed at a target, consistent heights | 3 h | done | 14, 16 |
 | 23 | A | Look fixes: intentional depth of field, stable shadows, thinner outlines on small props, less blocky props, no visible circular world edge | 1.5 h | done | 15 |
 | 24 | A | Scene variety: city, sea/beach, park sets (not only forest), one cached scene each | 2 h | done | 15, 22 |
-| 25 | A | Interiors: room and restaurant sets, with an interior camera (eye level, horizontal moves, two-shots, over-the-shoulder; never above the roof) | 2 h | doing | 16, 24 |
+| 25 | A | Interiors: room and restaurant sets, with an interior camera (eye level, horizontal moves, two-shots, over-the-shoulder; never above the roof) | 2 h | done | 16, 24 |
 | 26 | A | Spoken dialogue: Nemotron writes cinematic lines per character; ElevenLabs voices them; talk gesture + timeline sync | 2 h | waiting (needs `ELEVENLABS_API_KEY` in `.env`) | 22 |
 | 27 | A | Story-driven characters: cast built from the story (look, outfit colors, height, age) instead of the two fixed VRMs | 2.5 h | todo | 22 |
 
@@ -551,3 +551,32 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
   horizon only show in the low medium/close shots; the cafe and market props sit on a 10 m-grid city whose buildings are
   toy-proportioned Kenney tiles (doors are small next to 1.7 m people, but at 25 m+ it reads fine); snow in a city keeps the
   paving. The camera can still end up behind a dock post (beach t = 9.5 before the dock fix).
+- 25: interiors are two more biomes, `room` and `restaurant` (`BIOME_WORDS` checks them first: "restaurant",
+  "diner", "pub", "in a cafe"; "living room", "bedroom", "kitchen", "a/the/his … room"). Indoors: weather is forced to
+  clear, no water, the route is shrunk ×0.42, every place becomes furniture (a table people sit at → `dining-table`
+  with 2+ chairs facing it, the room itself → a rug), decor is furniture only. The library had no furniture, so 13
+  pieces are built in code (`web/js/furniture.js`, `file: "procedural:<id>"` in the manifest, front +z): chair,
+  armchair, sofa, dining-table, table-long, coffee-table, bookshelf, counter, potted-plant, floor-lamp, rug, bed,
+  fireplace. `web/js/movie/interior.js` builds the room around the action (`roomBounds()`, shared with the camera):
+  plank or checker floor, wainscot walls with windows (the sky's color by time of day), a door, pictures, beams, a
+  ceiling, pendant lamps with warm point lights, furniture along the walls and, in a restaurant, other diners' tables.
+- 25: interior camera (`TYPES_IN` in camera.js): eye level 1.1–1.7 m, moves are dolly / pull / truck (sideways) /
+  small orbit, no crane or rise; shot types add `behind` (past one character's back at the others); any shot whose
+  camera leaves the walls is rejected, then clamped as a last resort; the fill's furniture blocks shots; nobody is shot
+  from behind a sofa or armchair they sit on.
+- 25: seating fix (22/14 bug): `snapSeat()` in director.js moves a seated beat's hips onto the nearest seat (bench
+  along its length, chair, sofa, stump; specs in `SEAT_SPEC`, control.js), fading in as the hips go down on a
+  sit-down; later beats start from there. The city scene's sitters moved 0.47–0.86 m. Sofa/armchair seats are 0.44 m
+  high (Kimodo's sitting pose is for a ~0.45 m bench; at 0.56 m the legs sank into the cushion).
+- 25: cached scenes (2 hosted Nemotron calls each): `in-a-cozy-living-room-5cfa2d34e4.json`,
+  `in-a-small-restaurant-at-1463082649.json`. Checked with screenshots, panels hidden: restaurant t = 4.5 (she waves
+  at the table, windows with a night sky, other tables, pendants), t = 12 (side two-shot, both seated on chairs at the
+  table; earlier the same t from behind the man); room t = 4.2 (she sits on the sofa, he waves), t = 11 (over her
+  shoulder, both on the sofa), t = 14 (eye-level wide, both seated); city bench t = 13 (she sits on the bench, no
+  float). No console errors.
+- 25: not done: the living room comes out 12 × 13 m (decor and the shrunk route still spread the action; a real room
+  is ~5 × 6 m); the restaurant woman's sit-down is corrected by 1 m (her walk ends at a talk spot for the wave, not at
+  her chair, so she slides onto it while sitting); seated talkers turn their whole seated pose toward each other
+  (sideways on the sofa); interiors have no fill-window light at night beyond the lamps; the fill's armchairs and
+  chairs aren't seats (only the script's props are).
+
