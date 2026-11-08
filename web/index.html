@@ -9,17 +9,45 @@
   {
     "imports": {
       "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+      "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@2.1.3/lib/three-vrm.module.js"
     }
   }
   </script>
 </head>
 <body>
   <div id="app"></div>
-  <header class="card">
+  <header class="card topbar">
     <h1>Animo World</h1>
+    <nav class="tabs" role="tablist">
+      <a href="#chat" role="tab" data-page="chat">Chat</a>
+      <a href="#movie" role="tab" data-page="movie">Movie</a>
+    </nav>
     <span id="status" class="pill">checking backend…</span>
   </header>
+
+  <section id="page-chat" class="page" hidden>
+    <div class="card chat-soon">
+      <p><strong>Chat</strong> comes in task 10: a character in this little world talks with you
+        (Nemotron writes the replies, the browser speaks them) and performs moves you ask for.</p>
+    </div>
+  </section>
+
+  <section id="page-movie" class="page" hidden>
+    <aside class="card movie-panel">
+      <label for="movie-prompt" class="panel-title">Describe a scene</label>
+      <textarea id="movie-prompt" rows="4" spellcheck="false"></textarea>
+      <button id="movie-make" type="button" class="primary">Make movie</button>
+      <div class="panel-title">Agents</div>
+      <ol id="movie-log" class="agent-log"></ol>
+      <details id="movie-script-box" hidden>
+        <summary>scene script (JSON)</summary>
+        <pre id="movie-script"></pre>
+      </details>
+    </aside>
+    <div id="movie-timeline" class="card timeline"></div>
+  </section>
+
   <script type="module" src="js/main.js"></script>
 </body>
 </html>
