@@ -38,7 +38,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 19 | A | Camera paths: draw a keyframed camera path between two timestamps in edit mode; it overrides the director for that span | 2.5 h | todo | 16, 18 |
 | 21 | A | Full pipeline check + optimization: load times, GLB sizes, caching, LLM call budget, GPU memory, bug bash | 2 h | done (session closed early: export width, snow ground, shot defaults, 2 scenes cached; timing table not written) | 13–17 |
 | 22 | A | Motion control: a game-style action library (cached clips) plus position control: paths around props, facing, gestures aimed at a target, consistent heights | 3 h | done | 14, 16 |
-| 23 | A | Look fixes: intentional depth of field, stable shadows, thinner outlines on small props, less blocky props, no visible circular world edge | 1.5 h | todo | 15 |
+| 23 | A | Look fixes: intentional depth of field, stable shadows, thinner outlines on small props, less blocky props, no visible circular world edge | 1.5 h | doing | 15 |
 | 24 | A | Scene variety: city, sea/beach, park sets (not only forest), one cached scene each | 2 h | todo | 15, 22 |
 | 25 | A | Interiors: room and restaurant sets, with an interior camera (eye level, horizontal moves, two-shots, over-the-shoulder; never above the roof) | 2 h | todo | 16, 24 |
 | 26 | A | Spoken dialogue: Nemotron writes cinematic lines per character; ElevenLabs voices them; talk gesture + timeline sync | 2 h | waiting (needs `ELEVENLABS_API_KEY` in `.env`) | 22 |
