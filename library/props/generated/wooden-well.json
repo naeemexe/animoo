@@ -1,0 +1,24 @@
+{
+ "id": "wooden-well",
+ "name": "wooden-well",
+ "prompt": "a small wooden village well with a rope and bucket",
+ "sent_prompt": "a small wooden village well with a rope and bucket, solid chunky shapes, thick sturdy parts",
+ "seed": 0,
+ "image_key": "706adf8636f61e81",
+ "size_m": 1.2,
+ "normalize": {
+  "normalized": true,
+  "trimmed": true,
+  "cut_fraction": 0.12,
+  "triangles_removed": 11577,
+  "size": [
+   0.9,
+   1.2,
+   0.99
+  ],
+  "vertices": 48583,
+  "triangles": 46333
+ },
+ "pod_seconds": 43.0,
+ "created": "2026-11-08T06:02:38+00:00"
+}
