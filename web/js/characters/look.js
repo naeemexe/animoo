@@ -84,11 +84,15 @@ function makeAccessory(kind, look, f) {
     g.add(brim, crown, band);
     g.position.set(f.at.x, f.at.y + f.top * 0.82, f.at.z);
   } else if (kind === 'cap') {
-    const dome = new THREE.Mesh(new THREE.SphereGeometry(r * 1.12, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), MAT(shade));
-    const bill = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.9, r * 0.9, r * 0.06, 24, 1, false, -Math.PI / 2, Math.PI), MAT(shade));
-    bill.position.set(0, 0, r * 0.6);
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(r * 1.1, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), MAT(shade));
+    dome.scale.y = 0.85;
+    // The bill: a half disc out front, tipped down so it reads from eye level.
+    const bill = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.85, r * 0.85, r * 0.1, 24, 1, false, -Math.PI / 2, Math.PI),
+      MAT(new THREE.Color(shade).multiplyScalar(0.7)));
+    bill.position.set(0, r * 0.02, r * 0.75);
+    bill.rotation.x = 0.28;
     g.add(dome, bill);
-    g.position.set(f.at.x, f.at.y + f.top * 0.5, f.at.z);
+    g.position.set(f.at.x, f.at.y + f.top * 0.4, f.at.z);
   } else if (kind === 'chef_hat') {
     const white = MAT('#f7f5f0', 0.95);
     const band = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.08, r * 1.08, r * 0.5, 24), white);
