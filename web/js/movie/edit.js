@@ -30,9 +30,9 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
     <label class="edit-toggle"><input type="checkbox" class="ed-on"> edit set</label>
     <div class="ed-tools" hidden>
       <div class="ed-row">
-        <button type="button" data-mode="translate" title="move (W)">move</button>
-        <button type="button" data-mode="rotate" title="rotate (E)">rotate</button>
-        <button type="button" data-mode="scale" title="scale (R)">scale</button>
+        <button type="button" data-mode="translate" title="move (1)">move</button>
+        <button type="button" data-mode="rotate" title="rotate (2)">rotate</button>
+        <button type="button" data-mode="scale" title="scale (3)">scale</button>
       </div>
       <div class="ed-row">
         <button type="button" class="ed-dup" title="duplicate (Ctrl+D)">duplicate</button>
@@ -159,7 +159,7 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
   function pathStatus() {
     const p = current();
     ui.pstatus.textContent = p
-      ? `path ${p.start.toFixed(1)}–${p.end.toFixed(1)} s · ${p.keys.length} key${p.keys.length === 1 ? '' : 's'}${p.keys.length ? '' : ' (orbit to a view, "add key")'}`
+      ? `path ${p.start.toFixed(1)}–${p.end.toFixed(1)} s · ${p.keys.length} key${p.keys.length === 1 ? '' : 's'}${p.keys.length ? '' : ' (fly to a view, "add key")'}`
       : `no path at ${state.t.toFixed(1)} s: scrub, then "start here"`;
   }
   function setStart() {
@@ -396,9 +396,10 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
   function onKey(e) {
     if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName)) return;
     const k = e.key.toLowerCase();
-    if (k === 'w') setMode('translate');
-    else if (k === 'e') setMode('rotate');
-    else if (k === 'r') setMode('scale');
+    // W/A/S/D/Q/E fly the free camera (task 29), so the gizmo modes are on 1/2/3.
+    if (k === '1') setMode('translate');
+    else if (k === '2') setMode('rotate');
+    else if (k === '3') setMode('scale');
     else if (k === 'delete' || k === 'backspace') { e.preventDefault(); remove(); }
     else if (k === 'd' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); duplicate(); }
     else if (k === 'escape') select(null);
@@ -440,7 +441,7 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
     curPath = null;
     pathStatus();
     drawPath();
-    log('world', 'note', 'edit mode: click a prop; W/E/R move/rotate/scale, Ctrl+D duplicate, Del delete; camera path: scrub, "start here", orbit, K adds a key');
+    log('world', 'note', 'edit mode: fly with W/A/S/D (Q/E down/up, Shift faster), drag or right-drag to look, wheel to dolly, middle-drag to pan; click a prop; 1/2/3 move/rotate/scale, Ctrl+D duplicate, Del delete; camera path: scrub, "start here", fly to a view, K adds a key');
   }
   function exit() {
     select(null);
@@ -471,6 +472,7 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
 
   return {
     get on() { return ui.on.checked; },
+    canLook() { return !gizmo.axis && !gizmo.dragging && !previewing; }, // a left-drag that isn't on the gizmo
     show(ready) { bar.hidden = !ready; },
     timeChanged() { if (ui.on.checked && !previewing) pathStatus(); },
     off() { if (ui.on.checked) { ui.on.checked = false; exit(); } },

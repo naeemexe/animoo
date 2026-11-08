@@ -20,6 +20,7 @@ import { createTimeline } from './timeline.js';
 import { DirectorCamera } from './camera.js';
 import { recordWebM } from './export.js';
 import { createEditor } from './edit.js';
+import { createFreeCam } from './freecam.js';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const params = urlParams;
@@ -48,6 +49,7 @@ export function createMoviePage(root, stage, look) {
     playing: false,
     busy: false,
     directorCam: true,
+    freeCam: false, // the timeline's "free camera" toggle (edit mode turns it on too)
     exporting: false,
     timings: {},
   };
@@ -55,7 +57,8 @@ export function createMoviePage(root, stage, look) {
   const timeline = createTimeline($('#movie-timeline'), {
     onPlay: () => setPlaying(!state.playing),
     onSeek: (t) => { setPlaying(false); seek(t); },
-    onDirectorCam: (on) => { state.directorCam = on; cam.setEnabled(on); },
+    onDirectorCam: (on) => { state.directorCam = on; applyCam(); },
+    onFreeCam: (on) => { state.freeCam = on; applyCam(); },
     onExport: () => exportMovie(),
   });
   // Edit mode (task 18) sits behind its own toggle; off, playback is untouched.
@@ -67,7 +70,7 @@ export function createMoviePage(root, stage, look) {
       setPlaying(false);
       camBeforeEdit = state.directorCam;
       state.directorCam = false;
-      cam.setEnabled(false);
+      applyCam(true);
     },
     onExit(dirty) {
       if (dirty) {
@@ -81,12 +84,20 @@ export function createMoviePage(root, stage, look) {
         }
       }
       state.directorCam = camBeforeEdit;
-      cam.setEnabled(camBeforeEdit);
+      applyCam(false);
     },
     onScriptChanged() { ui.scriptView.textContent = JSON.stringify(state.script, null, 2); },
     onPathsChanged() { timeline.setRows(state.rows, state.duration); timeline.setTime(state.t); },
     seek: (t) => seek(t),
   });
+  // Free spectator camera (task 29): on in edit mode, or with the timeline's toggle.
+  // A left-drag in edit mode looks around only when it doesn't start on the gizmo.
+  const free = createFreeCam(stage, { canLook: () => !editor.on || editor.canLook() });
+  function applyCam(editing = editor.on) {
+    const on = state.freeCam || editing;
+    if (on) { cam.setEnabled(false); free.enable(); } else { free.disable(); cam.setEnabled(state.directorCam); }
+    timeline.setFreeCam(on, editing);
+  }
 
   // ---- agent log ----------------------------------------------------------
   function log(agent, kind, text, { err = false } = {}) {
@@ -327,7 +338,7 @@ export function createMoviePage(root, stage, look) {
       cam.update(state.t, state.rows, dt);
       timeline.setTime(state.t);
     }
-    if (!state.directorCam || !Object.keys(state.rows).length) stage.controls.update();
+    if (free.active) { if (!cam.enabled) free.update(dt); } else if (!state.directorCam || !Object.keys(state.rows).length) stage.controls.update();
   }
 
   function setVisible(on) {
@@ -368,7 +379,7 @@ export function createMoviePage(root, stage, look) {
       if (renderer.getPixelRatio() !== pr) { renderer.setPixelRatio(pr); resize(); }
       state.exporting = false;
       state.directorCam = wasCam;
-      cam.setEnabled(wasCam);
+      applyCam();
       timeline.setExporting(false);
     }
   }
@@ -383,9 +394,9 @@ export function createMoviePage(root, stage, look) {
     show() {
       setVisible(true);
       if (state.script) setTimeOfDay(stage, state.script.terrain?.time_of_day, state.script.terrain?.weather, state.script);
-      cam.setEnabled(state.directorCam);
+      applyCam();
       if (params.has('autoplay') && !state.script && !state.busy) make();
     },
-    hide() { editor.off(); setPlaying(false); cam.setEnabled(false); setVisible(false); },
+    hide() { editor.off(); setPlaying(false); free.disable(); cam.setEnabled(false); setVisible(false); },
   };
 }
