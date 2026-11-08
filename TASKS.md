@@ -53,7 +53,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 37 | A | Look round 4: small simple white flowers with no black outlines; a good sea backdrop | 1 h | done | 24, 28 |
 | 34 | A | Natural beat planning: no pointless sit → stand → sit cycles, nobody stands up for no reason, greetings fit who is seated; re-cache the demo scenes | 1.5 h | done | 22, 33 |
 | 35 | A | Character skins: outfits, hair and body build (slim to heavy) layered on the same rigged figure, like game skins, so animation never breaks | 1.5 h | done | 27 |
-| 36 | A | More cast + background NPCs: scenes with 3+ people; city/park/restaurant get background extras on ambient loops (walk, sit, talk, work) | 1.5 h | doing | 31, 35 |
+| 36 | A | More cast + background NPCs: scenes with 3+ people; city/park/restaurant get background extras on ambient loops (walk, sit, talk, work) | 1.5 h | done | 31, 35 |
 | 12c | A | Finalize: re-record the 5 demo takes after round 4, update `demo/SUBMISSION.md`, `docs/STATUS.md` and a short README | 0.5 h | todo | 33–37 |
 
 **Cut rule.** If it's 6:00 am and task 09 isn't working, demo the Chat page plus a
@@ -905,3 +905,25 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
   doesn't pull a reaction earlier when a walk ends early). The lamplighter's last shot (ots on the girl at 16.6–20.8 s)
   mostly shows a blurred foreground tree, not the girl. Scene-text parsing is regex-level: a scene that names a
   character only by a word not in its id/name ("the old one") falls back to the "*" budget.
+- 36 (2026-11-08): done. Background extras: `web/js/movie/npcs.js` (`addExtras`, called in page.js after the director; `?npcs=0`
+  or `script.npcs === false` turns them off). City, park, beach and restaurant sets get 5–7 extras: strollers on arcs
+  around the action (walk clip looped then `warpToPath`), sitters on free benches, chatting pairs (talk/laugh/idle),
+  picnic pairs on the grass/sand, a worker hammering (city), someone stretching (park), a digger (beach); in the
+  restaurant diners at the fill's free tables plus up to two tables + chairs the extras bring, and a chef by the counter.
+  Each stays ≥5 m (indoors 1.6 m) from every point the cast's hips pass (sampled every 0.25 s), clear of props and the
+  fill's instanced trees/lamps/buildings, on dry sand at the beach. Cost: one unposed base VRM per gender is loaded once;
+  every extra is a `SkeletonUtils.clone` with a new `VRMHumanoid`, cloned materials (shared textures) and own geometry only
+  when a build changes it; no spring bones, no IK; clips retargeted once on the base. Looks: random outfit/build/colors
+  (task 35 skins), adult heights like the cast. Extras build in 1.0–1.8 s; city playing at 60.0 fps with and without
+  them (1024 px, dpr 2). Checked: one screenshot each of city, park, restaurant, beach; feet at ankle height, seated hips
+  0.55–0.6 m; nearest extra to any cast member over the 4-friends film 6.1 m; console only the dead :9 motion port.
+- 36: cast of 3–5: `MAX_CAST = 5` (prompt says 1 to 5, beats up to 16); start slots for 4–5 at one place (angles ±100°,
+  bench ±0.9 m, water ±2 m); a cast member whose first `move_to` is the place they start at (“a fourth friend walks over
+  to them”) now starts 7 m out on the approach side. New cached scene `in-a-park-on-a-833d943b1b.json` (2 hosted Nemotron
+  calls): 3 friends seated by the oak, friend 4 walks 3.8 m in, waves, all laugh; min cast distance 1.23 m; wide shots
+  frame all four. All 14 cached scenes lay out identically to before except the new one (old vs new movie.py in Python).
+  Timeline: 4+ cast rows get thinner lanes, 180 px height, and scroll past five.
+- 36: not done: FPS with 4 cast + 7 extras not measured (the Browser pane was hidden, so rAF was throttled). Seated
+  ground characters' "waves back"/"laughs" stay `sit_ground_idle` (no seated-ground gesture clip). Extras' walk loops
+  join with a 0.4 s blend and their hair is rigid; extras ignore edits (placed once per make) and are not in the camera's
+  occlusion check. A city jogger arc often finds no clear 60 m loop, so the park usually has no jogger.
