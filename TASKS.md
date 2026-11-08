@@ -29,7 +29,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 10 | A | Chat page: a character talks (Nemotron + browser voice) and demonstrates moves | 2 h | done (mock replies; live Nemotron path untested) | 05, 06 |
 | 11 | A | Prop generation in the world agent (image → TRELLIS.2 → library) | 1.5 h | done (mechanics; the world agent calls it in 08) | 07, 08 |
 | 12 | A | Demo: cache the demo scenes, record the video, write the submission | 2 h | todo | 09, 10 |
-| 13 | A | Chat: remove the canned mock lines and suggestion chips ("Hi! I can show you a squat…"); Nemotron persona only | 0.5 h | doing | 06 |
+| 13 | A | Chat: remove the canned mock lines and suggestion chips ("Hi! I can show you a squat…"); Nemotron persona only | 0.5 h | done | 06 |
 | 14 | A | Scale + placement: characters and props at consistent real-world size; grounded, no overlaps, positions that follow the script | 2 h | todo | 08 |
 | 15 | A | World fill + backdrop: no empty island. Ground scatter (grass, flowers, rocks), a dense tree/hill ring, a painted sky/backdrop that fills the frame | 2.5 h | todo | 08 |
 | 16 | A | Cinematic camera: the director picks shots per beat (wide, medium, close, side, over-the-shoulder, low), with cuts and moves (dolly, orbit, crane) | 2.5 h | todo | 08 |
@@ -320,3 +320,14 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
 - 08: one "the scene script is invalid" console error remains in the pane's log. It was raised during the campfire run
   that hit the duplicate-beat-id bug (fixed); the browser pane keeps the log across navigations, so I couldn't prove
   it isn't from the later check of all four cached scenes, though none of those runs logged an error in the agent log.
+- 13: Mira's opening line is a `/api/chat` call with empty `messages`; the server adds a stage-direction
+  user turn (`ARRIVAL` in `server/chat.py`) so the model never sees a history that starts with the
+  assistant. A mock reply carries `source: "mock"` plus `error`, and the page shows a dashed bubble,
+  "Nemotron offline: mock reply" and a red footer, and logs a console warning.
+- 13: there's no switch to make the LLM unreachable without editing `.env`; the offline check ran a second
+  server with `llm._call` patched to raise. An `LLM_BACKEND=off` (or similar) would make that a one-liner,
+  maybe in 08b.
+- 13: the greeting is spoken on page load, before any click; Chrome may refuse `speechSynthesis` without a
+  user gesture, so the first line may be text-only until the user interacts. Not checked by ear.
+- 13: `?say=` must come before the hash (`/?say=show+me+a+squat#chat`). Navigating to the same URL that
+  differs only in the hash doesn't reload the page, so a "reload" that way runs stale JS.
