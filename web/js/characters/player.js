@@ -124,8 +124,35 @@ export class Character {
 
     if (this.ik) {
       vrmScene.updateMatrixWorld(true);
-      for (const leg of this.legs) {
-        const target = this.group.localToWorld(sampleVec(clip.feet[leg.side], f0, f1, t, new THREE.Vector3()));
+      // A planted foot goes exactly onto its target; a swinging foot follows
+      // the animation (blended in over a few frames around each plant), so a
+      // swing never snaps the leg toward a target it can't reach in time.
+      const W = ikWeights(clip);
+      const targets = this.legs.map((leg) => {
+        const T = this.group.localToWorld(sampleVec(clip.feet[leg.side], f0, f1, t, new THREE.Vector3()));
+        const w = W[leg.side][f0] + (W[leg.side][f1] - W[leg.side][f0]) * t;
+        return w >= 1 ? T : leg.foot.getWorldPosition(new THREE.Vector3()).lerp(T, w);
+      });
+      // Kimodo plants its feet with the leg almost straight, and its ankles
+      // land at 100–103 % of the VRM leg's reach. Lower the hips just enough
+      // that both targets sit inside REACH of the leg, so the IK never has to
+      // snap a leg straight (where the knee can flip backward).
+      let drop = 0;
+      for (let k = 0; k < 2; k++) {
+        const { upper, lower, foot } = this.legs[k];
+        upper.getWorldPosition(_A); lower.getWorldPosition(_B); foot.getWorldPosition(_C);
+        const R = REACH * (_A.distanceTo(_B) + _B.distanceTo(_C));
+        const T = targets[k], h2 = (T.x - _A.x) ** 2 + (T.z - _A.z) ** 2, v = _A.y - T.y;
+        if (h2 < R * R) drop = Math.max(drop, v - Math.sqrt(R * R - h2));
+      }
+      drop = Math.min(drop, MAX_DROP);
+      if (drop > 0) {
+        hips.position.y -= drop / hips.parent.getWorldScale(_C).y;
+        vrmScene.updateMatrixWorld(true);
+      }
+      this.hipDrop = drop;
+      for (let k = 0; k < 2; k++) {
+        const leg = this.legs[k], target = targets[k];
         const footW = this.D[leg.footIdx].clone().multiply(sceneQ); // desired foot rotation, group space
         leg.forward = new THREE.Vector3(0, 0, 1).applyQuaternion(this.D[0]).transformDirection(this.group.matrixWorld);
         solveLeg(leg, target);
@@ -136,9 +163,40 @@ export class Character {
   }
 }
 
+// Per frame and foot, how much the IK target counts: 1 while planted, eased
+// to 0 over IK_EASE frames before and after. Cached per clip.
+const IK_EASE = 6;
+const _weights = new WeakMap();
+function ikWeights(clip) {
+  let W = _weights.get(clip);
+  if (W) return W;
+  W = {};
+  for (const s of ['left', 'right']) {
+    const c = clip.contact[s], w = W[s] = new Float32Array(clip.frames);
+    let last = -Infinity;
+    for (let f = 0; f < clip.frames; f++) { if (c[f]) last = f; w[f] = f - last; }
+    last = Infinity;
+    for (let f = clip.frames - 1; f >= 0; f--) {
+      if (c[f]) last = f;
+      const d = Math.min(w[f], last - f);
+      const x = Math.max(0, 1 - d / (IK_EASE + 1));
+      w[f] = x * x * (3 - 2 * x);
+    }
+  }
+  _weights.set(clip, W);
+  return W;
+}
+
 // Two-bone IK in world space. The knee stays in the plane the animation put it
-// in (so it bends forward), and the bone lengths never change.
+// in, nudged toward the body's front so a nearly straight leg can't flip its
+// knee backward, and the bone lengths never change. Reach is soft: past
+// SOFT of the leg length the knee straightens asymptotically, never snapping.
+const REACH = 0.998, SOFT = 0.995, MAX_DROP = 0.05, POLE_BIAS = 0.12;
 const _A = new THREE.Vector3(), _B = new THREE.Vector3(), _C = new THREE.Vector3();
+function softReach(d, L) {
+  const s = SOFT * L, m = 0.9995 * L - s;
+  return d <= s ? d : s + m * (1 - Math.exp(-(d - s) / m));
+}
 function solveLeg(leg, T) {
   const { upper, lower, foot } = leg;
   upper.getWorldPosition(_A);
@@ -146,15 +204,17 @@ function solveLeg(leg, T) {
   foot.getWorldPosition(_C);
   const a = _A.distanceTo(_B), b = _B.distanceTo(_C);
   const AT = T.clone().sub(_A);
-  const d = THREE.MathUtils.clamp(AT.length(), Math.abs(a - b) + 1e-4, a + b - 1e-4);
+  const d = Math.max(softReach(AT.length(), a + b), Math.abs(a - b) + 1e-4);
   const dir = AT.normalize();
-  // Pole: where the knee is now, off the hip→target line.
+  // Pole: which way the animation bends the knee (its offset from the
+  // animation's own hip→ankle line; measured against the hip→target line it
+  // can point sideways or back when the target is far from the animated foot),
+  // plus a small pull toward the body's front (it decides when the leg is straight).
+  const fk = _C.clone().sub(_A).normalize();
   const pole = _B.clone().sub(_A);
+  pole.addScaledVector(fk, -pole.dot(fk)).addScaledVector(leg.forward, POLE_BIAS * a);
   pole.addScaledVector(dir, -pole.dot(dir));
-  if (pole.lengthSq() < 1e-10) { // straight leg: bend the knee toward the body's front
-    pole.copy(leg.forward);
-    pole.addScaledVector(dir, -pole.dot(dir));
-  }
+  if (pole.lengthSq() < 1e-10) pole.copy(leg.forward).addScaledVector(dir, -leg.forward.dot(dir));
   pole.normalize();
   const along = (a * a - b * b + d * d) / (2 * d);
   const knee = _A.clone().addScaledVector(dir, along).addScaledVector(pole, Math.sqrt(Math.max(a * a - along * along, 0)));
