@@ -1265,7 +1265,7 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
                     ang, rad = rng.uniform(0, 360), near["R"] + rng.uniform(1.2, 3.5) * (0.6 if indoors else 1)
                     pt = (near["center"][0] + _dir(ang)[0] * rad, near["center"][1] + _dir(ang)[1] * rad)
                 elif indoors:  # inside the room, around the action
-                    ang, rad = rng.uniform(0, 360), rng.uniform(1.5, 5.0)
+                    ang, rad = rng.uniform(0, 360), rng.uniform(1.3, 3.6)
                     pt = (_dir(ang)[0] * rad, _dir(ang)[1] * rad)
                 elif d.get("near") == "edge" or e["size"][1] > 3:
                     ang, rad = rng.uniform(0, 360), rng.uniform(11, 14.8)

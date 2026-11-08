@@ -338,11 +338,12 @@ const SEAT_SPEC = {
   bench: { front: [-1, 0], half: 0.6, back: 0 },
   stump: { front: [0, 1], half: 0, back: 0 },
   chair: { front: [0, 1], half: 0, back: -0.07 },
-  armchair: { front: [0, 1], half: 0, back: -0.1 },
-  sofa: { front: [0, 1], half: 0.55, back: -0.1 },
+  armchair: { front: [0, 1], half: 0, back: 0.02, solid: true },
+  sofa: { front: [0, 1], half: 0.55, back: 0.02, solid: true },
 };
 
-// The set's seats in world space: [{ key, c: [x, z], front: [x, z], half, back }].
+// The set's seats in world space: [{ key, c: [x, z], front: [x, z], half, back, solid }]
+// (solid: a high, closed back that hides whoever sits there from behind).
 export function seatsFromSet(set) {
   const out = [];
   for (const obj of set?.children ?? []) {
@@ -353,7 +354,7 @@ export function seatsFromSet(set) {
     const [lx, lz] = spec.front;
     out.push({
       key: obj.name, c: [obj.position.x, obj.position.z],
-      front: [lx * c + lz * s, -lx * s + lz * c], half: spec.half * k, back: spec.back * k,
+      front: [lx * c + lz * s, -lx * s + lz * c], half: spec.half * k, back: spec.back * k, solid: !!spec.solid,
     });
   }
   return out;

@@ -1,0 +1,376 @@
+{
+ "scene": "In a small restaurant at night, a man sits at a table for two, a woman walks in and waves, sits down across from him, and they talk and laugh.",
+ "created": "2026-11-08T08:39:40+00:00",
+ "model": "nvidia/nemotron-3.5-super-vl-120b-a12b + nvidia/nemotron-3.5-lightning-30b-a3b",
+ "backend": "nvidia",
+ "llm_calls": [
+  {
+   "agent": "orchestrator",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+   "ok": true,
+   "seconds": 3.14
+  },
+  {
+   "agent": "world",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+   "ok": true,
+   "seconds": 2.05
+  }
+ ],
+ "llm_seconds": [
+  3.14,
+  2.05
+ ],
+ "plan": {
+  "title": "Dinner for two",
+  "thoughts": [
+   "Two characters: a man already seated at a table for two, and a woman who enters the restaurant.",
+   "Places: the restaurant interior, the table for two, and the entrance where the woman walks in.",
+   "The man starts sitting and talks/laughs; the woman walks in, waves, sits across from him, then they talk and laugh together."
+  ],
+  "time_of_day": "night",
+  "biome": "restaurant",
+  "weather": "clear",
+  "water": false,
+  "places": [
+   {
+    "key": "restaurant",
+    "what": "a small restaurant at night",
+    "use": "stand"
+   },
+   {
+    "key": "table",
+    "what": "a table for two",
+    "use": "sit"
+   },
+   {
+    "key": "entrance",
+    "what": "the restaurant entrance",
+    "use": "stand"
+   }
+  ],
+  "cast": [
+   {
+    "id": "man",
+    "name": "Man",
+    "character": "avatar_male",
+    "kid": false,
+    "starts_at": "table"
+   },
+   {
+    "id": "woman",
+    "name": "Woman",
+    "character": "avatar_female",
+    "kid": false,
+    "starts_at": "entrance"
+   }
+  ],
+  "beats": [
+   {
+    "id": "b1",
+    "cast": "man",
+    "action": "sits at the table",
+    "prompt": "A person sits at a table for two.",
+    "duration": 4
+   },
+   {
+    "id": "b2",
+    "cast": "woman",
+    "action": "walks into the restaurant",
+    "prompt": "A person walks forward into a restaurant.",
+    "duration": 5,
+    "move_to": "table"
+   },
+   {
+    "id": "b3",
+    "cast": "woman",
+    "action": "waves at the man",
+    "prompt": "A person waves hello with their right hand.",
+    "duration": 3,
+    "face": "man",
+    "after": "b2"
+   },
+   {
+    "id": "b4",
+    "cast": "woman",
+    "action": "sits down across from him",
+    "prompt": "A person sits down at a table across from someone.",
+    "duration": 4,
+    "face": "man"
+   },
+   {
+    "id": "b5",
+    "cast": "man",
+    "action": "talks and laughs",
+    "prompt": "A person sits and talks and laughs with big arm gestures.",
+    "duration": 6,
+    "face": "woman"
+   },
+   {
+    "id": "b6",
+    "cast": "woman",
+    "action": "talks and laughs back",
+    "prompt": "A person sits and talks and laughs with big arm gestures.",
+    "duration": 6,
+    "face": "man",
+    "after": "b5"
+   }
+  ]
+ },
+ "world": {
+  "thoughts": [
+   "The restaurant is at night, cozy with warm light. A table for two is set. The woman enters and sits opposite.",
+   "The restaurant interior: tables, chairs, soft lighting, a counter with stools."
+  ],
+  "choices": [
+   {
+    "place": "restaurant",
+    "library": "building"
+   },
+   {
+    "place": "table",
+    "library": "dining-table"
+   },
+   {
+    "place": "chair",
+    "library": "chair"
+   },
+   {
+    "place": "counter",
+    "library": "counter"
+   }
+  ],
+  "decor": [
+   {
+    "library": "lantern-post",
+    "count": 2,
+    "near": "edge"
+   },
+   {
+    "library": "bush",
+    "count": 2,
+    "near": "table"
+   },
+   {
+    "library": "flower-yellow",
+    "count": 2,
+    "near": "table"
+   },
+   {
+    "library": "potted-plant",
+    "count": 1,
+    "near": "counter"
+   }
+  ]
+ },
+ "script": {
+  "version": 1,
+  "title": "Dinner for two",
+  "scene": "In a small restaurant at night, a man sits at a table for two, a woman walks in and waves, sits down across from him, and they talk and laugh.",
+  "terrain": {
+   "time_of_day": "night",
+   "weather": "clear",
+   "biome": "restaurant",
+   "paths": [
+    {
+     "points": [
+      [
+       -1.5,
+       -0.5
+      ],
+      [
+       1.84,
+       -0.4
+      ]
+     ],
+     "width": 1.4
+    }
+   ]
+  },
+  "props": [
+   {
+    "key": "table",
+    "library": "dining-table",
+    "position": [
+     -1.21,
+     -1.35
+    ],
+    "rotation": -18.0
+   },
+   {
+    "key": "table-chair1",
+    "library": "chair",
+    "position": [
+     -0.31,
+     -1.05
+    ],
+    "rotation": -108.0
+   },
+   {
+    "key": "table-chair2",
+    "library": "chair",
+    "position": [
+     -2.11,
+     -1.65
+    ],
+    "rotation": 72.0
+   },
+   {
+    "key": "restaurant",
+    "library": "rug",
+    "position": [
+     2.83,
+     1.57
+    ],
+    "rotation": -153.0
+   },
+   {
+    "key": "potted-plant-1",
+    "library": "potted-plant",
+    "position": [
+     -4.41,
+     -0.43
+    ],
+    "rotation": 84.0
+   }
+  ],
+  "cast": [
+   {
+    "id": "man",
+    "name": "Man",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      -0.45,
+      -1.1
+     ],
+     "facing": -108.0
+    },
+    "scale": 0.876
+   },
+   {
+    "id": "woman",
+    "name": "Woman",
+    "character": "avatar_female",
+    "start": {
+     "position": [
+      1.98,
+      -0.13
+     ],
+     "facing": -96.0
+    },
+    "scale": 1.104
+   }
+  ],
+  "beats": [
+   {
+    "id": "man-1",
+    "cast": "man",
+    "start": 0.0,
+    "duration": 4.0,
+    "prompt": "A person sits at a table for two.",
+    "action": "sits at the table",
+    "facing": -108.0,
+    "motion": "sit_bench"
+   },
+   {
+    "id": "woman-1",
+    "cast": "woman",
+    "start": 0.0,
+    "duration": 3.6,
+    "prompt": "A person walks forward into a restaurant.",
+    "action": "walks into the restaurant",
+    "to": [
+     -1.97,
+     -1.61
+    ],
+    "motion": "walk"
+   },
+   {
+    "id": "woman-2",
+    "cast": "woman",
+    "start": 3.6,
+    "duration": 3.0,
+    "prompt": "A person waves hello with their right hand.",
+    "action": "waves at the man",
+    "facing": "man",
+    "motion": "wave"
+   },
+   {
+    "id": "man-2",
+    "cast": "man",
+    "start": 4.0,
+    "duration": 6.6,
+    "prompt": "A person sits still and looks around.",
+    "action": "waits",
+    "facing": -108.0,
+    "motion": "sit_bench_idle"
+   },
+   {
+    "id": "woman-3",
+    "cast": "woman",
+    "start": 6.6,
+    "duration": 4.0,
+    "prompt": "A person sits down at a table across from someone.",
+    "action": "sits down across from him",
+    "facing": 72.0,
+    "motion": "sit_bench"
+   },
+   {
+    "id": "man-3",
+    "cast": "man",
+    "start": 10.6,
+    "duration": 6.0,
+    "prompt": "A person sits and talks and laughs with big arm gestures.",
+    "action": "talks and laughs",
+    "facing": -108.0,
+    "motion": "sit_bench_talk"
+   },
+   {
+    "id": "woman-4",
+    "cast": "woman",
+    "start": 10.6,
+    "duration": 6.0,
+    "prompt": "A person sits and talks and laughs with big arm gestures.",
+    "action": "talks and laughs back",
+    "facing": 72.0,
+    "seed": 1,
+    "motion": "sit_bench_talk"
+   }
+  ],
+  "shots": [
+   {
+    "id": "s1",
+    "start": 0.0,
+    "duration": 5.53,
+    "framing": "wide",
+    "subject": [
+     "man",
+     "woman"
+    ],
+    "angle": 35
+   },
+   {
+    "id": "s2",
+    "start": 5.53,
+    "duration": 5.54,
+    "framing": "medium",
+    "subject": "man",
+    "angle": -25
+   },
+   {
+    "id": "s3",
+    "start": 11.07,
+    "duration": 5.53,
+    "framing": "wide",
+    "subject": [
+     "man",
+     "woman"
+    ],
+    "angle": 55
+   }
+  ]
+ }
+}

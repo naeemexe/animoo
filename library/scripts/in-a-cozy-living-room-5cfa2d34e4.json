@@ -1,0 +1,400 @@
+{
+ "scene": "In a cozy living room in the evening, a woman sits on the sofa, a man walks in, waves at her, sits down next to her, and they talk.",
+ "created": "2026-11-08T08:40:21+00:00",
+ "model": "nvidia/nemotron-3.5-super-vl-120b-a12b + nvidia/nemotron-3.5-lightning-30b-a3b",
+ "backend": "nvidia",
+ "llm_calls": [
+  {
+   "agent": "orchestrator",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+   "ok": true,
+   "seconds": 2.36
+  },
+  {
+   "agent": "world",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+   "ok": true,
+   "seconds": 2.26
+  }
+ ],
+ "llm_seconds": [
+  2.36,
+  2.26
+ ],
+ "plan": {
+  "title": "Evening chat",
+  "thoughts": [
+   "Two characters: a woman and a man in a cozy living room.",
+   "Places: the living room, the sofa they both sit on.",
+   "The woman starts seated; the man enters, waves, sits beside her, and they talk."
+  ],
+  "time_of_day": "evening",
+  "biome": "room",
+  "weather": "clear",
+  "water": false,
+  "places": [
+   {
+    "key": "living_room",
+    "what": "a cozy living room",
+    "use": "stand"
+   },
+   {
+    "key": "sofa",
+    "what": "a soft sofa",
+    "use": "sit"
+   }
+  ],
+  "cast": [
+   {
+    "id": "woman",
+    "name": "Woman",
+    "character": "avatar_female",
+    "kid": false,
+    "starts_at": "sofa"
+   },
+   {
+    "id": "man",
+    "name": "Man",
+    "character": "avatar_male",
+    "kid": false,
+    "starts_at": "living_room"
+   }
+  ],
+  "beats": [
+   {
+    "id": "b1",
+    "cast": "woman",
+    "action": "sits on the sofa",
+    "prompt": "A person sits on a sofa.",
+    "duration": 4
+   },
+   {
+    "id": "b2",
+    "cast": "man",
+    "action": "walks into the living room",
+    "prompt": "A person walks forward.",
+    "duration": 5,
+    "move_to": "sofa"
+   },
+   {
+    "id": "b3",
+    "cast": "man",
+    "action": "waves at the woman",
+    "prompt": "A person waves hello with their right hand.",
+    "duration": 3,
+    "face": "woman",
+    "after": "b2"
+   },
+   {
+    "id": "b4",
+    "cast": "man",
+    "action": "sits down next to the woman",
+    "prompt": "A person sits down on a sofa next to someone.",
+    "duration": 4,
+    "face": "woman",
+    "after": "b3"
+   },
+   {
+    "id": "b5",
+    "cast": "woman",
+    "action": "talks with the man",
+    "prompt": "A person sits and talks with big arm gestures.",
+    "duration": 6,
+    "face": "man",
+    "after": "b4"
+   },
+   {
+    "id": "b6",
+    "cast": "man",
+    "action": "talks with the woman",
+    "prompt": "A person sits and talks with big arm gestures.",
+    "duration": 6,
+    "face": "woman",
+    "after": "b5"
+   }
+  ]
+ },
+ "world": {
+  "thoughts": [
+   "The living-room and sofa are in the library; the man walking in is part of the scene flow.",
+   "A cozy evening living room with a fireplace, sofa, and an armchair for the woman."
+  ],
+  "choices": [
+   {
+    "place": "living-room",
+    "library": "furniture"
+   },
+   {
+    "place": "sofa",
+    "library": "sofa"
+   },
+   {
+    "place": "armchair",
+    "library": "armchair"
+   },
+   {
+    "place": "fireplace",
+    "library": "fireplace"
+   },
+   {
+    "place": "coffee-table",
+    "library": "coffee-table"
+   }
+  ],
+  "decor": [
+   {
+    "library": "armchair",
+    "count": 1,
+    "near": "sofa"
+   },
+   {
+    "library": "rug",
+    "count": 1,
+    "near": "edge"
+   },
+   {
+    "library": "potted-plant",
+    "count": 1,
+    "near": "sofa"
+   },
+   {
+    "library": "floor-lamp",
+    "count": 1,
+    "near": "sofa"
+   },
+   {
+    "library": "bookshelf",
+    "count": 1,
+    "near": "edge"
+   }
+  ]
+ },
+ "script": {
+  "version": 1,
+  "title": "Evening chat",
+  "scene": "In a cozy living room in the evening, a woman sits on the sofa, a man walks in, waves at her, sits down next to her, and they talk.",
+  "terrain": {
+   "time_of_day": "dusk",
+   "weather": "clear",
+   "biome": "room",
+   "paths": [
+    {
+     "points": [
+      [
+       -1.5,
+       -0.5
+      ],
+      [
+       1.84,
+       -0.4
+      ]
+     ],
+     "width": 1.4
+    }
+   ]
+  },
+  "props": [
+   {
+    "key": "sofa",
+    "library": "sofa",
+    "position": [
+     -1.21,
+     -1.35
+    ],
+    "rotation": -18.0
+   },
+   {
+    "key": "living-room",
+    "library": "armchair",
+    "position": [
+     2.49,
+     0.9
+    ],
+    "rotation": -153.0
+   },
+   {
+    "key": "armchair-1",
+    "library": "armchair",
+    "position": [
+     -3.4,
+     -2.49
+    ],
+    "rotation": 54.0
+   },
+   {
+    "key": "rug-2",
+    "library": "rug",
+    "position": [
+     4.67,
+     -0.45
+    ],
+    "rotation": -84.0
+   },
+   {
+    "key": "potted-plant-3",
+    "library": "potted-plant",
+    "position": [
+     -1.94,
+     -4.02
+    ],
+    "rotation": 26.0
+   },
+   {
+    "key": "floor-lamp-4",
+    "library": "floor-lamp",
+    "position": [
+     0.3,
+     1.06
+    ],
+    "rotation": -164.0
+   },
+   {
+    "key": "bookshelf-5",
+    "library": "bookshelf",
+    "position": [
+     3.7,
+     1.97
+    ],
+    "rotation": -118.0
+   }
+  ],
+  "cast": [
+   {
+    "id": "woman",
+    "name": "Woman",
+    "character": "avatar_female",
+    "start": {
+     "position": [
+      -1.72,
+      -1.26
+     ],
+     "facing": -18.0
+    },
+    "scale": 1.104
+   },
+   {
+    "id": "man",
+    "name": "Man",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      2.38,
+      0.68
+     ],
+     "facing": -153.0
+    },
+    "scale": 0.876
+   }
+  ],
+  "beats": [
+   {
+    "id": "man-1",
+    "cast": "man",
+    "start": 0.0,
+    "duration": 3.2,
+    "prompt": "A person walks forward.",
+    "action": "walks into the living room",
+    "to": [
+     -0.87,
+     -0.97
+    ],
+    "motion": "walk"
+   },
+   {
+    "id": "woman-1",
+    "cast": "woman",
+    "start": 0.0,
+    "duration": 4.0,
+    "prompt": "A person sits on a sofa.",
+    "action": "sits on the sofa",
+    "facing": -18.0,
+    "motion": "sit_bench"
+   },
+   {
+    "id": "man-2",
+    "cast": "man",
+    "start": 3.2,
+    "duration": 3.0,
+    "prompt": "A person waves hello with their right hand.",
+    "action": "waves at the woman",
+    "facing": "woman",
+    "motion": "wave"
+   },
+   {
+    "id": "woman-2",
+    "cast": "woman",
+    "start": 4.0,
+    "duration": 6.2,
+    "prompt": "A person sits still and looks around.",
+    "action": "waits",
+    "facing": -18.0,
+    "motion": "sit_bench_idle"
+   },
+   {
+    "id": "man-3",
+    "cast": "man",
+    "start": 6.2,
+    "duration": 4.0,
+    "prompt": "A person sits down on a sofa next to someone.",
+    "action": "sits down next to the woman",
+    "facing": -18.0,
+    "motion": "sit_bench"
+   },
+   {
+    "id": "man-4",
+    "cast": "man",
+    "start": 10.2,
+    "duration": 6.0,
+    "prompt": "A person sits and talks with big arm gestures.",
+    "action": "talks with the woman",
+    "facing": -18.0,
+    "seed": 1,
+    "motion": "sit_bench_talk"
+   },
+   {
+    "id": "woman-3",
+    "cast": "woman",
+    "start": 10.2,
+    "duration": 6.0,
+    "prompt": "A person sits and talks with big arm gestures.",
+    "action": "talks with the man",
+    "facing": -18.0,
+    "motion": "sit_bench_talk"
+   }
+  ],
+  "shots": [
+   {
+    "id": "s1",
+    "start": 0.0,
+    "duration": 5.4,
+    "framing": "wide",
+    "subject": [
+     "woman",
+     "man"
+    ],
+    "angle": 35
+   },
+   {
+    "id": "s2",
+    "start": 5.4,
+    "duration": 5.4,
+    "framing": "medium",
+    "subject": "woman",
+    "angle": -25
+   },
+   {
+    "id": "s3",
+    "start": 10.8,
+    "duration": 5.4,
+    "framing": "wide",
+    "subject": [
+     "woman",
+     "man"
+    ],
+    "angle": 55
+   }
+  ]
+ }
+}

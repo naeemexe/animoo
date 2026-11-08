@@ -10,6 +10,7 @@ import * as THREE from 'three';
 import { LOOK } from '../look.js';
 import { meanHeading } from '../characters/merge.js';
 import { isInterior, roomBounds } from './interior.js';
+import { seatsFromSet } from './control.js';
 
 const RAD = Math.PI / 180;
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
@@ -340,6 +341,13 @@ export class DirectorCamera {
       return Math.sign((b[0] - a[0]) * (pos.z - a[1]) - (b[1] - a[1]) * (pos.x - a[0]));
     };
 
+    // Someone on a sofa or an armchair can't be filmed from behind its back.
+    const seats = new Map(seatsFromSet(set).map((x) => [x.key, x]));
+    const behindSeat = (id, t, pos) => {
+      const b = placed.find((x) => x.cast === id && t >= x.start - 1e-3 && t < x.end && x.seat);
+      const st = b && seats.get(b.seat.key);
+      return !!st?.solid && (pos.x - st.c[0]) * st.front[0] + (pos.z - st.c[1]) * st.front[1] < 0.1;
+    };
     // Blocked: a prop box between the camera and any subject's chest (or the
     // camera inside a prop), at the start, middle and end of the shot.
     const hit = new THREE.Vector3();
@@ -351,6 +359,7 @@ export class DirectorCamera {
         const { pos } = this.pose(shot, t, rows, s, { clamp: false });
         if (pos.y < 0.2 || !this.inRoom(pos)) return true;
         for (const id of subs) {
+          if (typeof id === 'string' && behindSeat(id, t, pos)) return true;
           const p = this.pointAt(id, t, rows);
           const k = typeof id === 'string' && rows[id] ? this.castScale(id) : 1;
           const feet = new THREE.Vector3(p[0], 0.3, p[1]);
