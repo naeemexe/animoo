@@ -1,5 +1,6 @@
 // The Chat page (task 10). For now: the primitive demo village and a note.
 import { buildDemo } from '../demo.js';
+import { setTimeOfDay } from '../movie/world.js';
 
 export function createChatPage(root, stage) {
   let village = null;
@@ -11,6 +12,7 @@ export function createChatPage(root, stage) {
         village = stage.scene.children.filter((o) => !before.has(o));
       }
       village.forEach((o) => { o.visible = true; });
+      setTimeOfDay(stage, 'golden');
       stage.controls.enabled = true;
       stage.resize();
     },

@@ -9,7 +9,7 @@ import { loadManifest } from '../library.js';
 import { loadCharacter } from '../characters/index.js';
 import { validateScript, plannedDuration } from './script.js';
 import { FISHERMAN_SCENE, FISHERMAN_SCRIPT, FISHERMAN_STEPS } from './mock.js';
-import { buildSet } from './world.js';
+import { buildSet, setTimeOfDay } from './world.js';
 import { motionFor, motionServerUp, MOTION_URL } from './clips.js';
 import { direct, makeResolver } from './director.js';
 import { createTimeline } from './timeline.js';
@@ -263,6 +263,7 @@ export function createMoviePage(root, stage, look) {
     exportMovie,
     show() {
       setVisible(true);
+      if (state.script) setTimeOfDay(stage, state.script.terrain?.time_of_day);
       cam.setEnabled(state.directorCam);
       if (params.has('autoplay') && !state.script && !state.busy) make();
     },
