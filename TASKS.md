@@ -22,7 +22,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 06 | A | Nemotron client + agent loop on the server (tool calling, streamed steps) | 1.5 h | waiting | `NVIDIA_API_KEY` in `.env` |
 | 07 | B | Text → concept image for props (pick a model, add an endpoint) | 1.5 h | done | 03 |
 | 08 | A | Movie: the orchestrator splits a scene into shots and beats, and the world agent builds the set | 3 h | todo | 04, 06 |
-| 09a | A | Movie page UI with a mocked scene script: agent log, world build from script, per-character timeline, play, export WebM | 2.5 h | doing | 04, 05 |
+| 09a | A | Movie page UI with a mocked scene script: agent log, world build from script, per-character timeline, play, export WebM | 2.5 h | done | 04, 05 |
 | 09b | A | Movie: wire the real agents in, motion agent generates clips on the pod, director merges | 1.5 h | todo | 08, 09a |
 | 10 | A | Chat page: a character talks (Nemotron + browser voice) and demonstrates moves | 2 h | todo | 05, 06 |
 | 11 | A | Prop generation in the world agent (image → TRELLIS.2 → library) | 1.5 h | todo | 07, 08 |
@@ -152,3 +152,22 @@ license used.
   thin parts, ask for "solid, chunky" versions in the prompt (task 11).
 - 07: diffusers 0.35 ignores `dtype=` and silently loads in fp32 (about 17 GiB peak, and fp8
   casting then breaks Gemma), so keep `torch_dtype=`. Cast to fp8 before `.to("cuda")`.
+- 09a: the scene-script format is `web/js/movie/script.js` (documented at the top, checked by
+  `validateScript()`), and the fisherman mock is `web/js/movie/mock.js`. Headings are degrees, 0 = +z.
+  A beat's `to` turns the clip toward the target and stretches its ground path by at most ±35 %, so
+  the orchestrator (task 08) must pick durations that roughly fit the distance. Measured Kimodo
+  distances (male rig): "A person walks forward." 5 s ≈ 7.6 m, "A person jogs forward." 5 s ≈ 12.6 m,
+  "A child runs forward fast." 6 s ≈ 11 m. Clips often stand still for 0.4–1.2 s first; "A child runs
+  forward happily." stood for 2 s and then covered only 5.6 m.
+- 09a: "A person sits down on a bench and rests." moves the hips about 0.27 m forward while sitting.
+  Kimodo has no seat constraint, so put the bench where the hips end, not where the walk ends.
+- 09a: two beats with the same prompt and duration get the same clip (cached per prompt), so both
+  characters sit identically. The script has no `seed` yet; 09b could add one per beat.
+- 09a: the motion server's `X-Cache` header can't be read cross-origin (no `expose_headers` in its
+  CORS setup), so the page can't tell a pod cache hit from a fresh generation. That fix is in `gpu/`.
+- 09a: Movie page flags: `#movie?autoplay` runs on load, `?fast` skips the log's typing delays,
+  `?t=12` stops at 12 s, `?motion=URL` points at another motion server. `window.animo.pages.movie`
+  has `make()`, `seek(t)`, `play()`, `exportMovie()` and `state`. The export is the canvas size
+  (2880×1800 on a retina screen): about 10.8 MB for the 23 s film as VP9 WebM.
+- 09a: navigating the browser pane to the same URL with a different `#hash` doesn't reload the
+  page, and modules were served stale. The server now sends `Cache-Control: no-cache`.
