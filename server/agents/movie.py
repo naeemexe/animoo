@@ -58,8 +58,10 @@ TIME_WORDS = [
     ("sunrise", r"\b(sunrise|dawn|daybreak|first light|early morning|morning)\b"),
     ("dusk", r"\b(dusk|sunset|twilight|evening|nightfall)\b"),
     ("golden", r"\b(afternoon|golden hour|late day)\b"),
-    ("day", r"\b(noon|midday|daytime|sunny|bright day|broad daylight)\b"),
+    ("day", r"\b(noon|midday|day ?time|day ?light|during the day|sunny|bright day|broad daylight)\b"),
 ]
+# In a follow-up ("make it day again", "back to day"), a bare "day" is the time of day too.
+FOLLOW_UP_TIME = [("day", r"\b(day|days)\b")]
 WEATHER_WORDS = [
     ("snow", r"\b(snow\w*|blizzard|winter\w*|wintry|frost\w*)\b"),
     ("rain", r"\b(rain\w*|storm\w*|drizzl\w*|downpour|thunder\w*|wet)\b"),
@@ -102,7 +104,13 @@ def _latest(text: str, table) -> str | None:
 
 
 def time_from_text(text: str) -> str | None:
-    return _latest(text, TIME_WORDS)
+    parts = text.lower().split(CHANGE.lower())
+    for i, part in enumerate(reversed(parts)):
+        follow_up = i < len(parts) - 1
+        got = next((k for k, rx in TIME_WORDS + (FOLLOW_UP_TIME if follow_up else []) if re.search(rx, part)), None)
+        if got:
+            return got
+    return None
 
 
 def weather_from_text(text: str) -> str | None:
@@ -2358,7 +2366,7 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
 # ---- follow-up requests (build on the current film, don't start over) --------------------
 FILLER = re.compile(r"\b(make|it|its|change|changes|the|weather|to|set|turn|into|a|an|now|please|switch|time|of|day|"
                     r"lighting|light|need|needs|be|should|and|at|in|with|scene|season|same|but|instead|go|let|lets|"
-                    r"want|i|we|can|you|is|more|bit|little|from|this|that)\b", re.I)
+                    r"want|i|we|can|you|is|more|bit|little|from|this|that|again|back|go|please|like|before)\b", re.I)
 
 
 def revise_movie(base: str, request: str) -> tuple[str, int, str]:
@@ -2371,15 +2379,18 @@ def revise_movie(base: str, request: str) -> tuple[str, int, str]:
     if not entry:
         raise ValueError("the current film isn't cached; make it first")
     scene = base + CHANGE + request
-    if load_cached(scene):
-        return scene, 0, "cached"
-    raw = json.loads(json.dumps(entry["plan"]))
     rest = request.lower()
     for _, rx in TIME_WORDS + WEATHER_WORDS:
         rest = re.sub(rx, " ", rest)
     rest = re.sub(r"[^a-z ]", " ", FILLER.sub(" ", rest)).split()
+    by_rule = not rest and bool(time_from_text(CHANGE + request) or _latest(request, WEATHER_WORDS))
+    cached = load_cached(scene)
+    # Weather or time alone is always the rule edit (a cache Nemotron made for it is replaced).
+    if cached and (not by_rule or cached.get("llm_calls", 0) == 0):
+        return scene, 0, "cached"
+    raw = json.loads(json.dumps(entry["plan"]))
     calls, how = 0, "rule"
-    if rest or not (time_from_text(request) or _latest(request, WEATHER_WORDS)):
+    if not by_rule:
         try:
             raw = _ask(ORCHESTRATOR_ROLE,
                        f"The current film's plan (JSON):\n{json.dumps(entry['plan'], ensure_ascii=False)}\n\n"
@@ -2390,7 +2401,7 @@ def revise_movie(base: str, request: str) -> tuple[str, int, str]:
             calls, how = 1, "nemotron"
         except llm.LLMError:
             how = "rule (Nemotron failed)"
-    wx, tod = _latest(request, WEATHER_WORDS), time_from_text(request)
+    wx, tod = _latest(request, WEATHER_WORDS), time_from_text(CHANGE + request)
     if wx:
         raw["weather"] = wx
     if tod:
