@@ -1,7 +1,7 @@
 // Builds the set from a scene script: terrain (light, a pond, paths) and
 // library props. Returns the set's group; props are added as they load.
 import * as THREE from 'three';
-import { loadProp } from '../library.js';
+import { generateProp, loadManifest, loadProp } from '../library.js';
 import { toonMaterial } from '../toon.js';
 
 const RAD = Math.PI / 180;
@@ -59,7 +59,37 @@ function path({ points, width = 1.2 }) {
   return g;
 }
 
-// `onStep(text)` is called per placed item, for the agent log.
+// Props the script names that the library doesn't have are generated first
+// (one at a time, as the pod works), then everything is placed.
+async function generateMissing(script, onStep) {
+  const manifest = await loadManifest();
+  const have = new Set(manifest.props.map((p) => p.id));
+  const wanted = new Map();
+  for (const p of script.props) if (!have.has(p.library) && !wanted.has(p.library)) wanted.set(p.library, p);
+  for (const [id, p] of wanted) {
+    const g = p.generate ?? {};
+    await onStep(`search_library('${id}') → no match`, false, 'result');
+    await onStep(`generating ${id}… generate_prop('${id}', "${g.prompt ?? id}"${g.size_m ? `, size_m=${g.size_m}` : ''}) · concept image → TRELLIS.2, about 45 s`, false, 'call');
+    try {
+      const r = await generateProp({ name: id, prompt: g.prompt, size_m: g.size_m, category: g.category });
+      const [w, h, d] = r.entry.size;
+      await onStep(r.cached
+        ? `${id}: already in the library`
+        : `${id} generated in ${Math.round(r.seconds)} s · ${w}×${h}×${d} m${r.normalize?.trimmed ? ' · ground slab trimmed' : ''} · saved to library/${r.entry.file}`, false, 'result');
+    } catch (err) {
+      await onStep(`generate_prop('${id}') failed: ${err.message}`, true, 'result');
+    }
+  }
+  // Props generated on an earlier run are ordinary library hits now.
+  for (const p of script.props) {
+    const e = manifest.props.find((x) => x.id === p.library);
+    if (e?.source === 'generated' && !wanted.has(p.library)) {
+      await onStep(`search_library('${p.library}') → ${p.library} (generated earlier, from the library)`, false, 'result');
+    }
+  }
+}
+
+// `onStep(text, err, kind)` is called per step, for the agent log.
 export async function buildSet(stage, script, onStep = () => {}) {
   const set = new THREE.Group();
   set.name = 'set';
@@ -69,6 +99,7 @@ export async function buildSet(stage, script, onStep = () => {}) {
   for (const w of t.water ?? []) set.add(pond(w));
   for (const p of t.paths ?? []) set.add(path(p));
 
+  await generateMissing(script, onStep);
   const placed = await Promise.all(script.props.map(async (p) => {
     try {
       const obj = await loadProp(p.library);

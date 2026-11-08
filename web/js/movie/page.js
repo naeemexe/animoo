@@ -129,8 +129,8 @@ export function createMoviePage(root, stage, look) {
       }));
 
       for (i++; steps[i].kind !== 'place'; i++) await stream(steps[i]);
-      state.set = await buildSet(stage, script, async (line, err) => {
-        log('world', 'call', line, { err });
+      state.set = await buildSet(stage, script, async (line, err, kind = 'call') => {
+        log('world', err ? 'error' : kind, line, { err });
         if (!FAST) await sleep(60);
       });
       log('world', 'result', `set built · ${state.set.children.length} items`);

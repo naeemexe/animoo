@@ -65,3 +65,20 @@ export async function loadProp(entry) {
   obj.userData.prop = entry;
   return obj;
 }
+
+// A prop the library doesn't have: the server's generate_prop tool makes it
+// (concept image → TRELLIS.2, about 45 s), saves it to library/ and returns
+// its manifest entry, or the existing entry at once if `name` is already there.
+// The cached manifest picks the new entry up, so loadProp(id) works right after.
+export async function generateProp({ name, prompt, size_m, category, seed }) {
+  const res = await fetch(`${API_BASE}/api/props/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, prompt, size_m, category, seed }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.detail ?? `generate_prop returned ${res.status}`);
+  const m = await loadManifest();
+  if (!m.props.some((p) => p.id === body.entry.id)) m.props.push(body.entry);
+  return body; // { entry, cached, seconds }
+}

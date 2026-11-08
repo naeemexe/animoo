@@ -36,6 +36,9 @@ export const FISHERMAN_SCRIPT = {
     { key: 'rocks', library: 'rock-large', position: [12.5, 4.5], rotation: 30 },
     { key: 'flowers', library: 'flower-yellow', position: [-1.5, 5.5] },
     { key: 'lantern', library: 'lantern-post', position: [0.4, 2.2] },
+    // Not in the library: the world agent generates it on the first run (task 11).
+    { key: 'windmill', library: 'windmill', position: [4.5, -11], rotation: -35,
+      generate: { prompt: 'a red wooden windmill', size_m: 7, category: 'buildings' } },
   ],
   cast: [
     { id: 'fisherman', name: 'Old fisherman', character: 'avatar_male', start: { position: [-7.1, -3.0], facing: 40 } },
