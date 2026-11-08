@@ -288,7 +288,9 @@ export function createMoviePage(root, stage, look) {
     const script = state.script;
     state.obstacles = obstaclesFromSet(state.set);
     state.seats = seatsFromSet(state.set);
-    state.rows = direct(script, state.clipsByCast, { obstacles: state.obstacles, seats: state.seats });
+    // Character paths drawn in edit mode (task 30): beat id → [[x, z], …] the walk goes through.
+    const walks = Object.fromEntries((script.walk_paths ?? []).filter((w) => w.points?.length).map((w) => [w.beat, w.points]));
+    state.rows = direct(script, state.clipsByCast, { obstacles: state.obstacles, seats: state.seats, walks });
     for (const [id, row] of Object.entries(state.rows)) {
       const hero = state.heroes[id];
       hero.clips = row.beats.map((b) => { const e = state.clipsByCast[id].get(b.beat.id); return e.clip ?? e; });

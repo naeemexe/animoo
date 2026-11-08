@@ -118,10 +118,27 @@ function snapSeat(clip, from, beat, seats) {
   return { key: best.s.key, moved: +Math.hypot(dx, dz).toFixed(2) };
 }
 
+// Chaikin corner cutting (two rounds), keeping the end points: a drawn
+// polyline becomes a walkable curve that still passes near every point.
+function roundCorners(pts, rounds = 2) {
+  let p = pts;
+  for (let r = 0; r < rounds && p.length > 2; r++) {
+    const q = [p[0]];
+    for (let i = 0; i < p.length - 1; i++) {
+      const [a, b] = [p[i], p[i + 1]];
+      if (i > 0) q.push([0.75 * a[0] + 0.25 * b[0], 0.75 * a[1] + 0.25 * b[1]]);
+      if (i < p.length - 2) q.push([0.25 * a[0] + 0.75 * b[0], 0.25 * a[1] + 0.75 * b[1]]);
+    }
+    q.push(p.at(-1));
+    p = q;
+  }
+  return p;
+}
+
 // One timeline row. `clips` maps beat id → retargeted Clip (origin, +Z).
 // → { castId, offset, clip, beats: [{ beat, start, end, stretch }], positionAt(t) }
 // A scaled character (a kid) lives in its group's space: world / scale.
-export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.3, obstacles = [], seats = [] } = {}) {
+export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.3, obstacles = [], seats = [], walks = {} } = {}) {
   const k = castEntry.scale ?? 1;
   const resolve = (target, t) => resolveWorld(target, t).map((v) => v / k);
   const clipOf = (e) => e.clip ?? e;
@@ -145,16 +162,22 @@ export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.3, o
 
     // Locomotion from the library: a path around the props, the clip bent onto it.
     if (act?.root === 'path' && beat.to !== undefined) {
-      let goal = resolve(beat.to, tJoin);
-      // Walking up to someone to greet or talk: stop at talking distance, same side of any prop.
-      if (beat.approach) goal = talkSpot(at, resolve(beat.approach, beat.start + beat.duration), obs, { dist: 1.3 / k }) ?? goal;
-      const path = planPath(at, goal, obs);
+      // A path drawn in edit mode (task 30) replaces the planned one: through its points, corners rounded.
+      const drawn = walks[beat.id];
+      let path;
+      if (drawn?.length) path = roundCorners([at, ...drawn.map((p) => [p[0] / k, p[1] / k])]);
+      else {
+        let goal = resolve(beat.to, tJoin);
+        // Walking up to someone to greet or talk: stop at talking distance, same side of any prop.
+        if (beat.approach) goal = talkSpot(at, resolve(beat.approach, beat.start + beat.duration), obs, { dist: 1.3 / k }) ?? goal;
+        path = planPath(at, goal, obs);
+      }
       const len = pathLength(path);
       let c = pickVariant(act.variants, len).clone();
       // Retargeted clips start at the origin facing +Z: put frame 0 at `at`, then bend.
       c.transform(0, [0, 0], [at[0] - c.hips[0], at[1] - c.hips[2]]);
       c = warpToPath(c, path);
-      const info = `${(len * k).toFixed(1)} m${path.length > 2 ? ', around props' : ', straight'} · stride ×${c.scale.toFixed(2)}`;
+      const info = `${(len * k).toFixed(1)} m${drawn?.length ? `, drawn (${drawn.length} points)` : path.length > 2 ? ', around props' : ', straight'} · stride ×${c.scale.toFixed(2)}`;
       if (!acc) {
         acc = plantFeet(c.clone());
         placed.push({ beat, start: offset, end: offset + acc.duration, stretch: c.scale, path, pathInfo: info });

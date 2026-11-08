@@ -1468,8 +1468,9 @@ def save_cache(scene: str, entry: dict) -> Path:
     return p
 
 
-def save_edits(scene: str, props: list[dict], camera_paths: list[dict] | None = None) -> Path:
-    """Store hand-edited props and camera paths (edit mode) in the scene's cache file; replays use them."""
+def save_edits(scene: str, props: list[dict], camera_paths: list[dict] | None = None,
+               walk_paths: list[dict] | None = None) -> Path:
+    """Store hand-edited props, camera paths and character paths (edit mode) in the scene's cache file; replays use them."""
     p = cache_path(scene.strip())
     if not p.exists():
         raise FileNotFoundError(f"no cached plan for this scene ({p.name}); make the movie once first")
@@ -1483,6 +1484,12 @@ def save_edits(scene: str, props: list[dict], camera_paths: list[dict] | None = 
     entry["script"]["camera_paths"] = paths
     if not paths:
         entry["script"].pop("camera_paths", None)
+    walks = old.get("walk_paths", []) if walk_paths is None else walk_paths
+    if walks:
+        entry["edits"]["walk_paths"] = walks
+        entry["script"]["walk_paths"] = walks
+    else:
+        entry["script"].pop("walk_paths", None)
     p.write_text(json.dumps(entry, indent=1, ensure_ascii=False) + "\n")
     return p
 
@@ -1596,6 +1603,11 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
         script["camera_paths"] = cached["edits"]["camera_paths"]
         notes = [f"{len(script['camera_paths'])} hand-drawn camera path(s): "
                  + ", ".join(f"{c['start']:.1f}–{c['end']:.1f} s ({len(c['keys'])} keys)" for c in script["camera_paths"])] + notes
+    if cached and cached.get("edits", {}).get("walk_paths"):
+        # Character paths drawn in edit mode (task 30): those walks go through the drawn points.
+        script["walk_paths"] = cached["edits"]["walk_paths"]
+        notes = [f"{len(script['walk_paths'])} hand-drawn character path(s): "
+                 + ", ".join(f"{w['beat']} ({len(w['points'])} points)" for w in script["walk_paths"])] + notes
     problems = validate_script(script)
     yield step("orchestrator", "call", "layout.fit(beats, distances, sync) · code")
     for nline in notes[:8]:

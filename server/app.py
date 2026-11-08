@@ -147,6 +147,7 @@ class ScriptEdit(BaseModel):
     scene: str
     props: list[dict]
     camera_paths: list[dict] | None = None  # task 19; None keeps the saved ones
+    walk_paths: list[dict] | None = None  # task 30: [{beat, cast, points: [[x, z], …]}]; None keeps the saved ones
 
 
 def _bad_path(cp: dict) -> bool:
@@ -170,11 +171,18 @@ def movie_script_save(req: ScriptEdit) -> dict:
     for cp in req.camera_paths or []:
         if _bad_path(cp):
             raise HTTPException(status_code=400, detail=f"bad camera path: {cp}")
+    num = lambda v: isinstance(v, (int, float))
+    for w in req.walk_paths or []:
+        pts = w.get("points")
+        if not isinstance(w.get("beat"), str) or not isinstance(pts, list) or not pts \
+                or not all(isinstance(q, list) and len(q) == 2 and all(num(v) for v in q) for q in pts):
+            raise HTTPException(status_code=400, detail=f"bad character path: {w}")
     try:
-        path = save_edits(req.scene, req.props, req.camera_paths)
+        path = save_edits(req.scene, req.props, req.camera_paths, req.walk_paths)
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    return {"file": path.name, "props": len(req.props), "camera_paths": len(req.camera_paths or [])}
+    return {"file": path.name, "props": len(req.props), "camera_paths": len(req.camera_paths or []),
+            "walk_paths": len(req.walk_paths or [])}
 
 
 class PropRequest(BaseModel):
