@@ -31,6 +31,8 @@ open http://localhost:8000               # Movie | Chat
   `brev delete framed-gpu`. On the box, manage servers with `bash /opt/app/serve.sh start|stop|status`,
   and rebuild everything with `bash /opt/app/setup.sh` (copy `gpu/` to `/opt/app` first).
   Details are in `docs/gpu-log.md`.
+- **ElevenLabs:** key in `.env` (10k free credits, capped at 8000). New scenes get a 22 s ambience loop (~440 credits);
+  ElevenLabs music is off unless `ELEVENLABS_MUSIC=1`, so the procedural pads play. Cached audio in `library/audio/` is free.
 - **RunPod:** the old pod is stopped ($0/hr). Its volume `framed-models` still bills a little storage;
   delete the pod and the volume in the RunPod console when convenient.
 - **LLM (Nemotron, per agent):** a build.nvidia.com key is in `.env` (`NVIDIA_API_KEY`; never commit or print it).

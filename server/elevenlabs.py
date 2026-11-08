@@ -82,6 +82,10 @@ def scene_audio(kind: str, prompt: str) -> dict:
         return {"url": url, "cached": True, "seconds": 0}
     if not has_key():
         raise NoKey("no ELEVENLABS_API_KEY in .env")
+    # Music costs far more credits than ambience; new beds only with ELEVENLABS_MUSIC=1
+    # (otherwise the page keeps its procedural pads). Cached beds still play.
+    if kind == "music" and os.getenv("ELEVENLABS_MUSIC") != "1":
+        raise NoKey("ElevenLabs music is off (set ELEVENLABS_MUSIC=1 in .env)")
     path, body = KINDS[kind]
     t0 = time.perf_counter()
     data = post(path, body(prompt.strip()))
