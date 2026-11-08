@@ -553,6 +553,23 @@ export function createMoviePage(root, stage, look) {
     for (const [id, h] of Object.entries(state.heroes)) h.group.visible = on && state.t >= (state.rows[id]?.offset ?? Infinity);
   }
 
+  // ---- demo (?demo or ?demo=<scene>): the page drives itself, for a screen recording ----
+  // Types the scene, makes the film, then while it plays types time and season changes,
+  // each relit live without stopping (0 LLM calls).
+  async function runDemo() {
+    const scene = params.get('demo') || 'two friends walking beside the sea then stop and talks with each other smiles';
+    const type = async (text) => { ui.prompt.value = ''; for (const ch of text) { ui.prompt.value += ch; await sleep(40); } await sleep(350); };
+    await sleep(1200);
+    await type(scene);
+    await make();
+    for (const [req, at] of [['make it night', 5], ['make it winter', 10], ['back to day time', 15]]) {
+      while (state.t < at - 1.6 && state.playing) await sleep(100);
+      await type(req);
+      await make();
+    }
+  }
+  if (params.has('demo')) runDemo();
+
   // ---- export -------------------------------------------------------------
   async function exportMovie() {
     if (!state.duration || state.exporting) return;
