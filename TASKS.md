@@ -32,7 +32,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 13 | A | Chat: remove the canned mock lines and suggestion chips ("Hi! I can show you a squat…"); Nemotron persona only | 0.5 h | done | 06 |
 | 14 | A | Scale + placement: characters and props at consistent real-world size; grounded, no overlaps, positions that follow the script | 2 h | done | 08 |
 | 15 | A | World fill + backdrop: no empty island. Ground scatter (grass, flowers, rocks), a dense tree/hill ring, a painted sky/backdrop that fills the frame | 2.5 h | done | 08 |
-| 16 | A | Cinematic camera: the director picks shots per beat (wide, medium, close, side, over-the-shoulder, low), with cuts and moves (dolly, orbit, crane) | 2.5 h | doing | 08 |
+| 16 | A | Cinematic camera: the director picks shots per beat (wide, medium, close, side, over-the-shoulder, low), with cuts and moves (dolly, orbit, crane) | 2.5 h | done (rules, no LLM call) | 08 |
 | 17 | A | Time of day + weather: day/dusk/night lighting with glowing lamps and windows at night, plus rain/snow/fog. The orchestrator sets it from the prompt | 2 h | todo | 15 |
 | 18 | A | Edit mode: select, move/rotate/scale, duplicate, delete, replace with a library item, regenerate a prop on the GPU | 3 h | todo | 14 |
 | 19 | A | Camera paths: draw a keyframed camera path between two timestamps in edit mode; it overrides the director for that span | 2.5 h | todo | 16, 18 |
@@ -377,3 +377,22 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
   the same way if the mix bothers anyone.
 - 15: in the lighthouse scene the lighthouse looks only about two characters tall in the wide shot (task 14 scale).
 - 15: SANA paint-over for the ground and backdrop wasn't done; the procedural dome and ground texture held up.
+- 16 (2026-11-08): the shots are planned in the browser by rules (`planShots()` in `web/js/movie/camera.js`), after the
+  director merges the clips, so they see real positions, facings and hip heights. No Nemotron call: rules were enough
+  and add no latency or rate-limit risk. The orchestrator's `shots` are now ignored; the page replaces `script.shots`
+  with the planned list (`type`, `move`, `angle`, `partner`, `action`), and the agent log and timeline show them.
+  Cuts fall where a non-idle action starts (min 2.2 s, long stretches split at 5.5 s), plus 1.4 s reaction cuts when
+  another character's gesture starts mid-shot (grandpa waves back). Checked by screenshots at 5–7 times per scene for
+  all four cached scenes: fisherman 6 shots (wide crane → side track → medium dolly → medium two-shot → side → wide
+  rise), campfire 7 (shot/reverse-shot over the shoulder for the story and the laugh, low orbit on the dance), market 7
+  (low on the chase, OTS on the hand-back), lighthouse 6. Stepping the fisherman film frame by frame: no NaN, at most
+  0.18 m of camera travel per frame inside a shot. No console errors.
+- 16: occlusion uses boxes of the script's props plus the fill's `fill-bushes`/`fill-boulders` instances; a prop within
+  0.7 m of the subject's feet (the bench they sit on, the boat) doesn't count. Characters can still block each other in
+  two-shots, and a box test is coarse for the red stilt hut (its open legs count as solid).
+- 16: the fisherman's s3 → s4 cut is medium → medium (one subject → the two-shot, 35° apart): legal by the rule but the
+  weakest cut. The kid's first action (runs past the well, 0–3.3 s) only shows in the establishing wide.
+- 16: the WebGL "Framebuffer is incomplete: Attachment has zero size" warnings come from forcing `animo.look.render()`
+  while the Browser pane is hidden or resizing; they aren't from the app.
+- 16: the camera's `fov` stays at 28°; the shot sizes come from distance. Close and OTS shots start the subject at
+  3.4 m and 1.9 m behind the partner; `camera.near` is 1, so a closer camera would clip the partner.

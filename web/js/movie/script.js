@@ -58,6 +58,9 @@
 //     "subject": "target" | ["target", ...],   // what the camera looks at
 //     "angle": deg                          // optional: where the camera stands, around the subject
 //   }]
+//   The Movie page replaces `shots` after merging the clips: camera.js
+//   `planShots()` adds `type` (wide, medium, close, side, ots, low), `move`
+//   (static, dolly, pull, orbit, crane, rise), `partner` (ots) and `action`.
 // }
 //
 // How the director reads beats: each character's beats play in order and never
