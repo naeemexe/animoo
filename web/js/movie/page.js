@@ -19,6 +19,7 @@ import { direct, makeResolver } from './director.js';
 import { createTimeline } from './timeline.js';
 import { DirectorCamera } from './camera.js';
 import { recordWebM } from './export.js';
+import { createEditor } from './edit.js';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const params = urlParams;
@@ -56,6 +57,33 @@ export function createMoviePage(root, stage, look) {
     onSeek: (t) => { setPlaying(false); seek(t); },
     onDirectorCam: (on) => { state.directorCam = on; cam.setEnabled(on); },
     onExport: () => exportMovie(),
+  });
+  // Edit mode (task 18) sits behind its own toggle; off, playback is untouched.
+  let camBeforeEdit = true;
+  const editor = createEditor(root, stage, {
+    state,
+    log: (...a) => log(...a),
+    onEnter() {
+      setPlaying(false);
+      camBeforeEdit = state.directorCam;
+      state.directorCam = false;
+      cam.setEnabled(false);
+    },
+    onExit(dirty) {
+      if (dirty) {
+        try {
+          redirect();
+          seek(state.t);
+          log('director', 'result', `re-directed around the edited set · ${state.duration.toFixed(1)} s · ${state.script.shots.length} shots`);
+        } catch (err) {
+          console.error(err);
+          log('director', 'error', `re-direct failed: ${err.message}`, { err: true });
+        }
+      }
+      state.directorCam = camBeforeEdit;
+      cam.setEnabled(camBeforeEdit);
+    },
+    onScriptChanged() { ui.scriptView.textContent = JSON.stringify(state.script, null, 2); },
   });
 
   // ---- agent log ----------------------------------------------------------
@@ -103,6 +131,7 @@ export function createMoviePage(root, stage, look) {
 
   // ---- building -----------------------------------------------------------
   function clear() {
+    editor.reset();
     setPlaying(false);
     if (state.set) stage.scene.remove(state.set);
     for (const h of Object.values(state.heroes)) stage.scene.remove(h.group);
@@ -214,31 +243,20 @@ export function createMoviePage(root, stage, look) {
       log('director', 'thought', 'Joining each character\'s clips: walks and runs follow a path planned around the props (A* on a 0.25 m grid), in-place actions stay where the scene puts them, gestures turn to face their target (and the one they\'re aimed at turns back), planted feet stay pinned.');
       const t0 = performance.now();
       state.clipsByCast = clipsByCast; // for re-directing from the console
-      state.obstacles = obstaclesFromSet(state.set);
-      state.seats = seatsFromSet(state.set);
-      state.rows = direct(script, clipsByCast, { obstacles: state.obstacles, seats: state.seats });
+      const shots = redirect();
       for (const [id, row] of Object.entries(state.rows)) {
-        const hero = state.heroes[id];
-        hero.clips = row.beats.map((b) => { const e = clipsByCast[id].get(b.beat.id); return e.clip ?? e; });
-        hero.clip = row.clip;
-        hero.seek(0);
         const stretched = row.beats.filter((b) => !b.path && Math.abs(b.stretch - 1) > 0.02).map((b) => `${b.beat.id} ×${b.stretch.toFixed(2)}`);
         const paths = row.beats.filter((b) => b.path).map((b) => `${b.beat.id} ${b.pathInfo}`);
         const sat = row.beats.filter((b) => b.seat && b.seat.moved > 0.03).map((b) => `${b.beat.id} onto ${b.seat.key} (${b.seat.moved} m)`);
         log('director', 'call', `add_to_timeline(${id}, ${row.beats.length} clips) → ${row.offset.toFixed(1)}–${row.end.toFixed(1)} s${stretched.length ? ` · stretched ${stretched.join(', ')}` : ''}${paths.length ? ` · paths ${paths.join('; ')}` : ''}${sat.length ? ` · seated ${sat.join(', ')}` : ''}`);
       }
-      state.duration = Math.max(plannedDuration(script), ...Object.values(state.rows).map((r) => r.end));
-      // Camera: cut the film into shots from the merged beats.
-      const shots = cam.planShots(state.rows, state.duration, state.set);
       log('director', 'thought', `Cutting ${state.duration.toFixed(1)} s into shots: establish wide, then one shot per new action; every cut changes the size or the angle by 35°+, the camera stays on one side of the line between the characters, and swings around props that block the view.`);
       for (const s of shots) log('director', 'call', `shot(${s.id}, ${s.start.toFixed(1)}–${(s.start + s.duration).toFixed(1)} s, ${s.type} ${s.move} on ${[].concat(s.subject).join(' + ')}${s.partner ? ` over ${s.partner}'s shoulder` : ''}, from ${s.angle}°) · ${s.action}`);
-      script.shots = shots;
-      ui.scriptView.textContent = JSON.stringify(script, null, 2);
-      timeline.setRows(state.rows, state.duration);
       mark('direct', t0);
       state.timings.total = +((performance.now() - t0Plan) / 1000).toFixed(2);
       log('director', 'result', `film ready · ${state.duration.toFixed(1)} s · merged in ${(performance.now() - t0).toFixed(0)} ms · ${state.timings.total} s from the prompt`);
       seek(0);
+      editor.show(true);
       if (!params.has('t')) setPlaying(true);
       else seek(+params.get('t'));
     } catch (err) {
@@ -251,8 +269,31 @@ export function createMoviePage(root, stage, look) {
   }
   ui.make.onclick = make;
 
+  // Merge each character's clips around the current set (paths avoid the props'
+  // footprints), then cut it into shots. Run after building and after edits.
+  function redirect() {
+    const script = state.script;
+    state.obstacles = obstaclesFromSet(state.set);
+    state.seats = seatsFromSet(state.set);
+    state.rows = direct(script, state.clipsByCast, { obstacles: state.obstacles, seats: state.seats });
+    for (const [id, row] of Object.entries(state.rows)) {
+      const hero = state.heroes[id];
+      hero.clips = row.beats.map((b) => { const e = state.clipsByCast[id].get(b.beat.id); return e.clip ?? e; });
+      hero.clip = row.clip;
+      hero.seek(0);
+    }
+    state.duration = Math.max(plannedDuration(script), ...Object.values(state.rows).map((r) => r.end));
+    // Camera: cut the film into shots from the merged beats.
+    const shots = cam.planShots(state.rows, state.duration, state.set);
+    script.shots = shots;
+    ui.scriptView.textContent = JSON.stringify(script, null, 2);
+    timeline.setRows(state.rows, state.duration);
+    return shots;
+  }
+
   // ---- playback -----------------------------------------------------------
   function setPlaying(on) {
+    if (on && editor?.on) return; // no playback while editing
     if (on && state.t >= state.duration - 1e-3) seek(0);
     state.playing = on && state.duration > 0;
     timeline.setPlaying(state.playing);
@@ -342,6 +383,6 @@ export function createMoviePage(root, stage, look) {
       cam.setEnabled(state.directorCam);
       if (params.has('autoplay') && !state.script && !state.busy) make();
     },
-    hide() { setPlaying(false); cam.setEnabled(false); setVisible(false); },
+    hide() { editor.off(); setPlaying(false); cam.setEnabled(false); setVisible(false); },
   };
 }
