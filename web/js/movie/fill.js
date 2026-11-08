@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { loadProp } from '../library.js';
 import { mulberry32 } from '../stage.js';
 import { toonMaterial, faceted, smoothed } from '../toon.js';
-import { addWind } from './atmosphere.js';
+import { addWind, WIND } from './atmosphere.js';
 import { INTERIORS, interiorFill } from './interior.js';
 
 const DOME_R = 300;
@@ -432,8 +432,10 @@ function skyTexture(P, seed, style = {}) {
   c.height = H;
   const g = c.getContext('2d');
   const grad = g.createLinearGradient(0, 0, 0, hz);
+  // By the sea the top color reaches further down, so the sky the camera
+  // sees runs from blue to the pale horizon and meets the sea there.
   grad.addColorStop(0, P.top);
-  grad.addColorStop(0.62, P.mid);
+  grad.addColorStop(style.seaU != null ? 0.92 : 0.62, P.mid);
   grad.addColorStop(1, P.horizon);
   g.fillStyle = grad;
   g.fillRect(0, 0, W, hz);
@@ -515,9 +517,35 @@ function skyTexture(P, seed, style = {}) {
     ridge([4, 9, 17, 29], 34, 2, P.near);
   }
   if (style.seaU != null) {
-    // The sea to the horizon, with a few glints.
-    g.fillStyle = P.sea ?? '#6fa9c4';
-    g.fillRect(0, hz - 1, W, H - hz + 1);
+    // Far islands on the sea horizon: low hazy humps, a couple each side.
+    const isle = new THREE.Color(P.far).lerp(new THREE.Color(P.seaHaze), 0.35).getStyle();
+    g.fillStyle = isle;
+    for (const [du, w, h] of [[-0.075, 70, 9], [-0.05, 26, 5], [0.045, 110, 13], [0.085, 40, 6]]) {
+      const cx = (style.seaU + du + (rng() - 0.5) * 0.01) * W, ww = w * (0.8 + rng() * 0.4), hh = h * (0.8 + rng() * 0.4);
+      for (const off of [-W, 0, W]) {
+        g.beginPath();
+        g.moveTo(cx + off - ww, hz + 1);
+        for (let k = 0; k <= 24; k++) {
+          const t = k / 24, x = cx + off - ww + t * ww * 2;
+          g.lineTo(x, hz - hh * Math.pow(Math.sin(Math.PI * t), 0.7) * (0.85 + 0.15 * Math.sin(t * 9 + cx)));
+        }
+        g.lineTo(cx + off + ww, hz + 1);
+        g.fill();
+      }
+    }
+    // The sea below the horizon, where there is no land: the same haze the
+    // 3D sea fades into, so the two meet without a seam, and a faint pale
+    // line right at the horizon for a crisp edge.
+    for (let x = 0; x < W; x += 4) {
+      const a = 1 - land(x);
+      if (a <= 0) continue;
+      g.globalAlpha = a;
+      g.fillStyle = P.seaHaze;
+      g.fillRect(x, hz, 4, H - hz);
+      g.fillStyle = 'rgba(255,255,255,0.35)';
+      g.fillRect(x, hz, 4, 1);
+    }
+    g.globalAlpha = 1;
   }
   if (style.skyline === 'city') { g.fillRect(0, hz, W, 3); return skyTex(c); }
   // Tree line: rows of little crowns.
@@ -575,22 +603,62 @@ function seaSide(script) {
   const c = w?.center ?? [7.5, 8.5], r = w?.radius ?? 4.8;
   const L = Math.hypot(c[0], c[1]) || 1;
   const n = [c[0] / L, c[1] / L];
-  const d0 = Math.max(4, L - r * 0.5);
+  // The whole pond is sea (its disc is hidden), so the boat and dock float.
+  const d0 = Math.max(4, L - r - 0.6);
   const shore = (v) => d0 + 1.4 * Math.sin(v * 0.13 + 1.1) + 0.8 * Math.sin(v * 0.31);
   // (x, z) → (along n, across n)
   const uv = (x, z) => [x * n[0] + z * n[1], -x * n[1] + z * n[0]];
   return { n, d0, shore, wet: (x, z, m = 0) => { const [u, v] = uv(x, z); return u > shore(v) - m; } };
 }
 
+// The sea's surface (task 37): it fades into the dome's sea haze instead of
+// the land fog, so the horizon is one clean line, and far off it shimmers
+// gently with slow glints that fade out before they would alias.
+function seaMaterial(color, f, P) {
+  const mat = toonMaterial(color, { polygonOffset: true, polygonOffsetFactor: f, polygonOffsetUnits: f });
+  const haze = new THREE.Color(P.seaHaze);
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uTime = WIND.uTime;
+    shader.uniforms.uHaze = { value: haze };
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec2 vSeaW;')
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvSeaW = (modelMatrix * vec4(transformed, 1.0)).xz;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec2 vSeaW;\nuniform float uTime;\nuniform vec3 uHaze;')
+      .replace('#include <fog_fragment>', /* glsl */ `
+        {
+          vec2 p = vSeaW * 0.8;
+          float w = sin(p.x + uTime * 0.45 + 2.0 * sin(p.y * 0.37)) * sin(p.y * 1.3 - uTime * 0.35 + 2.0 * sin(p.x * 0.29));
+          float aa = 1.0 - smoothstep(0.35, 1.1, fwidth(p.x) + fwidth(p.y * 1.3));
+          float glint = smoothstep(0.86, 0.98, w) * aa * smoothstep(30.0, 70.0, vFogDepth);
+          gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(1.0, 0.99, 0.95), glint * 0.28);
+          gl_FragColor.rgb *= 0.97 + 0.05 * sin(vSeaW.x * 0.05 + vSeaW.y * 0.031);
+        }
+        #ifdef USE_FOG
+          gl_FragColor.rgb = mix(gl_FragColor.rgb, uHaze, smoothstep(fogNear * 0.6, fogFar, vFogDepth));
+        #endif`);
+  };
+  mat.customProgramCacheKey = () => 'sea37';
+  return mat;
+}
+
 function seaMeshes(sea, P) {
   const g = new THREE.Group();
   g.name = 'fill-sea';
-  const flat = (f) => ({ polygonOffset: true, polygonOffsetFactor: f, polygonOffsetUnits: f });
-  const bands = [[-1.2, '#f4ecd6', -2, 0.006], [0, P.shallow, -3, 0.009], [3.5, P.sea, -4, 0.012]];
+  // Shore to open sea: wet sand, a lacy foam line, shallows, a mid blue, the
+  // deep sea. [offset from the shore line, color, polygon offset, height, wobble]
+  const mid = '#' + new THREE.Color(P.shallow).lerp(new THREE.Color(P.sea), 0.5).getHexString();
+  const bands = [
+    [-2.4, '#d6bf88', -2, 0.004, (v) => 0.5 * Math.sin(v * 0.21 + 0.4)],
+    [-0.4, '#fbf8ee', -3, 0.006, (v) => 0.16 * Math.sin(v * 1.7) + 0.1 * Math.sin(v * 3.1 + 1)],
+    [0, P.shallow, -4, 0.008, () => 0],
+    [2.2, mid, -5, 0.010, (v) => 0.45 * Math.sin(v * 0.37 + 2)],
+    [5, P.sea, -6, 0.012, (v) => 0.8 * Math.sin(v * 0.17 + 1)],
+  ];
   const R = DOME_R * 0.94;
-  for (const [off, color, f, y] of bands) {
+  for (const [off, color, f, y, wob] of bands) {
     const pts = [];
-    for (let v = -R; v <= R; v += 2) pts.push(new THREE.Vector2(v, sea.shore(v) + off + (off ? 0.35 * Math.sin(v * 0.5) : 0)));
+    for (let v = -R; v <= R; v += 1) pts.push(new THREE.Vector2(v, sea.shore(v) + off + wob(v)));
     pts.push(new THREE.Vector2(R, R), new THREE.Vector2(-R, R));
     const geo = new THREE.ShapeGeometry(new THREE.Shape(pts));
     // Shape space (v, u) → world: x = u n.x - v n.z, z = u n.z + v n.x.
@@ -602,7 +670,7 @@ function seaMeshes(sea, P) {
     geo.computeVertexNormals();
     const nrm = geo.attributes.normal;
     for (let i = 0; i < nrm.count; i++) nrm.setXYZ(i, 0, 1, 0);
-    const m = new THREE.Mesh(geo, toonMaterial(color, flat(f)));
+    const m = new THREE.Mesh(geo, off > -1 ? seaMaterial(color, f, P) : toonMaterial(color, { polygonOffset: true, polygonOffsetFactor: f, polygonOffsetUnits: f }));
     m.receiveShadow = true;
     g.add(m);
   }
@@ -738,6 +806,8 @@ export async function fillWorld(stage, script, set, { seed = 11 } = {}) {
   // Strong blues: the toon light (lavender at sunrise) shifts them a lot.
   P.sea = '#' + new THREE.Color('#2f8fd0').lerp(new THREE.Color(P.fog), 0.12).getHexString();
   P.shallow = '#' + new THREE.Color('#5cc8d6').lerp(new THREE.Color(P.fog), 0.1).getHexString();
+  // The far sea: the deep blue under the horizon's haze (dome and 3D sea share it).
+  P.seaHaze = '#' + new THREE.Color(P.sea).lerp(new THREE.Color(P.horizon), 0.42).getHexString();
   const rng = mulberry32(seed);
   const sea = biome === 'sea' ? seaSide(script) : null;
   const keep = keepOut(script, set);
@@ -756,7 +826,12 @@ export async function fillWorld(stage, script, set, { seed = 11 } = {}) {
     ? { colors: ['#d9c48e', '#b9b07a', '#9aa86a'], skip: (a) => Math.cos(a) * sea.n[0] + Math.sin(a) * sea.n[1] > -0.25, flat: 0.6 }
     : biome === 'city' ? { n: 0 } : biome === 'park' ? { flat: 0.5 } : {};
   fill.add(ground(rng, kind), hills(rng, P, hillOpts), sky);
-  if (sea) fill.add(seaMeshes(sea, P));
+  if (sea) {
+    fill.add(seaMeshes(sea, P));
+    // The script's pond sits in the sea here: its inset disc would read as a
+    // dark blot on the shallows (the fill's own bands draw the water).
+    for (const o of set.children) if (o.name === 'pond') o.visible = false;
+  }
   if (stage.ground) stage.ground.visible = false; // the fill's ground replaces the island
 
   // Fog: the haze color is the dome's horizon, so the ground melts into it.

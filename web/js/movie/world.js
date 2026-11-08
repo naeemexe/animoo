@@ -85,6 +85,7 @@ export function setTimeOfDay(stage, name = 'golden', weather = 'clear', script =
 
 function pond({ center, radius }) {
   const g = new THREE.Group();
+  g.name = 'pond';
   const flat = { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 };
   const shore = new THREE.Mesh(new THREE.CircleGeometry(radius + 0.5, 28), toonMaterial('#d9c08a', flat));
   const water = new THREE.Mesh(new THREE.CircleGeometry(radius, 28), toonMaterial('#6fb8cf', { ...flat, polygonOffsetFactor: -3 }));
