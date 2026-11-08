@@ -462,6 +462,7 @@ export function syncReactions(script, aimed, rows, shift) {
   const actual = {};
   for (const r of Object.values(rows)) for (const p of r.beats) actual[p.beat.id] = p.start;
   const order = new Map(script.beats.map((b, i) => [b.id, i]));
+  const planned = new Map(script.beats.map((b) => [b.id, b.start]));
   let moved = false;
   for (const b of aimed.beats.filter(isGesture)) {
     const g = aimed.beats.find((x) => x.cast === b.facing && isGesture(x) && x.facing === b.cast &&
@@ -470,7 +471,9 @@ export function syncReactions(script, aimed, rows, shift) {
         (Math.abs(x.start - b.start) <= 0.05 && (/\bback\b/.test(b.action ?? '') || order.get(x.id) < order.get(b.id)))));
     if (!g || actual[g.id] === undefined) continue;
     // Starts here include the turn blend, so correct by the difference.
-    const err = actual[g.id] + 0.6 - (actual[b.id] ?? b.start);
+    // A reply planned after the gesture ends keeps its planned gap; one planned with it starts 0.6 s in.
+    const gap = (planned.get(b.id) ?? b.start) - (planned.get(g.id) ?? g.start);
+    const err = actual[g.id] + (gap >= 2.5 ? gap : 0.6) - (actual[b.id] ?? b.start);
     if (Math.abs(err) > 0.1) {
       shift[b.id] = b.start + err;
       moved = true;
