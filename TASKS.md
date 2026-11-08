@@ -147,5 +147,5 @@ license used.
   windmill GLB has one). Task 11 should trim or accept it, or try another seed.
 - 07: the windmill's thin lattice sails come out of TRELLIS.2 as rough spikes. For props with
   thin parts, ask for "solid, chunky" versions in the prompt (task 11).
-- 07: diffusers 0.35 ignores `dtype=` and silently loads in fp32, so keep `torch_dtype=`. Apply
-  fp8 layerwise casting before `.to("cuda")`, or loading peaks at about 17 GiB.
+- 07: diffusers 0.35 ignores `dtype=` and silently loads in fp32 (about 17 GiB peak, and fp8
+  casting then breaks Gemma), so keep `torch_dtype=`. Cast to fp8 before `.to("cuda")`.
