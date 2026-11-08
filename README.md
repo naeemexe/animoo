@@ -1,9 +1,7 @@
 # Animoo
 
-```
-3D props   NVIDIA Nemotron  →  NVIDIA SANA-Sprint  →  TRELLIS.2      →  three.js
-Motion     NVIDIA Nemotron  →  Llama-3 Instruct    →  NVIDIA Kimodo  →  three.js
-```
+### 3D props: NVIDIA Nemotron → NVIDIA SANA-Sprint → TRELLIS.2 → three.js
+### Motion: NVIDIA Nemotron → Llama-3 Instruct → NVIDIA Kimodo → three.js
 
 **Type a sentence, get a living animated film.** A team of NVIDIA Nemotron agents plans the story,
 builds the world and directs the characters like a game controller; specialist models generate
