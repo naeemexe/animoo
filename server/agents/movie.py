@@ -905,7 +905,7 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
                 if re.search(r"\b(trips?|falls?|stumbles?|tumbles?)\b", b["prompt"].lower()) and here in places:
                     # falling forward toward the cart would land in it: fall alongside it
                     pt, _ = slot(here, cid)
-                    extra["facing"] = _r(((_heading(places[here]["center"], pt) - 90 + 180) % 360) - 180, 0)
+                    extra["facing"] = _r(((_heading(places[here]["center"], pt) + 90 + 180) % 360) - 180, 0)
                 dur = b["duration"]
                 if seated:
                     dur = max(dur, 4.0)
