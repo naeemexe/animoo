@@ -1,30 +1,22 @@
 """Chat replies for the Chat page: POST /api/chat.
 
     {messages: [{role: "user" | "assistant", content}]}
-      -> {reply, demonstrate: null | {prompt, duration}, source: "nemotron" | "mock"}
+      -> {reply, demonstrate: null | {prompt, duration}, source: "nemotron" | "mock", seconds}
 
-If NVIDIA_API_KEY is set, Nemotron writes the reply through the OpenAI-
-compatible API at integrate.api.nvidia.com/v1. Otherwise a small rule-based
-mock answers (greetings, "show me ..." -> demonstrate), so the page works
-before the key exists. The prompt for the real call is CHAT_SYSTEM_PROMPT,
-kept here in one place so task 06's agent loop can reuse it.
+Nemotron writes the reply through `server.llm.complete()` (whichever backend
+`.env` picks; OpenCode's free Nemotron by default), as JSON checked against
+REPLY_SCHEMA. If that call fails, a small rule-based mock answers (greetings,
+"show me ..." -> demonstrate), so the page never goes silent.
 """
 
-import json
-import os
 import re
-import urllib.error
-import urllib.request
+import time
 
-NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
-# Task 06 picks the final model and records it in docs/decisions.md.
-# NEMOTRON_MODEL in .env overrides it (read per call, after app.py loads .env).
-DEFAULT_NEMOTRON_MODEL = "nvidia/llama-3.3-nemotron-super-49b-v1.5"
+from . import llm
 
 MIN_DURATION, MAX_DURATION = 2.0, 10.0  # Kimodo is clean up to about 10 s
 
-CHAT_SYSTEM_PROMPT = """/no_think
-You are Mira, a friendly character standing in a small storybook village. You talk with the
+CHAT_SYSTEM_PROMPT = """You are Mira, a friendly character standing in a small storybook village. You talk with the
 user, and you can physically demonstrate movements with your body (a motion generator turns a
 short English description into an animation that you then perform).
 
@@ -50,40 +42,23 @@ Rules for "demonstrate":
 
 # ---- the real call ---------------------------------------------------------
 
+REPLY_SCHEMA = {
+    "type": "object",
+    "required": ["reply", "demonstrate"],
+    "properties": {
+        "reply": {"type": "string"},
+        "demonstrate": {"type": ["object", "null"],
+                        "properties": {"prompt": {"type": "string"}, "duration": {"type": "number"}}},
+    },
+}
+
+
 def _nemotron(messages: list[dict]) -> dict:
-    body = {
-        "model": os.getenv("NEMOTRON_MODEL", DEFAULT_NEMOTRON_MODEL),
-        "messages": [{"role": "system", "content": CHAT_SYSTEM_PROMPT}, *messages],
-        "temperature": 0.6,
-        "max_tokens": 400,
-    }
-    req = urllib.request.Request(
-        f"{NVIDIA_BASE_URL}/chat/completions",
-        data=json.dumps(body).encode(),
-        headers={
-            "Authorization": f"Bearer {os.environ['NVIDIA_API_KEY']}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        },
-    )
-    with urllib.request.urlopen(req, timeout=45) as res:
-        data = json.load(res)
-    text = data["choices"][0]["message"]["content"] or ""
-    return parse_reply(text)
-
-
-def parse_reply(text: str) -> dict:
-    """The model's JSON answer -> {reply, demonstrate}. Tolerates think blocks,
-    code fences and plain text (which becomes the reply)."""
-    text = re.sub(r"<think>.*?</think>", "", text, flags=re.S).strip()
-    match = re.search(r"\{.*\}", text, flags=re.S)
-    if match:
-        try:
-            obj = json.loads(match.group(0))
-            return {"reply": str(obj.get("reply", "")).strip(), "demonstrate": _clean_demo(obj.get("demonstrate"))}
-        except json.JSONDecodeError:
-            pass
-    return {"reply": text, "demonstrate": None}
+    obj = llm.complete([{"role": "system", "content": CHAT_SYSTEM_PROMPT}, *messages], REPLY_SCHEMA,
+                       temperature=0.6, max_tokens=400, timeout=30, retries=1, tag="chat",
+                       shape='Exactly {"reply": "...", "demonstrate": null} or '
+                             '{"reply": "...", "demonstrate": {"prompt": "A person ...", "duration": 5}}.')
+    return {"reply": str(obj.get("reply", "")).strip(), "demonstrate": _clean_demo(obj.get("demonstrate"))}
 
 
 def _clean_demo(d) -> dict | None:
@@ -174,12 +149,12 @@ def mock_reply(messages: list[dict]) -> dict:
 def chat_reply(messages: list[dict]) -> dict:
     messages = [{"role": m["role"], "content": str(m["content"])} for m in messages
                 if m.get("role") in ("user", "assistant") and m.get("content")][-20:]
-    if os.getenv("NVIDIA_API_KEY"):
-        try:
-            out = _nemotron(messages)
-            if out["reply"]:
-                return {**out, "source": "nemotron"}
-        except (urllib.error.URLError, KeyError, ValueError, TimeoutError) as err:
-            # Never echo the request (it carries the key); the error type and status are enough.
-            print(f"[chat] Nemotron call failed ({type(err).__name__}: {getattr(err, 'code', '')}); using the mock")
-    return {**mock_reply(messages), "source": "mock"}
+    t0 = time.perf_counter()
+    try:
+        out = _nemotron(messages)
+        if out["reply"]:
+            return {**out, "source": "nemotron", "seconds": round(time.perf_counter() - t0, 2)}
+        print("[chat] Nemotron gave an empty reply; using the mock")
+    except llm.LLMError as err:
+        print(f"[chat] Nemotron failed ({err}); using the mock")
+    return {**mock_reply(messages), "source": "mock", "seconds": round(time.perf_counter() - t0, 2)}
