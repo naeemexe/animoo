@@ -42,7 +42,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 24 | A | Scene variety: city, sea/beach, park sets (not only forest), one cached scene each | 2 h | done | 15, 22 |
 | 25 | A | Interiors: room and restaurant sets, with an interior camera (eye level, horizontal moves, two-shots, over-the-shoulder; never above the roof) | 2 h | done | 16, 24 |
 | 26 | A | Spoken dialogue: Nemotron writes cinematic lines per character; ElevenLabs voices them; talk gesture + timeline sync | 2 h | waiting (needs `ELEVENLABS_API_KEY` in `.env`) | 22 |
-| 27 | A | Story-driven characters: cast built from the story (look, outfit colors, height, age) instead of the two fixed VRMs | 2.5 h | doing | 22 |
+| 27 | A | Story-driven characters: cast built from the story (look, outfit colors, height, age) instead of the two fixed VRMs | 2.5 h | done | 22 |
 
 **Cut rule.** If it's 6:00 am and task 09 isn't working, demo the Chat page plus a
 Movie page with one generated world and the sample clips. A finished small demo
@@ -592,3 +592,13 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
   before submitting. The five old-project props still have no recorded origin.
 - 12: not checked: whether the lamplighter's girl is visible at her window, and the city street's middle shot frames
   the man from behind. The beach film is short (11 s) for its story.
+- 27: the cast's `look` (height_m, top/bottom/shoes/hair/skin colors, accessory: hat, cap, chef_hat, glasses,
+  apron) comes from the same orchestrator call; `repair_look()` maps color words to hex and clamps height
+  (adults 1.6–1.85 m, kids 1.1–1.45 m). `web/js/characters/look.js` recolors by VRoid material name (texture
+  turned gray, then tinted) and hangs the accessory on the head or chest bone. A cast without `look` loads
+  untouched. With a look, the female VRM's baked cat ears and fox tail are hidden (they show in all old scenes).
+  Checked: old restaurant scene unchanged; city park re-planned (girl red/navy, old man gray with a cap), all
+  clips from the action library, no console errors. Hat, chef_hat, glasses and apron weren't seen on screen.
+- 27: still only two base VRMs (no CC0 VRM fetched), so two cast of the same gender share a face and hair shape.
+  The "old man sitting on a bench" stands and waits in both the old and the re-planned park script.
+  The cast-on-set log line prints hex colors; color names would read better.
