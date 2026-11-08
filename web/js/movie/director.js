@@ -4,6 +4,7 @@
 // Every clip starts at the origin facing +Z (retarget.js normalizes them), and
 // the character's group stays at the origin, so the merged clip is in world
 // coordinates. That lets the camera follow it and other beats face it.
+import * as THREE from 'three';
 import { Clip } from '../characters/clip.js';
 import { mergeClips, plantFeet, meanHeading } from '../characters/merge.js';
 import { planPath, warpToPath, pickVariant, pathLength, talkSpot } from './control.js';
@@ -118,21 +119,12 @@ function snapSeat(clip, from, beat, seats) {
   return { key: best.s.key, moved: +Math.hypot(dx, dz).toFixed(2) };
 }
 
-// Chaikin corner cutting (two rounds), keeping the end points: a drawn
-// polyline becomes a walkable curve that still passes near every point.
-function roundCorners(pts, rounds = 2) {
-  let p = pts;
-  for (let r = 0; r < rounds && p.length > 2; r++) {
-    const q = [p[0]];
-    for (let i = 0; i < p.length - 1; i++) {
-      const [a, b] = [p[i], p[i + 1]];
-      if (i > 0) q.push([0.75 * a[0] + 0.25 * b[0], 0.75 * a[1] + 0.25 * b[1]]);
-      if (i < p.length - 2) q.push([0.25 * a[0] + 0.75 * b[0], 0.25 * a[1] + 0.75 * b[1]]);
-    }
-    q.push(p.at(-1));
-    p = q;
-  }
-  return p;
+// A smooth curve through drawn points (centripetal Catmull-Rom, no overshoot):
+// the walk passes through every node the user placed.
+export function roundCorners(pts, per = 10) {
+  if (pts.length < 3) return pts;
+  const curve = new THREE.CatmullRomCurve3(pts.map(([x, z]) => new THREE.Vector3(x, 0, z)), false, 'centripetal');
+  return curve.getPoints((pts.length - 1) * per).map((v) => [v.x, v.z]);
 }
 
 // One timeline row. `clips` maps beat id → retargeted Clip (origin, +Z).
@@ -174,6 +166,12 @@ export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.3, o
       }
       const len = pathLength(path);
       let c = pickVariant(act.variants, len).clone();
+      // A drawn path can be much longer than any walk clip: chain the walk, so the stride stays natural.
+      if (drawn?.length) {
+        const base = c, reach = (x) => Math.hypot(x.hips[(x.frames - 1) * 3] - x.hips[0], x.hips[(x.frames - 1) * 3 + 2] - x.hips[2]);
+        for (let i = 0; i < 4 && len / Math.max(reach(c), 0.5) > 1.3; i++) c = mergeClips(c, base, { blend: 0.6 });
+        c.segments = [{ name: base.name, start: 0, end: c.frames }]; // one beat on the timeline
+      }
       // Retargeted clips start at the origin facing +Z: put frame 0 at `at`, then bend.
       c.transform(0, [0, 0], [at[0] - c.hips[0], at[1] - c.hips[2]]);
       c = warpToPath(c, path);

@@ -88,11 +88,15 @@ export function createMoviePage(root, stage, look) {
     },
     onScriptChanged() { ui.scriptView.textContent = JSON.stringify(state.script, null, 2); },
     onPathsChanged() { timeline.setRows(state.rows, state.duration); timeline.setTime(state.t); },
+    onWalksChanged() {
+      redirect();
+      seek(state.t);
+    },
     seek: (t) => seek(t),
   });
   // Free spectator camera (task 29): on in edit mode, or with the timeline's toggle.
   // A left-drag in edit mode looks around only when it doesn't start on the gizmo.
-  const free = createFreeCam(stage, { canLook: () => !editor.on || editor.canLook() });
+  const free = createFreeCam(stage, { canLook: (e) => !editor.on || editor.canLook(e) });
   function applyCam(editing = editor.on) {
     const on = state.freeCam || editing;
     if (on) { cam.setEnabled(false); free.enable(); } else { free.disable(); cam.setEnabled(state.directorCam); }

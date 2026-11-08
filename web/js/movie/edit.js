@@ -18,11 +18,12 @@ import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { generateProp, loadManifest, loadProp } from '../library.js';
 import { API_BASE } from '../api.js';
 import { samplePath } from './campath.js';
+import { createPathEditor } from './pathedit.js';
 
 const RAD = Math.PI / 180;
 const r2 = (v) => Math.round(v * 100) / 100;
 
-export function createEditor(root, stage, { state, log, onEnter, onExit, onScriptChanged, onPathsChanged, seek }) {
+export function createEditor(root, stage, { state, log, onEnter, onExit, onScriptChanged, onPathsChanged, onWalksChanged, seek }) {
   const bar = document.createElement('div');
   bar.className = 'card edit-bar';
   bar.hidden = true;
@@ -50,6 +51,7 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
       <div class="ed-prow">
         <button type="button" class="ed-ps" title="the path starts at the playhead">start here</button>
         <button type="button" class="ed-pe" title="the path ends at the playhead">end here</button>
+        <button type="button" class="ed-pd" title="delete the selected key (Del)">delete key</button>
       </div>
       <div class="ed-prow">
         <button type="button" class="ed-pk" title="a key from the current view at the playhead (K)">add key</button>
@@ -57,10 +59,20 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
         <button type="button" class="ed-pc" title="remove this path">clear</button>
       </div>
       <div class="ed-pstatus pill">scrub to a time, then "start here"</div>
+      <div class="ed-head ed-whead">character path</div>
+      <div class="ed-prow">
+        <select class="ed-wsel" title="a walk to draw a path for"><option value="">pick a walk…</option></select>
+      </div>
+      <div class="ed-prow">
+        <button type="button" class="ed-wa" title="click the ground to add points (Esc stops)">add point</button>
+        <button type="button" class="ed-wd" title="delete the selected point (Del)">delete</button>
+        <button type="button" class="ed-wc" title="back to the planned walk">clear</button>
+      </div>
+      <div class="ed-wstatus ed-pstatus pill">pick a walk, then drag its points</div>
     </div>`;
   root.appendChild(bar);
   const $ = (s) => bar.querySelector(s);
-  const ui = { on: $('.ed-on'), tools: $('.ed-tools'), lib: $('.ed-lib'), status: $('.ed-status'), save: $('.ed-save'), regen: $('.ed-regen'), pstatus: $('.ed-pstatus') };
+  const ui = { on: $('.ed-on'), tools: $('.ed-tools'), lib: $('.ed-lib'), status: $('.ed-status'), save: $('.ed-save'), regen: $('.ed-regen'), pstatus: $('.ed-pstatus'), wsel: $('.ed-wsel'), wadd: $('.ed-wa'), wstatus: $('.ed-wstatus') };
 
   const gizmo = new TransformControls(stage.camera, stage.renderer.domElement);
   gizmo.setSize(0.8);
@@ -193,35 +205,48 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
     pathChanged(`removed ${p.start.toFixed(1)}–${p.end.toFixed(1)} s`);
   }
 
-  // The path in the scene while editing: a line through the spline, a dot per key.
-  let pathGroup = null;
-  function drawPath() {
-    if (pathGroup) { stage.scene.remove(pathGroup); pathGroup.traverse((o) => { o.geometry?.dispose(); o.material?.dispose(); }); }
-    pathGroup = new THREE.Group();
-    pathGroup.name = 'camera-paths';
-    for (const p of state.script.camera_paths ?? []) {
-      if (!p.keys.length) continue;
-      const on = p === curPath;
-      const color = on ? 0xd6336c : 0x9a6b85;
-      const t0 = p.keys[0].t, t1 = p.keys.at(-1).t;
-      const pts = [];
-      for (let i = 0; i <= 60; i++) pts.push(samplePath(p, t0 + (t1 - t0) * i / 60).pos);
-      pathGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color, depthTest: false })));
-      for (const k of p.keys) {
-        const dot = new THREE.Mesh(new THREE.SphereGeometry(on ? 0.22 : 0.16, 12, 8), new THREE.MeshBasicMaterial({ color, depthTest: false }));
-        dot.position.set(...k.pos);
-        pathGroup.add(dot);
-        const aim = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...k.pos), new THREE.Vector3(...k.look)]),
-          new THREE.LineDashedMaterial({ color, dashSize: 0.3, gapSize: 0.2, transparent: true, opacity: 0.5, depthTest: false }));
-        aim.computeLineDistances();
-        pathGroup.add(aim);
-      }
-    }
-    pathGroup.renderOrder = 10;
-    pathGroup.traverse((o) => { o.renderOrder = 10; });
-    stage.scene.add(pathGroup);
+  // The paths in the scene while editing (task 30): numbered nodes, dotted lines, drag to move.
+  const pe = createPathEditor(stage, {
+    state,
+    onCam(p, line) { curPath = p; pathChanged(line); },
+    onWalk(line) { walkChanged(line); },
+    onSelect(sel) {
+      if (sel?.kind === 'cam') { curPath = sel.path; seek(sel.key.t); pathStatus(); }
+      walkStatus();
+    },
+  });
+  function drawPath() { pe.camPath = curPath; pe.draw(); }
+  function hidePath() { pe.clear(); }
+
+  // ---- character paths (task 30) -------------------------------------------------
+  let adding = false; // "add point": clicks on the ground add points
+  function setAdding(on) { adding = on && !!pe.walk; ui.wadd.classList.toggle('active', adding); walkStatus(); }
+  function fillWalks() {
+    const list = pe.walkBeats();
+    const drawn = new Set((state.script.walk_paths ?? []).map((w) => w.beat));
+    ui.wsel.innerHTML = '<option value="">pick a walk…</option>' + list.map((b) =>
+      `<option value="${b.id}">${drawn.has(b.id) ? '✎ ' : ''}${b.label} (${b.start.toFixed(1)} s)</option>`).join('');
+    ui.wsel.value = list.some((b) => b.id === pe.walkBeat) ? pe.walkBeat : '';
+    if (!list.length) ui.wstatus.textContent = 'no walks in this scene';
   }
-  function hidePath() { if (pathGroup) { stage.scene.remove(pathGroup); pathGroup = null; } }
+  function walkStatus() {
+    const w = pe.walk, s = pe.selected;
+    if (!w) { ui.wstatus.textContent = ui.wsel.options.length > 1 ? 'pick a walk, then drag its points' : 'no walks in this scene'; return; }
+    const drawn = (state.script.walk_paths ?? []).includes(w);
+    ui.wstatus.textContent = adding ? 'click the ground to add a point · Esc stops'
+      : s?.kind === 'walk' ? `point ${s.index + 1} of ${w.points.length} · (${w.points[s.index].join(', ')}) · drag it, Del deletes`
+        : `${w.points.length} points${drawn ? ' · drawn' : ' · planned walk (drag a point to draw)'}`;
+  }
+  function walkChanged(line) {
+    dirty = true;
+    markUnsaved();
+    log('director', 'call', `character path: ${line}`);
+    onScriptChanged();
+    onWalksChanged(); // re-direct: the walk follows the new points
+    fillWalks();
+    walkStatus();
+    drawPath();
+  }
 
   // Fly the path once (the characters play along), then come back to the orbit view.
   let previewing = false;
@@ -231,7 +256,7 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
     previewing = true;
     const cam = stage.camera, from = cam.position.clone(), target = stage.controls.target.clone(), t0 = state.t;
     stage.controls.enabled = false;
-    if (pathGroup) pathGroup.visible = false;
+    hidePath();
     let t = p.start, last = performance.now();
     const step = (now) => {
       t = Math.min(p.end, t + (now - last) / 1000);
@@ -248,7 +273,7 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
       stage.controls.target.copy(target);
       stage.controls.enabled = true;
       stage.controls.update();
-      if (pathGroup) pathGroup.visible = true;
+      if (ui.on.checked) drawPath();
     };
     requestAnimationFrame(step);
   }
@@ -350,13 +375,13 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
       const res = await fetch(`${API_BASE}/api/movie/script`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scene: state.script.scene ?? state.scene, props: state.script.props, camera_paths: (state.script.camera_paths ?? []).filter((p) => p.keys.length) }),
+        body: JSON.stringify({ scene: state.script.scene ?? state.scene, props: state.script.props, camera_paths: (state.script.camera_paths ?? []).filter((p) => p.keys.length), walk_paths: (state.script.walk_paths ?? []).filter((w) => w.points.length) }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.detail ?? `save returned ${res.status}`);
       unsaved = false;
       ui.save.textContent = 'save';
-      status(`saved ${state.script.props.length} props${body.camera_paths ? ` and ${body.camera_paths} camera path${body.camera_paths > 1 ? 's' : ''}` : ''} into library/scripts/${body.file}`);
+      status(`saved ${state.script.props.length} props${body.camera_paths ? `, ${body.camera_paths} camera path${body.camera_paths > 1 ? 's' : ''}` : ''}${body.walk_paths ? `, ${body.walk_paths} character path${body.walk_paths > 1 ? 's' : ''}` : ''} into library/scripts/${body.file}`);
       log('world', 'result', `edits saved to library/scripts/${body.file}`);
     } catch (err) {
       status(`save failed: ${err.message}`, true);
@@ -380,10 +405,17 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
   // ---- picking ---------------------------------------------------------------
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
   let down = null;
-  function onDown(e) { down = [e.clientX, e.clientY]; }
+  function onDown(e) {
+    // A node takes the press (drag or select), so it never picks a prop or turns the view.
+    if (!gizmo.axis && !previewing && pe.down(e)) { down = null; return; }
+    down = [e.clientX, e.clientY];
+  }
   function onUp(e) {
     if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 4 || gizmo.dragging || gizmo.axis) { down = null; return; }
     down = null;
+    if (e.button !== 0) return;
+    if (adding) { pe.addWalkPoint(e); return; }
+    if (pe.selected) pe.select(null);
     const r = stage.renderer.domElement.getBoundingClientRect();
     ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, stage.camera);
@@ -400,27 +432,31 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
     if (k === '1') setMode('translate');
     else if (k === '2') setMode('rotate');
     else if (k === '3') setMode('scale');
-    else if (k === 'delete' || k === 'backspace') { e.preventDefault(); remove(); }
+    else if (k === 'delete' || k === 'backspace') { e.preventDefault(); if (!pe.deleteSelected()) remove(); }
     else if (k === 'd' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); duplicate(); }
-    else if (k === 'escape') select(null);
+    else if (k === 'escape') { if (adding) setAdding(false); else if (pe.selected) pe.select(null); else select(null); }
     else if (k === 'k') addKey();
   }
 
   // A high three-quarter view over the props, so every one of them can be clicked.
-  function frameSet() {
-    const pts = state.script.props.map((p) => p.position);
+  function frameSet() { frameOn(state.script.props.map((p) => p.position), 8, 14); }
+  // A three-quarter view over [x, z] points, centered between the agent panel and this bar.
+  function frameOn(pts, minSpan, minD) {
     if (!pts.length) return;
     const xs = pts.map((p) => p[0]), zs = pts.map((p) => p[1]);
     const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cz = (Math.min(...zs) + Math.max(...zs)) / 2;
-    const span = Math.max(8, Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs));
-    const d = THREE.MathUtils.clamp(span * 1.9, 14, 64);
-    // Center the set in the part of the screen the agent panel doesn't cover.
+    const span = Math.max(minSpan, Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs));
     const cam = stage.camera, w = innerWidth;
-    const panel = document.querySelector('#page-movie .movie-panel')?.getBoundingClientRect().right ?? 0;
+    const left = document.querySelector('#page-movie .movie-panel')?.getBoundingClientRect().right ?? 0;
+    const right = w - (bar.getBoundingClientRect().left || w);
+    // Far enough that the points fit in the free strip between the two panels.
+    const fit = Math.max(1, (0.85 * w) / Math.max(240, w - left - right));
+    const d = THREE.MathUtils.clamp(span * 1.9 * fit, minD, 64);
     const halfW = Math.tan((cam.fov * RAD) / 2) * cam.aspect * d * 1.06;
-    const sx = cx - (panel / 2) * ((2 * halfW) / w);
+    const sx = cx - ((left - right) / 2) * ((2 * halfW) / w);
     stage.controls.target.set(sx, 0, cz);
     cam.position.set(sx, d * 0.75, cz + d * 0.75);
+    cam.lookAt(stage.controls.target);
     stage.controls.update();
   }
 
@@ -433,15 +469,18 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
     const el = stage.renderer.domElement;
     el.addEventListener('pointerdown', onDown);
     el.addEventListener('pointerup', onUp);
+    el.addEventListener('pointermove', pe.hover);
     addEventListener('keydown', onKey);
     ui.tools.hidden = false;
     fillLibrary();
     select(null);
     setMode('translate');
     curPath = null;
+    fillWalks();
     pathStatus();
     drawPath();
-    log('world', 'note', 'edit mode: fly with W/A/S/D (Q/E down/up, Shift faster), drag or right-drag to look, wheel to dolly, middle-drag to pan; click a prop; 1/2/3 move/rotate/scale, Ctrl+D duplicate, Del delete; camera path: scrub, "start here", fly to a view, K adds a key');
+    walkStatus();
+    log('world', 'note', 'edit mode: fly with W/A/S/D (Q/E down/up, Shift faster), drag or right-drag to look, wheel to dolly, middle-drag to pan; click a prop; 1/2/3 move/rotate/scale, Ctrl+D duplicate, Del delete; camera path: scrub, "start here", fly to a view, K adds a key; drag the numbered nodes to move them (the ↕ handle sets a camera node\'s height), Del deletes the selected one; character path: pick a walk, drag its points or "add point" and click the ground');
   }
   function exit() {
     select(null);
@@ -450,7 +489,9 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
     const el = stage.renderer.domElement;
     el.removeEventListener('pointerdown', onDown);
     el.removeEventListener('pointerup', onUp);
+    el.removeEventListener('pointermove', pe.hover);
     removeEventListener('keydown', onKey);
+    setAdding(false);
     stage.controls.enabled = true;
     ui.tools.hidden = true;
     onExit(dirty);
@@ -469,10 +510,24 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
   $('.ed-pk').onclick = addKey;
   $('.ed-pc').onclick = clearPath;
   $('.ed-pv').onclick = preview;
+  $('.ed-pd').onclick = () => { if (pe.selected?.kind === 'cam') pe.deleteSelected(); };
+  ui.wsel.onchange = () => {
+    pe.walkBeat = ui.wsel.value;
+    setAdding(false);
+    walkStatus();
+    // Look at the walk from close by, so its points are easy to grab.
+    const w = pe.walk;
+    if (w) frameOn([...w.points, ...(state.rows[w.cast]?.beats.find((b) => b.beat.id === w.beat)?.path.slice(0, 1) ?? [])], 6, 9);
+    drawPath();
+  };
+  ui.wadd.onclick = () => setAdding(!adding);
+  $('.ed-wd').onclick = () => { if (pe.selected?.kind === 'walk') pe.deleteSelected(); };
+  $('.ed-wc').onclick = () => { pe.clearWalk(); fillWalks(); walkStatus(); };
 
   return {
     get on() { return ui.on.checked; },
-    canLook() { return !gizmo.axis && !gizmo.dragging && !previewing; }, // a left-drag that isn't on the gizmo
+    // A left-drag that isn't on the gizmo or a path node (checked on the press only).
+    canLook(e) { return !gizmo.axis && !gizmo.dragging && !previewing && !pe.dragging && !(e?.type === 'pointerdown' && pe.hit(e)); },
     show(ready) { bar.hidden = !ready; },
     timeChanged() { if (ui.on.checked && !previewing) pathStatus(); },
     off() { if (ui.on.checked) { ui.on.checked = false; exit(); } },
