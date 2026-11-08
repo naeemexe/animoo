@@ -50,7 +50,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 32 | A | Scene audio: the orchestrator plans ambience + a soft music bed from place, weather, time and mood (or the user's words); ElevenLabs sound effects/music when a key is set, procedural WebAudio otherwise; cached; in the WebM export | 2 h | done (procedural; ElevenLabs coded, off until `ELEVENLABS_API_KEY` is set) | 08 |
 | 12b | A | Re-record the 5 demo takes after round 3 (with audio), update `demo/SUBMISSION.md` | 0.5 h | done | 28–32 |
 | 33 | A | Motion polish: walking legs don't look broken (knees bend the right way, no pops), and each clip starts from where and how the previous one ended | 1.5 h | todo | 22 |
-| 37 | A | Look round 4: small simple white flowers with no black outlines; a good sea backdrop | 1 h | todo | 24, 28 |
+| 37 | A | Look round 4: small simple white flowers with no black outlines; a good sea backdrop | 1 h | doing | 24, 28 |
 | 34 | A | Natural beat planning: no pointless sit → stand → sit cycles, nobody stands up for no reason, greetings fit who is seated; re-cache the demo scenes | 1.5 h | todo | 22, 33 |
 | 35 | A | Character skins: outfits, hair and body build (slim to heavy) layered on the same rigged figure, like game skins, so animation never breaks | 1.5 h | todo | 27 |
 | 36 | A | More cast + background NPCs: scenes with 3+ people; city/park/restaurant get background extras on ambient loops (walk, sit, talk, work) | 1.5 h | todo | 31, 35 |
