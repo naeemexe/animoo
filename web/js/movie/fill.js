@@ -74,7 +74,9 @@ function keepOut(script, set) {
 // ---- instancing library props ---------------------------------------------
 
 // One InstancedMesh per mesh in the prop, all sharing the same placements.
-async function instanced(id, placements, { shadow = false, hideNear = 0, camera } = {}) {
+const FOLIAGE = ['#6cc79a', '#7fc77a', '#5fb48c', '#8ccf86', '#58a979', '#79bd8f'].map((c) => new THREE.Color(c));
+
+async function instanced(id, placements, { shadow = false, hideNear = 0, camera, leaves = null } = {}) {
   if (!placements.length) return null;
   const proto = await loadProp(id);
   proto.updateMatrixWorld(true);
@@ -87,9 +89,18 @@ async function instanced(id, placements, { shadow = false, hideNear = 0, camera 
   const meshes = [];
   proto.traverse((node) => {
     if (!node.isMesh) return;
-    const im = new THREE.InstancedMesh(node.geometry, node.material, base.length);
+    // Foliage (the kit's teal) gets a per-instance green, so the forest
+    // varies and leans greener than the hero props; trunks stay as they are.
+    const c = node.material.color;
+    const leafy = leaves && c && c.g > c.r * 1.2 && c.b > c.r;
+    const mat = leafy ? node.material.clone() : node.material;
+    if (leafy) mat.color.set('#ffffff');
+    const im = new THREE.InstancedMesh(node.geometry, mat, base.length);
     const local = node.matrixWorld.clone();
-    base.forEach((b, i) => im.setMatrixAt(i, m.multiplyMatrices(b, local)));
+    base.forEach((b, i) => {
+      im.setMatrixAt(i, m.multiplyMatrices(b, local));
+      if (leafy) im.setColorAt(i, leaves[(i * 7 + 3) % leaves.length]);
+    });
     im.castShadow = shadow;
     im.receiveShadow = true;
     im.frustumCulled = false;
@@ -404,7 +415,7 @@ export async function fillWorld(stage, script, set, { seed = 11 } = {}) {
     const flowerIds = deal(rng, flowers, ['flower-red', 'flower-yellow', 'flower-yellow']);
   const smallIds = deal(rng, small, ['mushrooms', 'stump']);
   const jobs = [
-    ...Object.entries(treeIds).map(([id, p]) => instanced(id, p, { hideNear: 9, camera })),
+    ...Object.entries(treeIds).map(([id, p]) => instanced(id, p, { hideNear: 9, camera, leaves: FOLIAGE })),
     blobs('bushes', bushes, rng, { detail: 1, stretch: [1.4, 1.0, 1.4], colors: ['#5f9a3e', '#6fa847', '#548c3a', '#7bb04e'], lift: 0.4 }),
     grassTufts(grass, rng),
     ...Object.entries(flowerIds).map(([id, p]) => instanced(id, p)),
