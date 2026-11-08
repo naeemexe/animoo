@@ -55,7 +55,7 @@ MAX_GENERATE = 2
 HEIGHT = {"avatar_male": (2.01, 1.78), "avatar_female": (1.54, 1.66)}
 KID = 0.8
 SEATS = {"bench", "stump"}
-SIT_BACK = 0.45  # Kimodo's sit-down clips step back about this far: stand that far in front of the seat  # props a character sits on (others: sit or stand beside them)
+SIT_BACK = 0.45  # Kimodo's sit-down clips step back 0.1-0.45 m: stand a little in front of the seat  # props a character sits on (others: sit or stand beside them)
 
 
 # ---- search_library ----------------------------------------------------------
@@ -711,7 +711,7 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
             along = _dir(face + 90)
             off = [-0.45, 0.45, 0.0][i % 3]
             front = _dir(face)
-            return (c[0] + along[0] * off + front[0] * (SIT_BACK - 0.1), c[1] + along[1] * off + front[1] * (SIT_BACK - 0.1)), face
+            return (c[0] + along[0] * off + front[0] * (SIT_BACK - 0.2), c[1] + along[1] * off + front[1] * (SIT_BACK - 0.2)), face
         if p["use"] == "water" and water:
             ang = _heading(water["center"], p["foot"]) if water else 0
             d = _dir(ang + 90)
