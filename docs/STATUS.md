@@ -1,6 +1,6 @@
 # Status (hand-off)
 
-Last updated 2026-11-08, 01:45. **Deadline: Sunday 2026-11-08, 12:00 pm.**
+Last updated 2026-11-08, 06:35. **Deadline: Sunday 2026-11-08, 12:00 pm.**
 A new main session should read this first, then `TASKS.md`.
 
 ## What works
@@ -43,6 +43,9 @@ open http://localhost:8000               # Movie | Chat
 
 ## Next
 
-Follow the order in `TASKS.md` ("Order from round 2"): 22 → 23 → 24 → 25 → 26 → **12 at 9:00 am** → 27 → 18 → 19.
-User feedback lives in `FEEDBACK.md` (round 1 became tasks 13–21, round 2 became 22–27).
-One session per task (`WORKFLOW.md`); Remote Control is on by default for new sessions.
+Round 2 is done: 22 (action library + position control), 23 (look fixes), 24 (city/sea/park), 25 (interiors + seat fix),
+27 (story-driven cast looks), 18 (edit mode), 19 (camera paths), and 12 (5 demo takes + `demo/SUBMISSION.md`).
+Left: **26 spoken dialogue** waits for `ELEVENLABS_API_KEY` in `.env`; the narrated 2–3 min demo cut is the user's.
+Known gaps are in `TASKS.md` → Found along the way (no arm IK for pointing, rooms too large, no undo in edit mode,
+beats don't follow moved props, city fill windows unlit at night, only two base VRMs).
+**After the demo: `brev delete framed-gpu`** (it bills $1.66/hr until deleted).
