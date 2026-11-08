@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { toonify } from './toon.js';
 import { buildFurniture } from './furniture.js';
+import { roundTree, isKitTree } from './foliage.js';
 import { API_BASE } from './api.js';
 
 export const LIBRARY_BASE = `${API_BASE}/library/`;
@@ -55,7 +56,8 @@ function template(entry) {
   if (!templates.has(entry.file)) {
     const url = LIBRARY_BASE + entry.file;
     templates.set(entry.file, loader.loadAsync(url).then((gltf) => {
-      const t = normalize(toonify(gltf.scene), entry);
+      const toon = toonify(gltf.scene);
+      const t = normalize(isKitTree(entry) ? roundTree(toon, entry) : toon, entry);
       t.name = entry.id;
       return t;
     }));
