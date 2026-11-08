@@ -598,7 +598,7 @@ function dome(P, seed, style) {
 // The sea: everything beyond a wavy shore line across the pond's side of the
 // set. n is the unit direction from the set's middle to the pond, d0 the
 // shore's distance along it.
-function seaSide(script) {
+export function seaSide(script) {
   const w = script.terrain?.water?.[0];
   const c = w?.center ?? [7.5, 8.5], r = w?.radius ?? 4.8;
   const L = Math.hypot(c[0], c[1]) || 1;

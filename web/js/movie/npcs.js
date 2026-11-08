@@ -1,4 +1,4 @@
-// Background extras (task 36): no LLM call. In city, park and restaurant sets
+// Background extras (task 36): no LLM call. In city, park, beach and restaurant sets
 // 4–8 people go about their day on loops from the action library: strolling
 // round the square, sitting on free benches or the grass, chatting in pairs,
 // a worker hammering, diners at the other tables. They keep well away from
@@ -18,9 +18,10 @@ import { loadCharacter, applyLook, Character } from '../characters/index.js';
 import { mulberry32 } from '../stage.js';
 import { actionFor } from './clips.js';
 import { loadProp } from '../library.js';
+import { seaSide } from './fill.js';
 import { prepareAction, loopTo, warpToPath, obstaclesFromSet, seatsFromSet } from './control.js';
 
-const BIOMES = new Set(['city', 'park', 'restaurant']);
+const BIOMES = new Set(['city', 'park', 'restaurant', 'sea']);
 const MAX = 8;
 // The base VRMs' natural heights → adult heights (server/agents/movie.py HEIGHT).
 const ADULT = { avatar_male: 1.76 / 2.01, avatar_female: 1.70 / 1.54 };
@@ -162,8 +163,10 @@ export async function addExtras(stage, script, set, rows, heroes, duration, { se
     ? busy.reduce((a, p) => [a[0] + p[0] / busy.length, a[1] + p[1] / busy.length], [0, 0]) : [0, 0];
   const indoor = biome === 'restaurant';
   const awayFromCast = indoor ? 1.6 : 5;
+  const sea = biome === 'sea' ? seaSide(script) : null;
   const free = (x, z, { away = awayFromCast, body = 0.5, props = true } = {}) =>
-    busy.every((p) => Math.hypot(x - p[0], z - p[1]) >= away)
+    !(sea && sea.wet(x, z, 1.5))
+    && busy.every((p) => Math.hypot(x - p[0], z - p[1]) >= away)
     && (!props || obstacles.every((o) => boxDist(o, x, z) >= body))
     && discs.every(([cx, cz, r]) => Math.hypot(x - cx, z - cz) >= r + body * 0.6)
     && taken.every(([a, b, r]) => Math.hypot(x - a, z - b) >= r);
@@ -261,7 +264,7 @@ export async function addExtras(stage, script, set, rows, heroes, duration, { se
       benches++;
     }
     // A chatting pair; in the park a second pair sits on the grass.
-    const pairs = biome === 'park' ? [['talk', 'laugh'], ['sit_ground_idle', 'sit_ground_idle']] : [['talk', 'idle']];
+    const pairs = biome === 'park' || biome === 'sea' ? [['talk', 'laugh'], ['sit_ground_idle', 'sit_ground_idle']] : [['talk', 'idle']];
     for (const [a1, a2] of pairs) {
       const c = spot(7, 14, { body: 1.0 });
       if (!c) continue;
@@ -273,7 +276,8 @@ export async function addExtras(stage, script, set, rows, heroes, duration, { se
     }
     // City: a worker at a job (hammering); park: someone stretching after a run.
     // Both turned a little away from the action.
-    const solo = biome === 'city' ? { kind: 'worker', female: false, action: 'hammer' } : { kind: 'solo', female: rng() < 0.5, action: 'stretch' };
+    const solo = biome === 'city' ? { kind: 'worker', female: false, action: 'hammer' }
+      : biome === 'sea' ? { kind: 'digger', female: rng() < 0.5, action: 'dig' } : { kind: 'solo', female: rng() < 0.5, action: 'stretch' };
     const c = spot(8, 15, { body: 0.8 });
     if (c) { taken.push([c[0], c[1], 1.5]); plans.push({ ...solo, at: c, facing: face(center, c) + (rng() - 0.5) }); }
   }
@@ -347,7 +351,7 @@ function summarize(list) {
   const n = (k) => list.filter((x) => x.plan.kind === k).length;
   const parts = [
     [n('stroll'), 'on a stroll'], [n('sitter'), 'on benches'], [n('chat'), 'chatting'],
-    [n('worker'), 'at work'], [n('solo'), 'stretching'], [n('diner'), 'dining'], [n('chef'), 'by the counter'],
+    [n('worker'), 'at work'], [n('solo'), 'stretching'], [n('digger'), 'digging in the sand'], [n('diner'), 'dining'], [n('chef'), 'by the counter'],
   ].filter(([k]) => k).map(([k, w]) => `${k} ${w}`);
   return `${list.length} extras: ${parts.join(', ')}`;
 }
