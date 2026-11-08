@@ -89,6 +89,7 @@ export class DirectorCamera {
       c.minDistance = 5;
       c.target.copy(this.target);
       this.look.setFocus({ point: c.target, blur: LOOK.blur });
+      this.stage.camera.userData.subject = null; // free/orbit view: no subject
       if (this.stage.camera.fov !== 28) { this.stage.camera.fov = 28; this.stage.camera.updateProjectionMatrix(); }
     }
   }
@@ -247,6 +248,7 @@ export class DirectorCamera {
       this.focusPoint ??= new THREE.Vector3();
       this.focusPoint.copy(look);
       this.look.setFocus({ point: this.focusPoint, blur: TYPES.medium.blur });
+      this.stage.camera.userData.subject = this.focusPoint; // fill.js hides only what stands in front of it
       return;
     }
     const shot = this.shotAt(t);
@@ -269,6 +271,7 @@ export class DirectorCamera {
     this.focusPoint ??= new THREE.Vector3();
     this.focusPoint.copy(look);
     this.look.setFocus({ point: this.focusPoint, blur: T.blur });
+    this.stage.camera.userData.subject = this.focusPoint; // fill.js hides only what stands in front of it
   }
 
   // ---- planning --------------------------------------------------------------

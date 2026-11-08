@@ -144,21 +144,29 @@ async function instanced(id, placements, { shadow = false, hideNear = 0, camera,
     meshes[0].onBeforeRender = (renderer, scene, cam) => {
       if (cam !== camera) return;
       cam.getWorldDirection(fwd);
-      const key = `${cam.position.x.toFixed(2)},${cam.position.y.toFixed(2)},${cam.position.z.toFixed(2)},${fwd.x.toFixed(3)},${fwd.z.toFixed(3)}`;
+      const subj = cam.userData.subject;
+      const key = `${cam.position.x.toFixed(2)},${cam.position.y.toFixed(2)},${cam.position.z.toFixed(2)},${fwd.x.toFixed(3)},${fwd.z.toFixed(3)},${subj ? subj.x.toFixed(2) + ',' + subj.z.toFixed(2) : ''}`;
       if (key === lastKey) return;
       lastKey = key;
-      // Where the view meets the ground (about chest height), as a 2D segment.
+      // The line of sight as a 2D segment: to the director's subject when there is one (only what
+      // stands between the camera and the character goes; trees behind them stay), else to where
+      // the view meets the ground (about chest height).
       const reach = fwd.y < -0.02 ? Math.min(60, (cam.position.y - 0.8) / -fwd.y) : 40;
-      const a = [cam.position.x, cam.position.z], b = [a[0] + fwd.x * reach, a[1] + fwd.z * reach];
+      const a = [cam.position.x, cam.position.z];
+      const b = subj ? [subj.x, subj.z] : [a[0] + fwd.x * reach, a[1] + fwd.z * reach];
       const L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+      // Stop short of the subject: 1.5 m in front of them with a subject, else 80 % of the way.
+      const stop = subj ? Math.max(0, 1 - 1.5 / L) : 0.8;
       let changed = false;
       for (let i = 0; i < base.length; i++) {
         // blockR: a fixed radius (buildings), else it grows with the tree's scale.
         const e = base[i].elements, sc = blockR ? 1 : Math.max(1, e[5]);
-        const near = Math.hypot(e[12] - a[0], e[14] - a[1]) < hideNear * sc;
-        // On the line of sight, short of the subject: the trunk side of the frame.
         const along = ((e[12] - a[0]) * (b[0] - a[0]) + (e[14] - a[1]) * (b[1] - a[1])) / (L * L);
-        const block = along > 0 && along < 0.8 && segDist(e[12], e[14], a, b) < (blockR || 2.2 + 1.3 * sc);
+        // Near the camera only counts in front of it (a crown it sits in); with a subject, no closer than the subject.
+        const d = Math.hypot(e[12] - a[0], e[14] - a[1]);
+        const near = d < (subj ? Math.min(hideNear, 3) : hideNear) * sc && along > -0.05 && (!subj || along < stop);
+        // On the line of sight, short of the subject: the trunk side of the frame.
+        const block = along > 0 && along < stop && segDist(e[12], e[14], a, b) < (blockR || 2.2 + 1.3 * sc);
         const h = near || block ? 1 : 0;
         if (h === hidden[i]) continue;
         hidden[i] = h;
