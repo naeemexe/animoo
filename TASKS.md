@@ -47,7 +47,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 30 | A | Path editor: camera paths and character paths as numbered, draggable nodes joined by dotted lines; add, drag, delete points | 2 h | done | 19, 29 |
 | 28 | A | Look round 3: trees less blocky, roads blend into the ground | 1.5 h | done | 23, 24 |
 | 31 | A | Physical rules: nothing passes through anything (characters avoid each other too), paths re-plan after edits, beats follow moved props | 2 h | done | 22, 18 |
-| 32 | A | Scene audio: the orchestrator plans ambience + a soft music bed from place, weather, time and mood (or the user's words); ElevenLabs sound effects/music when a key is set, procedural WebAudio otherwise; cached; in the WebM export | 2 h | doing | 08 |
+| 32 | A | Scene audio: the orchestrator plans ambience + a soft music bed from place, weather, time and mood (or the user's words); ElevenLabs sound effects/music when a key is set, procedural WebAudio otherwise; cached; in the WebM export | 2 h | done (procedural; ElevenLabs coded, off until `ELEVENLABS_API_KEY` is set) | 08 |
 | 12b | A | Re-record the 5 demo takes after round 3 (with audio), update `demo/SUBMISSION.md` | 0.5 h | todo | 28–32 |
 
 **Cut rule.** If it's 6:00 am and task 09 isn't working, demo the Chat page plus a
@@ -739,3 +739,31 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
   own timing (before the merge blend), so a touch can be a few cm off. Edit mode still lets you drop a prop on another
   (my bench test sat on bush-4); props don't push each other. A beat that the layout tied to a place far from any prop
   (> 2.5 m) doesn't follow. Walk paths drawn by hand don't follow a moved prop (they are the user's own points).
+- 32 Scene audio. `server/audio.py`: the orchestrator's plan call now asks for `audio` (ambience prompt + layers from
+  rain, wind, waves, birds, crickets, traffic, murmur, fire; music prompt + mood from calm, warm, tender, playful,
+  hopeful, melancholy, mysterious, cozy, none). `repair_audio` checks it (unknown layers dropped, weather's rain/wind
+  kept, no birds at night) or, for plans without one (all 13 cached scenes), builds it from biome, weather, time and
+  the scene's words ("campfire" → fire, "market" → murmur, "lake/dock" → soft lapping, "no music" → none). It goes into
+  `script.audio` and the log (`audio: waves 0.8 + birds 0.7 + wind 0.2 · soft hopeful music · volume 0.25 (from rules)`).
+  `web/js/movie/audio.js` plays it procedurally (filtered noise beds, synth chirps, 4 slow pad chords per mood, 8 s
+  each), follows the timeline (fade in on play 0.6 s, out on pause 0.35 s then the context suspends; the film fades in
+  over its first 1.5 s and out over its last 2 s), has a Sound on/off button in the transport (stored in localStorage;
+  speakers only), and `export.js` records vp9+opus with the mix. `server/elevenlabs.py` + `POST /api/movie/audio`:
+  with `ELEVENLABS_API_KEY`, Sound Effects (`eleven_text_to_sound_v2`, loop, 22 s) and Music (`music_v1`, 45 s,
+  instrumental) per prompt, cached as `library/audio/<kind>-<hash>.mp3` + `.json` with the prompt; the page cross-fades
+  to them. `/health` reports `elevenlabs_api_key` (bool).
+- 32 checked with numbers (offline server, beach scene, no full recording): no key → `/api/movie/audio` returns
+  nulls + "no ELEVENLABS_API_KEY in .env", the page logs "ElevenLabs off … procedural sound". Per-layer RMS at level 1
+  after normalising: waves 0.28, wind 0.26, rain 0.25, traffic 0.24, murmur 0.23, fire 0.21, crickets 0.06 (peak 0.13),
+  birds peak 0.12. Beach mix RMS 0.062 (about −24 dBFS); the pad alone was 0.01 before raising it ×3. Pause: play gain
+  0, context suspended; play again: gain 1, running. Mute: speaker gain 0, the export feed still 0.06. A 3 s
+  `recordWebM` with the sound stream: `video/webm;codecs=vp9,opus`, the decoded audio track 3.24 s, 2 ch, RMS 0.047;
+  the stream stays live after. A stand-in file at the beach ambience's cache path: the page logged "ElevenLabs:
+  ambience cached", looped it, faded the procedural ambience to 0 (removed afterwards). No console errors. Screenshot of
+  the "Sound on / Sound off" toggle in the transport.
+- 32: not done / not checked: the real ElevenLabs calls never ran (no key), so the request bodies (`loop`,
+  `music_length_ms`, `force_instrumental`) are from the API docs as I know them; a 4xx would show in the server log and
+  the page keeps the procedural sound. Generating on first play takes ~10–40 s per file (the page swaps when it
+  arrives); pre-generate for the demo scenes once the key is set. Procedural sources keep running (silent) under an
+  ElevenLabs ambience file. Not listened to by ear (numbers only); other scenes' layer mixes were checked on the server
+  side only (all 13 listed), not played. No cut-synced dips: fades are at play/pause and the film's start and end.
