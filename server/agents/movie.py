@@ -843,8 +843,14 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
                     "waits", **({"facing": mine[-1]["facing"]} if seated and "facing" in mine[-1] else {}))
                 t = cursor[cid]
 
-        def go(cid, dest, prompt, action, start, **extra):
-            """Walk (or run) to dest in clips of at most 9 s; later clips are plain locomotion."""
+        def walk_label(prompt, where):
+            name = where.replace("_", " ") if isinstance(where, str) else "the spot"
+            name = name if name in pos else f"the {name}"
+            return f"{'runs' if speed_of(prompt) >= 2.0 else 'walks'} to {name}"
+
+        def go(cid, dest, prompt, action, start, then=None, **extra):
+            """Walk (or run) to dest in clips of at most 9 s; later clips are plain locomotion,
+            labelled `then` ("walks to the dock") instead of repeating the first clip's action."""
             dist = _dist(pos[cid], dest)
             speed = speed_of(prompt)
             need = dist / speed + 0.7
@@ -855,7 +861,8 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
                 f = (j + 1) / parts
                 to = (src[0] + (dest[0] - src[0]) * f, src[1] + (dest[1] - src[1]) * f)
                 dur = min(max(need / parts, 2.5), MAX_BEAT)
-                add(cid, cursor[cid] if j else start, dur, prompt if j == 0 else plain, action, to=_pt(to),
+                add(cid, cursor[cid] if j else start, dur, prompt if j == 0 else plain,
+                    action if j == 0 else (then or action), to=_pt(to),
                     **(extra if j == 0 else {}))
             pos[cid] = dest
             fast[cid] = speed >= 2.0
@@ -890,7 +897,7 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
                 if active(cid):
                     idle(cid, t_go)
                 t0 = max(t_go, cursor[cid])
-                notes.append(f"{b['id']} {cid} → {pre} first: " + go(cid, dest, mp, b["action"], t0))
+                notes.append(f"{b['id']} {cid} → {pre} first: " + go(cid, dest, mp, walk_label(mp, pre), t0))
                 at_place[cid] = pre
                 start = max(cursor[cid], sync)
             # Someone placed at the start is on screen from 0 s (without starts_at, they enter later).
@@ -942,7 +949,9 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
                         b.get("still_prompt") or "A person turns around and looks.", b["action"],
                         facing=extra.get("facing", mv if mv in places else _r(face, 0)))
                 else:
-                    notes.append(f"{b['id']} {cid} → {mv}: " + go(cid, dest, b["prompt"], b["action"], start, **extra))
+                    notes.append(f"{b['id']} {cid} → {mv}: " + go(cid, dest, b["prompt"],
+                                                           walk_label(b["prompt"], mv) if b.get("then") else b["action"],
+                                                           start, then=walk_label(b["prompt"], mv), **extra))
                 at_place[cid] = mv if mv in places else None
                 fin = chase_to.get(b["id"])
                 if fin and fin != mv:  # a chase goes on to where the chased one ends up
