@@ -1,6 +1,6 @@
 {
  "scene": "In a city park on a bright morning, a girl jogs along the path past the fountain, stops by the hedge and stretches, then waves to an old man sitting on a bench, who waves back.",
- "created": "2026-11-08T08:22:34+00:00",
+ "created": "2026-11-08T12:19:04+00:00",
  "model": "nvidia/nemotron-3.5-super-vl-120b-a12b + nvidia/nemotron-3.5-lightning-30b-a3b",
  "backend": "nvidia",
  "llm_calls": [
@@ -9,28 +9,28 @@
    "backend": "nvidia",
    "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
    "ok": true,
-   "seconds": 2.96
+   "seconds": 3.92
   },
   {
    "agent": "world",
    "backend": "nvidia",
    "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
    "ok": true,
-   "seconds": 1.97
+   "seconds": 1.82
   }
  ],
  "llm_seconds": [
-  2.96,
-  1.97
+  3.92,
+  1.82
  ],
  "plan": {
-  "title": "Girl jogs in the park",
+  "title": "Jogger in the park",
   "thoughts": [
-   "Two characters: a girl and an old man. Bright morning in a city park.",
-   "Places: the park path, the fountain, the hedge, and a bench where the old man sits.",
-   "The girl jogs past the fountain, stops by the hedge to stretch, then waves to the old man, who waves back."
+   "Two characters: a girl jogging and an old man already sitting on a bench. Bright morning in a city park.",
+   "Places: the park path, the fountain, the hedge, and the bench where the man sits.",
+   "The girl jogs past the fountain, stops by the hedge to stretch, then waves to the man; he waves back in reaction."
   ],
-  "time_of_day": "sunrise",
+  "time_of_day": "day",
   "biome": "park",
   "weather": "clear",
   "water": false,
@@ -52,7 +52,7 @@
    },
    {
     "key": "bench",
-    "what": "a park bench",
+    "what": "a wooden park bench",
     "use": "sit"
    }
   ],
@@ -62,21 +62,37 @@
     "name": "Girl",
     "character": "avatar_female",
     "kid": true,
-    "starts_at": "path"
+    "starts_at": "path",
+    "look": {
+     "height_m": 1.35,
+     "top": "red",
+     "bottom": "navy",
+     "hair": "brown",
+     "skin": "light",
+     "accessory": "none"
+    }
    },
    {
     "id": "old_man",
     "name": "Old Man",
     "character": "avatar_male",
     "kid": false,
-    "starts_at": "bench"
+    "starts_at": "bench",
+    "look": {
+     "height_m": 1.75,
+     "top": "gray",
+     "bottom": "khaki",
+     "hair": "gray",
+     "skin": "tan",
+     "accessory": "cap"
+    }
    }
   ],
   "beats": [
    {
     "id": "b1",
     "cast": "girl",
-    "action": "jogs along the path",
+    "action": "jogs past the fountain",
     "prompt": "A person jogs forward along a path.",
     "duration": 6,
     "move_to": "fountain"
@@ -84,27 +100,20 @@
    {
     "id": "b2",
     "cast": "girl",
-    "action": "continues jogging past the fountain",
-    "prompt": "A person jogs forward past a fountain.",
+    "action": "jogs past the hedge",
+    "prompt": "A person jogs forward along a path.",
     "duration": 5,
     "move_to": "hedge"
    },
    {
     "id": "b3",
     "cast": "girl",
-    "action": "stops by the hedge",
-    "prompt": "A person stops jogging and stands still.",
-    "duration": 3
-   },
-   {
-    "id": "b4",
-    "cast": "girl",
-    "action": "stretches",
-    "prompt": "A person stretches their arms and legs.",
+    "action": "stops and stretches",
+    "prompt": "A person stops and stretches both arms overhead.",
     "duration": 4
    },
    {
-    "id": "b5",
+    "id": "b4",
     "cast": "girl",
     "action": "waves to the old man",
     "prompt": "A person waves hello with their right hand.",
@@ -112,20 +121,20 @@
     "face": "old_man"
    },
    {
-    "id": "b6",
+    "id": "b5",
     "cast": "old_man",
     "action": "waves back",
     "prompt": "A person waves back with their right hand.",
     "duration": 3,
     "face": "girl",
-    "after": "b5"
+    "after": "b4"
    }
   ]
  },
  "world": {
   "thoughts": [
-   "The path and bench are in the library; the hedge and fountain are library props.",
-   "A bright city park at sunrise: oaks, bushes, flowers and a fountain jet."
+   "The park path and fountain are central; the hedge creates a stopping point; the bench is where the old man sits.",
+   "A bright city park at sunrise with green trees, flowers, and a paved path."
   ],
   "choices": [
    {
@@ -138,7 +147,7 @@
    },
    {
     "place": "hedge",
-    "library": "pine-tall"
+    "library": "hedge"
    },
    {
     "place": "bench",
@@ -148,11 +157,11 @@
   "decor": [
    {
     "library": "tree-oak",
-    "count": 3,
+    "count": 4,
     "near": "edge"
    },
    {
-    "library": "bush",
+    "library": "bush-small",
     "count": 3,
     "near": "path"
    },
@@ -170,7 +179,7 @@
  },
  "script": {
   "version": 1,
-  "title": "Girl jogs in the park",
+  "title": "Jogger in the park",
   "scene": "In a city park on a bright morning, a girl jogs along the path past the fountain, stops by the hedge and stretches, then waves to an old man sitting on a bench, who waves back.",
   "terrain": {
    "time_of_day": "sunrise",
@@ -203,10 +212,10 @@
   "props": [
    {
     "key": "path",
-    "library": "city-park-block",
+    "library": "lantern-post",
     "position": [
-     -6.98,
-     -10.78
+     -9.85,
+     -6.48
     ],
     "rotation": -34.0
    },
@@ -230,10 +239,10 @@
    },
    {
     "key": "hedge",
-    "library": "pine-tall",
+    "library": "hedge",
     "position": [
-     11.72,
-     -5.43
+     11.7,
+     -5.44
     ],
     "rotation": -122.0
    },
@@ -241,82 +250,91 @@
     "key": "tree-oak-1",
     "library": "tree-oak",
     "position": [
-     -8.77,
-     9.32
+     -2.85,
+     -13.15
     ],
-    "rotation": 60
+    "rotation": -45
    },
    {
     "key": "tree-oak-2",
     "library": "tree-oak",
     "position": [
-     5.55,
-     11.19
+     2.27,
+     -13.93
     ],
-    "rotation": -150
+    "rotation": 60
    },
    {
     "key": "tree-oak-3",
     "library": "tree-oak",
     "position": [
-     8.75,
-     -9.85
+     1.34,
+     14.36
+    ],
+    "rotation": 135
+   },
+   {
+    "key": "tree-oak-4",
+    "library": "tree-oak",
+    "position": [
+     7.0,
+     -8.83
+    ],
+    "rotation": -150
+   },
+   {
+    "key": "bush-small-5",
+    "library": "bush-small",
+    "position": [
+     -10.61,
+     -8.04
     ],
     "rotation": -105
    },
    {
-    "key": "bush-4",
-    "library": "bush",
+    "key": "bush-small-6",
+    "library": "bush-small",
     "position": [
-     -1.19,
-     -4.94
+     -12.33,
+     -6.82
     ],
-    "rotation": 45
+    "rotation": -120
    },
    {
-    "key": "bush-5",
-    "library": "bush",
+    "key": "bush-small-7",
+    "library": "bush-small",
     "position": [
-     -1.61,
-     -6.31
+     -11.89,
+     -7.91
     ],
-    "rotation": 60
-   },
-   {
-    "key": "bush-6",
-    "library": "bush",
-    "position": [
-     -0.66,
-     -6.53
-    ],
-    "rotation": 75
-   },
-   {
-    "key": "flower-yellow-7",
-    "library": "flower-yellow",
-    "position": [
-     -1.16,
-     0.85
-    ],
-    "rotation": 45
+    "rotation": 0
    },
    {
     "key": "flower-yellow-8",
     "library": "flower-yellow",
     "position": [
-     -2.48,
-     3.63
+     -1.88,
+     3.4
     ],
-    "rotation": -15
+    "rotation": -135
    },
    {
     "key": "flower-yellow-9",
     "library": "flower-yellow",
     "position": [
-     -1.38,
-     -3.04
+     -2.87,
+     -3.36
     ],
-    "rotation": -180
+    "rotation": 90
+   },
+   {
+    "key": "flower-yellow-10",
+    "library": "flower-yellow",
+    "position": [
+     -2.41,
+     1.85
+    ],
+    "rotation": -120
    }
   ],
   "cast": [
@@ -331,7 +349,13 @@
      ],
      "facing": 72.0
     },
-    "scale": 0.883
+    "scale": 0.877,
+    "look": {
+     "top": "#c8352e",
+     "bottom": "#23305e",
+     "hair": "#5a3a22",
+     "skin": "#efc9ab"
+    }
    },
    {
     "id": "old-man",
@@ -344,7 +368,14 @@
      ],
      "facing": 162.0
     },
-    "scale": 0.876
+    "scale": 0.871,
+    "look": {
+     "top": "#8a8a8f",
+     "bottom": "#b5a46e",
+     "hair": "#9a9a9a",
+     "skin": "#c48a5e",
+     "accessory": "cap"
+    }
    }
   ],
   "beats": [
@@ -354,7 +385,7 @@
     "start": 0.0,
     "duration": 7.0,
     "prompt": "A person jogs forward along a path.",
-    "action": "jogs along the path",
+    "action": "jogs past the fountain",
     "to": [
      4.14,
      -1.16
@@ -375,8 +406,8 @@
     "cast": "girl",
     "start": 7.0,
     "duration": 4.0,
-    "prompt": "A person jogs forward past a fountain.",
-    "action": "continues jogging past the fountain",
+    "prompt": "A person jogs forward along a path.",
+    "action": "jogs past the hedge",
     "to": [
      10.25,
      -6.34
@@ -390,6 +421,7 @@
     "duration": 8.0,
     "prompt": "A person stands still and looks around.",
     "action": "waits",
+    "facing": "girl",
     "seed": 1,
     "motion": "idle"
    },
@@ -397,36 +429,16 @@
     "id": "girl-3",
     "cast": "girl",
     "start": 11.0,
-    "duration": 3.0,
-    "prompt": "A person stops jogging and stands still.",
-    "action": "stops by the hedge",
-    "facing": "hedge",
-    "motion": "idle"
-   },
-   {
-    "id": "girl-4",
-    "cast": "girl",
-    "start": 14.0,
     "duration": 4.0,
-    "prompt": "A person stretches their arms and legs.",
-    "action": "stretches",
+    "prompt": "A person stops and stretches both arms overhead.",
+    "action": "stops and stretches",
     "facing": "hedge",
     "motion": "stretch"
    },
    {
-    "id": "old-man-3",
-    "cast": "old-man",
-    "start": 16.0,
-    "duration": 5.0,
-    "prompt": "A person stands still and looks around.",
-    "action": "waits",
-    "facing": "girl",
-    "motion": "idle"
-   },
-   {
-    "id": "girl-5",
+    "id": "girl-4",
     "cast": "girl",
-    "start": 18.0,
+    "start": 15.0,
     "duration": 6.0,
     "prompt": "A person waves hello with their right hand.",
     "action": "waves to the old man",
@@ -434,9 +446,18 @@
     "motion": "wave"
    },
    {
+    "id": "old-man-3",
+    "cast": "old-man",
+    "start": 16.0,
+    "duration": 2.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits",
+    "motion": "idle"
+   },
+   {
     "id": "old-man-4",
     "cast": "old-man",
-    "start": 21.0,
+    "start": 18.0,
     "duration": 3.0,
     "prompt": "A person waves back with their right hand.",
     "action": "waves back",
@@ -448,7 +469,7 @@
    {
     "id": "s1",
     "start": 0.0,
-    "duration": 8.0,
+    "duration": 7.0,
     "framing": "wide",
     "subject": [
      "girl",
@@ -458,16 +479,16 @@
    },
    {
     "id": "s2",
-    "start": 8.0,
-    "duration": 8.0,
+    "start": 7.0,
+    "duration": 7.0,
     "framing": "medium",
     "subject": "girl",
     "angle": -25
    },
    {
     "id": "s3",
-    "start": 16.0,
-    "duration": 8.0,
+    "start": 14.0,
+    "duration": 7.0,
     "framing": "wide",
     "subject": [
      "girl",
