@@ -45,7 +45,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 27 | A | Story-driven characters: cast built from the story (look, outfit colors, height, age) instead of the two fixed VRMs | 2.5 h | done | 22 |
 | 29 | A | Free spectator camera: WASD + mouse look, scroll zoom, pan around the world (edit mode, or whenever free camera is on) | 1 h | done | 18 |
 | 30 | A | Path editor: camera paths and character paths as numbered, draggable nodes joined by dotted lines; add, drag, delete points | 2 h | done | 19, 29 |
-| 28 | A | Look round 3: trees less blocky, roads blend into the ground | 1.5 h | doing | 23, 24 |
+| 28 | A | Look round 3: trees less blocky, roads blend into the ground | 1.5 h | done | 23, 24 |
 | 31 | A | Physical rules: nothing passes through anything (characters avoid each other too), paths re-plan after edits, beats follow moved props | 2 h | todo | 22, 18 |
 | 32 | A | Scene audio: the orchestrator plans ambience + a soft music bed from place, weather, time and mood (or the user's words); ElevenLabs sound effects/music when a key is set, procedural WebAudio otherwise; cached; in the WebM export | 2 h | todo (procedural now; ElevenLabs needs `ELEVENLABS_API_KEY`) | 08 |
 | 12b | A | Re-record the 5 demo takes after round 3 (with audio), update `demo/SUBMISSION.md` | 0.5 h | todo | 28–32 |
@@ -571,6 +571,21 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
   horizon only show in the low medium/close shots; the cafe and market props sit on a 10 m-grid city whose buildings are
   toy-proportioned Kenney tiles (doors are small next to 1.7 m people, but at 25 m+ it reads fine); snow in a city keeps the
   paving. The camera can still end up behind a dock post (beach t = 9.5 before the dock fix).
+- 28 (2026-11-08): trees: `web/js/foliage.js` rebuilds the crown mesh of every Kenney kit tree once per template
+  (`library.js`, after `toonify()`), so both the fill's instanced trees and hero trees in the set get it. A crown is any
+  mesh of 30+ vertices starting above 5% of the tree's height (trunks stand on the ground). Broadleaf crowns become 10
+  merged smooth icosphere puffs (detail 2) stretched to the old crown's box (core, ring of 5, 3 low, 1 top); conifers
+  (`pine`/`conifer` tags) a 16-sided lathe of their own radius profile in 12 bins (tiers kept, crease 50°). About 1.1k
+  vertices per tree: the park's ~540 fill trees are ~590k vertices. Generated trees (`tree`, `palm-tree`) are untouched.
+- 28: roads: the walked path (`path()` in `world.js`) is a 1.7× wider ribbon with an alpha mask (solid core, soft edge
+  that wobbles every 3 m) and soft round caps at the corners, transparent with no depth write, so it melts into
+  meadow, lawn and paving. City streets get light-stone curbs (0.13 m, instanced, broken at crossings so corners meet),
+  a soft dark gutter shade inside each curb, lamps moved from ±3.6 m (on the asphalt) to ±4.35 m (sidewalk), and no lamps
+  in crossings. Checked with screenshots, panels hidden: city street t = 3 (path, curb) plus a free-orbit view of the
+  (21, 21) crossing; city park t = 1 (path) and t = 19.5 (trees); fisherman forest t = 4. No console errors.
+- 28: not done: trunks are still the kit's boxy trunks (oak's branch stub reads square close up); the sea biome's sand
+  path and the city's far streets beyond the outermost crossing have no curbs; no dirt/verge blend under the forest
+  path beyond the alpha fade.
 - 25: interiors are two more biomes, `room` and `restaurant` (`BIOME_WORDS` checks them first: "restaurant",
   "diner", "pub", "in a cafe"; "living room", "bedroom", "kitchen", "a/the/his … room"). Indoors: weather is forced to
   clear, no water, the route is shrunk ×0.42, every place becomes furniture (a table people sit at → `dining-table`
