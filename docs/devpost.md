@@ -4,6 +4,11 @@
 **Virality** tracks. None of the other company challenges (fraud, finance, data centers, oil fields…) fit this
 project, and judges reward a sharp fit over a stretch, so enter just the one company track.
 
+**MLH prizes to enter:** **Best Use of ElevenLabs** (each new scene gets an ElevenLabs sound-effects ambience loop,
+cached in `library/audio/`, and Milo in Chat speaks his replies through ElevenLabs text-to-speech) and **Best Use of
+Gen AI** (the whole film is generated: Nemotron plans, SANA + TRELLIS.2 make missing props, Kimodo makes motion).
+Optional after the deadline: the **DEV Writing Challenge** (publish a post about the build).
+
 ---
 
 ## Name
@@ -33,6 +38,11 @@ A multi-step agent pipeline in which Nemotron calls tools and its JSON output dr
 6. **Revise agent:** follow-ups edit the cached plan (by rule or one Nemotron call); new places become new film parts.
 
 Stack: FastAPI + SSE (the agent log streams live), three.js + three-vrm, a toon shader with ink outlines, Kimodo / SANA / TRELLIS.2 on an A100, ElevenLabs ambience. Every generation is cached with its prompt, so demos never depend on the GPU.
+
+**ElevenLabs:** the orchestrator writes a sound prompt for each scene (waves and gulls on a beach, traffic in a city,
+rain on roofs at night). ElevenLabs sound effects turn it into a seamless 22 s ambience loop that plays under the
+film and follows "make it rain" or "make it night". In Chat, Milo's answers are spoken with ElevenLabs TTS, one cached
+mp3 per sentence, with the browser voice as a fallback.
 
 ## Challenges
 - LLM plans are free text; motion needs exact coordinates and timing. We moved the orchestrator to a command vocabulary (library move + move_to / beside / leave) and repair everything in code.
