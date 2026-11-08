@@ -70,8 +70,8 @@ ACTIONS: dict[str, dict] = {
 }
 
 # Seated poses: what a beat after a sit maps to, unless it stands up.
-SEATED = {"bench": {"idle": "sit_bench_idle", "talk": "sit_bench_talk", "laugh": "sit_bench_talk", "wave": "sit_bench_talk"},
-          "ground": {"idle": "sit_ground_idle", "talk": "sit_ground_idle", "laugh": "sit_ground_idle", "wave": "sit_ground_idle"}}
+SEATED = {"bench": {"idle": "sit_bench_idle", "talk": "sit_bench_talk"},
+          "ground": {"idle": "sit_ground_idle", "talk": "sit_ground_idle"}}
 
 # Words → action, first match wins. Applied to "action" label + prompt.
 RULES: list[tuple[str, str]] = [
@@ -97,22 +97,34 @@ RULES: list[tuple[str, str]] = [
 ]
 
 
+# Moves the library can't fake: always Kimodo live (then cached in library/motions/live/).
+LIVE_WORDS = re.compile(r"\b(rows?|rowing|paddles?|fish(es|ing)?|casts? a line|swims?|climbs?|rolls?|lights?|crawls?|"
+                        r"push-?ups?|moonwalk\w*|cartwheels?|backflips?|flips?|somersaults?|juggles?|trips?|falls?|stumbles?|"
+                        r"cooks?|stirs?|sweeps?|throws?|catches?|hugs?|bows?|kneels?|prays?|salutes?)\b")
+
+
 def action_for(text: str, seated: str | None = None, ground: bool = False) -> str | None:
     """The library action for a beat (its label + prompt), or None for a move
-    the library doesn't have. `seated` is "bench" or "ground" when the
-    character is sitting before this beat."""
+    the library doesn't have (Kimodo live). `seated` is "bench" or "ground"
+    when the character is sitting (or lying, after a fall) before this beat."""
     t = text.lower()
-    hit = next((a for pat, a in RULES if re.search(pat, t)), None)
-    if hit == "stand_up":
-        return "stand_up_ground" if (seated == "ground" or (seated is None and ground)) else "stand_up_chair"
-    if hit == "sit":
-        if seated:
+    if LIVE_WORDS.search(t):
+        return None
+    hits = [a for pat, a in RULES if re.search(pat, t)]
+    if seated:
+        if "stand_up" in hits:
+            return "stand_up_ground" if seated == "ground" else "stand_up_chair"
+        rest = [a for a in hits if a not in ("sit", "idle")]
+        if not rest:
             return SEATED[seated]["idle"]
+        if rest[0] in ("talk", "laugh"):
+            return SEATED[seated]["talk"]
+        return None  # a seated wave, rowing ...: Kimodo live, cached
+    hit = hits[0] if hits else None
+    if hit == "stand_up":
+        return "stand_up_ground" if ground else "stand_up_chair"
+    if hit == "sit":
         return "sit_ground" if ground else "sit_bench"
-    if seated and hit in (None, "idle", "talk", "laugh", "wave"):
-        return SEATED[seated].get(hit or "idle")
-    if hit in ("walk", "run"):
-        return hit  # the director picks walk_short / walk / walk_long by distance
     return hit
 
 

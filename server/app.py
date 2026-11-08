@@ -22,6 +22,7 @@ from pydantic import BaseModel
 from . import llm
 from .agents import AGENTS, run as run_agent
 from .chat import chat_reply
+from .tools.actions import live_motion
 from .tools.generate_prop import GenerateError, generate_prop
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -159,6 +160,24 @@ def props_generate(req: PropRequest) -> dict:
         return generate_prop(req.name, req.prompt, req.size_m, req.category, seed=req.seed)
     except GenerateError as e:
         raise HTTPException(status_code=503, detail=str(e))
+
+
+class MotionRequest(BaseModel):
+    prompt: str
+    duration: float = 5
+    seed: int = 0
+
+
+# A move outside the action library (task 22): Kimodo once, then cached in
+# library/motions/live/ with its prompt. Returns the BVH text; X-Cache says hit/miss.
+@app.post("/api/motion")
+def motion_live(req: MotionRequest):
+    from fastapi.responses import PlainTextResponse
+    try:
+        text, hit = live_motion(req.prompt, req.duration, req.seed)
+    except OSError as e:
+        raise HTTPException(status_code=503, detail=f"Kimodo unreachable: {e}")
+    return PlainTextResponse(text, headers={"X-Cache": "hit" if hit else "miss"})
 
 
 # The asset library (props, characters, motions, manifest.json).

@@ -41,6 +41,8 @@ from typing import Iterator
 from .. import llm
 from ..tools.generate_prop import load_manifest, slug
 
+from ..tools.actions import GROUND_WORDS, action_for
+
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "library" / "scripts"
 RAD = math.pi / 180
@@ -78,7 +80,8 @@ GEN_CATEGORIES = ["buildings", "village", "nature", "vehicles", "water"]
 MAX_GENERATE = 2
 # The VRMs' own standing heights (measured on the Movie page) and the heights we want:
 # the male model is 2.0 m tall, the female 1.54 m.
-HEIGHT = {"avatar_male": (2.01, 1.78), "avatar_female": (1.54, 1.66)}
+# Both adults land in 1.65-1.8 m with a small gap (task 22); a kid is KID x that, only when the story asks.
+HEIGHT = {"avatar_male": (2.01, 1.76), "avatar_female": (1.54, 1.70)}
 KID = 0.8
 SEATS = {"bench", "stump"}
 SIT_BACK = 0.45  # Kimodo's sit-down clips step back 0.1-0.45 m: stand a little in front of the seat  # props a character sits on (others: sit or stand beside them)
@@ -1025,6 +1028,7 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
         seen[k] = seen.get(k, 0) + 1
 
     beats.sort(key=lambda x: (x["start"], x["cast"]))
+    notes += tag_motions(beats)
     if sum(1 for _ in beats) > 16:
         notes.append(f"{len(beats)} beats: that's a lot of Kimodo clips")
     end = max(x["start"] + x["duration"] for x in beats)
@@ -1116,6 +1120,30 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
     script = {"version": 1, "title": plan["title"], "scene": scene, "terrain": terrain,
               "props": props, "cast": cast_out, "beats": beats, "shots": shots}
     return script, notes
+
+
+def tag_motions(beats: list[dict]) -> list[str]:
+    """Each beat gets `motion`: an action from the library (server/tools/actions.py),
+    or none for a move outside it (Kimodo live, then cached). Tracks sitting, so a
+    beat after a sit uses the seated version and a stand-up starts from the right seat."""
+    notes, seated = [], {}
+    for b in beats:
+        text = f"{b.get('action', '')}. {b['prompt']}"
+        ground = bool(GROUND_WORDS.search(text))
+        m = action_for(text, seated.get(b["cast"]), ground)
+        if m:
+            b["motion"] = m
+        else:
+            notes.append(f"{b['id']}: no library action for \"{b['prompt']}\", Kimodo live")
+        if m in ("sit_bench", "sit_ground"):
+            seated[b["cast"]] = "ground" if m == "sit_ground" else "bench"
+        elif not m and re.search(r"\b(trips?|falls?|stumbles?|tumbles?|lies down|kneels?)\b", text.lower()):
+            seated[b["cast"]] = "ground"  # down on the ground: the next stand-up is from the ground
+        elif not m and re.search(r"\b(sits?|sitting|seated)\b", text.lower()):
+            seated.setdefault(b["cast"], "ground" if ground else "bench")  # a live seated move (rowing)
+        elif m and m.startswith("stand_up") or m in ("walk", "run", "crouch_walk", "jump", "dance"):
+            seated.pop(b["cast"], None)
+    return notes
 
 
 # ---- the contract (a port of validateScript in web/js/movie/script.js) ------------------
