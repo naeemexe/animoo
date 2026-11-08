@@ -33,6 +33,7 @@ import math
 import random
 import re
 import time
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator
@@ -144,7 +145,8 @@ Reply with the whole plan in ONE JSON object. Rules:
   the timeline), prompt (for the motion model: starts with "A person", one simple full-body action,
   present tense, no names, e.g. "A person walks forward.", "A person jumps up and cheers with both
   arms."), duration in seconds (2 to 10). Each clip is made on its own, so a character who sat down
-  stays seated only if the next prompts say so ("A person sits and laughs, slapping their knee.").
+  stays seated only if the next prompts say so: every beat until they stand up starts "A person sits
+  and ..." ("A person sits and tells a story with big arm gestures.", "A person sits and laughs.").
   If the scene starts with someone sitting, their first beat is "A person sits ..." at that place.
   move_to: a place key or cast id, when the character goes somewhere; then the prompt must be a
   forward locomotion and nothing else ("A person walks forward.", "A person runs forward fast."); put
@@ -152,6 +154,8 @@ Reply with the whole plan in ONE JSON object. Rules:
   face: a place key or cast id to turn to at the start of the beat (talking, waving, looking).
   after: the id of an earlier beat of another character; this beat starts when that one ends (a
   reaction). with: the id of an earlier beat of another character; both start together.
+  Each character's first beat starts at 0 s unless it has after or with, so a beat that reacts to
+  someone else (shouts at, chases, laughs at, waves back) must have after.
 - shots: 2 to 6 camera shots in order. framing is wide, medium or close; subject is a cast id, a
   place key or a list of them; until is the id of the beat the shot lasts until.
 - thoughts: 2 or 3 short sentences on how you split the scene."""
@@ -201,17 +205,23 @@ bushes and trees. near is a place key or "edge" (the rim of the island, good for
 You don't place anything: layout code puts every prop in its spot. Reply with ONE JSON object."""
 
 
-def _ask(role: str, user: str, schema: dict, example: dict, tag: str):
+def _ask(role: str, user: str, schema: dict, example: dict, agent: str, run: str):
     shape = ("Fill in real values for THIS scene; the example below is for a different scene and shows only "
              f"the shape:\n{json.dumps(example, ensure_ascii=False)}")
     return llm.complete([{"role": "system", "content": role}, {"role": "user", "content": user}], schema,
-                        agent=tag, temperature=0.4, max_tokens=3000, timeout=120, retries=1, tag=tag, shape=shape)
+                        agent=agent, temperature=0.4, max_tokens=3000, timeout=120, retries=1, tag=f"{agent}@{run}",
+                        shape=shape)
+
+
+def _run_calls(run: str) -> list[dict]:
+    """This run's LLM calls (runs can overlap, so CALLS is filtered by the run id in the tag)."""
+    return [c for c in list(llm.CALLS) if c["tag"].endswith(f"@{run}")]
 
 
 def _answered(tag: str, t0: float) -> str:
     """'nvidia/... in 2.1 s' for the agent log: which tier answered, and any fallbacks."""
     c = llm.last_answer(tag)
-    failed = [x for x in list(llm.CALLS) if x["tag"] == tag and not x["ok"] and x["at"] >= time.time() - (time.perf_counter() - t0) - 1]
+    failed = [x for x in list(llm.CALLS) if x["tag"] == tag and not x["ok"]]
     fell = f" (fell back from {', '.join(x['model'] for x in failed)})" if failed else ""
     return f"{c['model'] if c else '?'} in {time.perf_counter() - t0:.1f} s{fell}"
 
@@ -912,7 +922,7 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
     def step(agent, kind, text, ms=0, **extra):
         return {"step": {"agent": agent, "kind": kind, "text": text, "ms": round(ms), **extra}}
 
-    calls_before = len(llm.CALLS)
+    run = uuid.uuid4().hex[:8]
     cached = None if fresh else load_cached(scene)
     source = "cache" if cached else "nemotron"
     raw_plan = raw_world = None
@@ -926,8 +936,8 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
         yield step("orchestrator", "call", f"nemotron.plan_scene(“{scene[:90]}{'…' if len(scene) > 90 else ''}”) · {llm.model('orchestrator')}")
         t0 = time.perf_counter()
         try:
-            raw_plan = _ask(ORCHESTRATOR_ROLE, f"The scene:\n{scene}", PLAN_SCHEMA, PLAN_EXAMPLE, "orchestrator")
-            yield step("orchestrator", "result", f"plan received from {_answered('orchestrator', t0)}", (time.perf_counter() - t0) * 1000)
+            raw_plan = _ask(ORCHESTRATOR_ROLE, f"The scene:\n{scene}", PLAN_SCHEMA, PLAN_EXAMPLE, "orchestrator", run)
+            yield step("orchestrator", "result", f"plan received from {_answered(f'orchestrator@{run}', t0)}", (time.perf_counter() - t0) * 1000)
         except llm.LLMError as err:
             ms = (time.perf_counter() - t0) * 1000
             yield step("orchestrator", "error", f"Nemotron failed: {str(err)[:200]}", ms)
@@ -939,14 +949,14 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
                            f"“{cached['scene'][:100]}”")
             else:
                 yield step("orchestrator", "note", "No cached scene to fall back on: playing the mock fisherman scene.")
-                yield {"script": None, "source": "mock", "llm_calls": len(llm.CALLS) - calls_before}
+                yield {"script": None, "source": "mock", "llm_calls": len(_run_calls(run))}
                 return
 
     try:
         plan, fixes = repair_plan(raw_plan, scene)
     except ValueError as err:
         yield step("orchestrator", "error", f"unusable plan: {err}; playing the mock fisherman scene.")
-        yield {"script": None, "source": "mock", "llm_calls": len(llm.CALLS) - calls_before}
+        yield {"script": None, "source": "mock", "llm_calls": len(_run_calls(run))}
         return
     for t in plan["thoughts"]:
         yield step("orchestrator", "thought", t)
@@ -980,8 +990,8 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
         yield step("world", "call", f"nemotron.pick_props({len(plan['places'])} places) · {llm.model('world')}")
         t0 = time.perf_counter()
         try:
-            raw_world = _ask(WORLD_ROLE, user, WORLD_SCHEMA, WORLD_EXAMPLE, "world")
-            yield step("world", "result", f"choices received from {_answered('world', t0)}", (time.perf_counter() - t0) * 1000)
+            raw_world = _ask(WORLD_ROLE, user, WORLD_SCHEMA, WORLD_EXAMPLE, "world", run)
+            yield step("world", "result", f"choices received from {_answered(f'world@{run}', t0)}", (time.perf_counter() - t0) * 1000)
         except llm.LLMError as err:
             yield step("world", "error", f"Nemotron failed: {str(err)[:200]}", (time.perf_counter() - t0) * 1000)
             yield step("world", "note", "Using the best search_library hit for each place instead.")
@@ -1008,20 +1018,20 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
         for p in problems[:8]:
             yield step("orchestrator", "error", f"script check: {p}")
         yield step("orchestrator", "note", "The laid-out script is invalid (a layout bug): playing the mock fisherman scene.")
-        yield {"script": None, "source": "mock", "llm_calls": len(llm.CALLS) - calls_before}
+        yield {"script": None, "source": "mock", "llm_calls": len(_run_calls(run))}
         return
     film = max(b["start"] + b["duration"] for b in script["beats"])
     yield step("orchestrator", "result", f"script laid out in {(time.perf_counter() - t0) * 1000:.0f} ms · "
                f"{len(script['beats'])} beats · {len(script['props'])} props · {film:.1f} s", (time.perf_counter() - t0) * 1000)
 
-    n_calls = len(llm.CALLS) - calls_before
+    calls = _run_calls(run)
+    n_calls = len(calls)
     if source == "nemotron":
         entry = {"scene": scene, "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-                 "model": " + ".join(dict.fromkeys(c["model"] for c in list(llm.CALLS)[calls_before:] if c["ok"])),
+                 "model": " + ".join(dict.fromkeys(c["model"] for c in calls if c["ok"])),
                  "backend": llm.backend(),
-                 "llm_calls": [{k: c[k] for k in ("agent", "backend", "model", "ok", "seconds")}
-                               for c in list(llm.CALLS)[calls_before:]],
-                 "llm_seconds": [c["seconds"] for c in list(llm.CALLS)[calls_before:]],
+                 "llm_calls": [{k: c[k] for k in ("agent", "backend", "model", "ok", "seconds")} for c in calls],
+                 "llm_seconds": [c["seconds"] for c in calls],
                  "plan": raw_plan, "world": raw_world, "script": script}
         path = save_cache(scene, entry)
         yield step("orchestrator", "note", f"cached in library/scripts/{path.name} ({n_calls} LLM calls)")
