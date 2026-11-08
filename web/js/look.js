@@ -1,5 +1,6 @@
 // Post-processing for the storybook look:
-// soft ink outlines (depth + normal edges) → golden-hour grade → tilt-shift → tone map.
+// soft ink outlines (depth + normal edges, thinner on small things) → golden-hour
+// grade → depth of field focused on the shot's subject → tone map.
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
@@ -14,10 +15,19 @@ export const LOOK = {
   saturation: 1.12,
   exposure: 1.05,
   vignette: 0.35,
-  tiltFocus: 0.48, // screen height of the sharp band (0 = bottom)
-  tiltBand: 0.1, // half-height of the sharp band
-  tiltBlur: 9, // pixels per tap at full distance
+  // Depth of field: everything at `focus` meters from the camera is sharp, and
+  // the blur grows with the distance from that plane, up to `blur` pixels
+  // (at pixel ratio 1). The director sets both per shot (none in wide shots).
+  focus: 20,
+  blur: 3,
+  focusDepth: 0.18, // the sharp zone: ± this fraction of the focus distance
 };
+
+// Ink width per object, by its size: a 2 m+ thing gets the full line, a 0.4 m
+// prop about half. Stored in the normal pass's alpha.
+export function inkFor(size) {
+  return THREE.MathUtils.clamp(0.3 + size * 0.35, 0.4, 1);
+}
 
 const FULLSCREEN_VERT = /* glsl */ `
   varying vec2 vUv;
@@ -63,7 +73,15 @@ const CompositeShader = {
     float luma(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
 
     void main() {
-      vec2 px = outlineThickness / resolution;
+      // Line width: the thinnest object around this pixel sets it, so a small
+      // prop gets a thin line on both sides of its silhouette.
+      vec2 px0 = outlineThickness / resolution;
+      float ink = texture2D(tNormal, vUv).a;
+      ink = min(ink, texture2D(tNormal, vUv + vec2(px0.x, 0.0)).a);
+      ink = min(ink, texture2D(tNormal, vUv - vec2(px0.x, 0.0)).a);
+      ink = min(ink, texture2D(tNormal, vUv + vec2(0.0, px0.y)).a);
+      ink = min(ink, texture2D(tNormal, vUv - vec2(0.0, px0.y)).a);
+      vec2 px = px0 * max(ink, 0.35);
       vec2 dx = vec2(px.x, 0.0), dy = vec2(0.0, px.y);
 
       // Depth edges: second derivative, so flat surfaces at grazing angles stay clean.
@@ -79,7 +97,8 @@ const CompositeShader = {
                + (1.0 - dot(n, normalAt(vUv - dy))) + (1.0 - dot(n, normalAt(vUv + dy)));
       float normalEdge = smoothstep(0.3, 0.9, nd);
 
-      float edge = max(depthEdge, normalEdge);
+      // Thin lines are fainter too, so small props don't get scribbled over.
+      float edge = max(depthEdge, normalEdge) * mix(0.55, 1.0, smoothstep(0.35, 0.9, ink));
       edge *= 1.0 - smoothstep(cameraFar * 0.5, cameraFar * 0.8, d); // no ink on the sky
 
       vec3 col = texture2D(tColor, vUv).rgb;
@@ -100,33 +119,119 @@ const CompositeShader = {
   `,
 };
 
-// One axis of a tilt-shift blur: sharp band around `focus`, blur grows outside it.
-const TiltShiftShader = {
+// One axis of a separable depth-of-field blur. The circle of confusion comes
+// from the depth buffer: zero inside the sharp zone around the focus distance,
+// growing in front of and behind it. Each tap is weighted by its own blur, so a
+// sharp subject doesn't bleed a halo into the blurred background behind it.
+const DofShader = {
   uniforms: {
     tDiffuse: { value: null },
-    direction: { value: new THREE.Vector2(1, 0) }, // one texel along the blur axis
-    focus: { value: LOOK.tiltFocus },
-    band: { value: LOOK.tiltBand },
-    amount: { value: LOOK.tiltBlur },
+    tDepth: { value: null },
+    cameraNear: { value: 1 },
+    cameraFar: { value: 200 },
+    direction: { value: new THREE.Vector2(1, 0) }, // one texel along the blur axis, × pixel ratio
+    focus: { value: LOOK.focus },
+    depthOfField: { value: LOOK.focusDepth },
+    amount: { value: LOOK.blur },
   },
   vertexShader: FULLSCREEN_VERT,
   fragmentShader: /* glsl */ `
     uniform sampler2D tDiffuse;
+    uniform sampler2D tDepth;
+    uniform float cameraNear, cameraFar, focus, depthOfField, amount;
     uniform vec2 direction;
-    uniform float focus, band, amount;
     varying vec2 vUv;
+    float coc(vec2 uv) {
+      float z = texture2D(tDepth, uv).x;
+      float d = cameraNear * cameraFar / (cameraFar - z * (cameraFar - cameraNear));
+      float off = max(0.0, abs(d - focus) - focus * depthOfField);
+      // Behind the subject the blur levels off; in front it grows faster.
+      return clamp(off / max(d, 0.5) * (d < focus ? 2.5 : 1.6), 0.0, 1.0);
+    }
     void main() {
-      float k = max(0.0, abs(vUv.y - focus) - band) * amount;
-      vec2 o = direction * k;
-      vec4 s = texture2D(tDiffuse, vUv) * 0.1633;
-      s += (texture2D(tDiffuse, vUv + o)       + texture2D(tDiffuse, vUv - o))       * 0.1531;
-      s += (texture2D(tDiffuse, vUv + o * 2.0) + texture2D(tDiffuse, vUv - o * 2.0)) * 0.12245;
-      s += (texture2D(tDiffuse, vUv + o * 3.0) + texture2D(tDiffuse, vUv - o * 3.0)) * 0.0918;
-      s += (texture2D(tDiffuse, vUv + o * 4.0) + texture2D(tDiffuse, vUv - o * 4.0)) * 0.051;
-      gl_FragColor = s;
+      float c = coc(vUv);
+      vec4 sum = texture2D(tDiffuse, vUv);
+      float wsum = 1.0;
+      if (amount * c > 0.25) {
+        vec2 o = direction * amount * c / 4.0;
+        for (int i = 1; i <= 4; i++) {
+          float g = exp(-float(i * i) / 8.0);
+          for (int s = -1; s <= 1; s += 2) {
+            vec2 uv = vUv + o * float(i * s);
+            // A sharper neighbour only counts as far as its own blur reaches.
+            float w = g * clamp(coc(uv) * 4.0 / float(i), 0.0, 1.0);
+            sum += texture2D(tDiffuse, uv) * w;
+            wsum += w;
+          }
+        }
+      }
+      gl_FragColor = sum / wsum;
     }
   `,
 };
+
+// The normal pass: view-space normal in rgb, the object's ink width in alpha.
+// Works for skinned, morphed and instanced meshes through three's chunks.
+function createNormalMaterial() {
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { ink: { value: 1 } },
+    vertexShader: /* glsl */ `
+      #include <common>
+      #include <morphtarget_pars_vertex>
+      #include <skinning_pars_vertex>
+      varying vec3 vNormalV;
+      void main() {
+        #include <beginnormal_vertex>
+        #include <morphnormal_vertex>
+        #include <skinbase_vertex>
+        #include <skinnormal_vertex>
+        #include <defaultnormal_vertex>
+        #include <begin_vertex>
+        #include <morphtarget_vertex>
+        #include <skinning_vertex>
+        #include <project_vertex>
+        vNormalV = normalize(transformedNormal);
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform float ink;
+      varying vec3 vNormalV;
+      void main() { gl_FragColor = vec4(normalize(vNormalV) * 0.5 + 0.5, ink); }
+    `,
+  });
+  // Per object: the ink width it was tagged with (by the set builder or
+  // here, from its root's size), uploaded just before it draws.
+  mat.onBeforeRender = (renderer, scene, camera, geometry, object) => {
+    const v = object.userData.ink ?? inkOf(object);
+    if (v !== mat.uniforms.ink.value) {
+      mat.uniforms.ink.value = v;
+      mat.uniformsNeedUpdate = true;
+    }
+  };
+  return mat;
+}
+
+// An untagged mesh: the size of the top-level thing it belongs to (a prop's
+// window pane gets the house's line), measured once.
+const _box = new THREE.Box3(), _size = new THREE.Vector3();
+function inkOf(object) {
+  let root = object;
+  while (root.parent && !root.userData.prop && !root.userData.inkRoot && root.parent.type !== 'Scene' && !/^(set|fill)$/.test(root.parent.name)) root = root.parent;
+  if (root.userData.ink == null) {
+    if (object.isInstancedMesh) {
+      // One instance's size: the geometry at the first instance's scale.
+      if (!object.geometry.boundingSphere) object.geometry.computeBoundingSphere();
+      const m = new THREE.Matrix4();
+      object.getMatrixAt(0, m);
+      root.userData.ink = inkFor(object.geometry.boundingSphere.radius * 2 * m.getMaxScaleOnAxis());
+    } else {
+      _box.setFromObject(root).getSize(_size);
+      root.userData.ink = inkFor(Math.max(_size.x, _size.y, _size.z));
+    }
+  }
+  object.userData.ink = root.userData.ink;
+  return object.userData.ink;
+}
 
 export function createLook(renderer, scene, camera) {
   const size = new THREE.Vector2();
@@ -141,7 +246,7 @@ export function createLook(renderer, scene, camera) {
   sceneRT.depthTexture = new THREE.DepthTexture(size.x, size.y, THREE.UnsignedIntType);
   // Normals only feed the edge test, so 8 bits per channel are plenty.
   const normalRT = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.UnsignedByteType });
-  const normalMaterial = new THREE.MeshNormalMaterial();
+  const normalMaterial = createNormalMaterial();
 
   const composer = new EffectComposer(renderer);
 
@@ -152,10 +257,11 @@ export function createLook(renderer, scene, camera) {
   composite.uniforms.tNormal.value = normalRT.texture;
   composer.addPass(composite);
 
-  const tiltH = new ShaderPass(TiltShiftShader);
-  const tiltV = new ShaderPass(TiltShiftShader);
-  composer.addPass(tiltH);
-  composer.addPass(tiltV);
+  const dofH = new ShaderPass(DofShader);
+  const dofV = new ShaderPass(DofShader);
+  for (const p of [dofH, dofV]) p.uniforms.tDepth.value = sceneRT.depthTexture;
+  composer.addPass(dofH);
+  composer.addPass(dofV);
   composer.addPass(new OutputPass());
 
   function setSize(width, height) {
@@ -166,14 +272,29 @@ export function createLook(renderer, scene, camera) {
     composer.setSize(width, height);
     composite.uniforms.resolution.value.set(w, h);
     // Blur scales with pixel ratio so it looks the same on retina screens.
-    tiltH.uniforms.direction.value.set(pr / w, 0);
-    tiltV.uniforms.direction.value.set(0, pr / h);
+    dofH.uniforms.direction.value.set(pr / w, 0);
+    dofV.uniforms.direction.value.set(0, pr / h);
   }
   setSize(window.innerWidth, window.innerHeight);
+
+  // Depth of field: focus on a point (followed every frame) or at a distance.
+  const focus = { point: null, distance: LOOK.focus, blur: LOOK.blur };
+  function setFocus({ point, distance, blur } = {}) {
+    if (point !== undefined) focus.point = point;
+    if (distance !== undefined) focus.distance = distance;
+    if (blur !== undefined) focus.blur = blur;
+  }
 
   function render() {
     composite.uniforms.cameraNear.value = camera.near;
     composite.uniforms.cameraFar.value = camera.far;
+    const fd = focus.point ? camera.position.distanceTo(focus.point) : focus.distance;
+    for (const p of [dofH, dofV]) {
+      p.uniforms.cameraNear.value = camera.near;
+      p.uniforms.cameraFar.value = camera.far;
+      p.uniforms.focus.value = fd;
+      p.uniforms.amount.value = focus.blur;
+    }
 
     renderer.setRenderTarget(sceneRT);
     renderer.render(scene, camera);
@@ -188,6 +309,7 @@ export function createLook(renderer, scene, camera) {
     scene.overrideMaterial = normalMaterial;
     renderer.shadowMap.autoUpdate = false;
     renderer.setRenderTarget(normalRT);
+    const clear = renderer.getClearColor(new THREE.Color()), clearA = renderer.getClearAlpha();
     renderer.setClearColor(0x000000, 1);
     renderer.clear();
     renderer.render(scene, camera);
@@ -195,10 +317,11 @@ export function createLook(renderer, scene, camera) {
     for (const o of skip) o.visible = true;
     scene.background = background;
     renderer.shadowMap.autoUpdate = shadowAuto;
+    renderer.setClearColor(clear, clearA);
     renderer.setRenderTarget(null);
 
     composer.render();
   }
 
-  return { render, setSize, composer, sceneRT, normalRT, uniforms: { composite: composite.uniforms, tiltH: tiltH.uniforms, tiltV: tiltV.uniforms } };
+  return { render, setSize, setFocus, focus, composer, sceneRT, normalRT, uniforms: { composite: composite.uniforms, dofH: dofH.uniforms, dofV: dofV.uniforms } };
 }

@@ -13,8 +13,8 @@ import { loadCharacter, fetchBVH, generateMotion } from './characters/index.js';
 const params = new URLSearchParams(location.search);
 const stage = createStage(document.getElementById('app'));
 const look = createLook(stage.renderer, stage.scene, stage.camera);
-// Keep the whole figure inside the tilt-shift's sharp band.
-look.uniforms.tiltH.band.value = look.uniforms.tiltV.band.value = 0.22;
+// Focus on the figure, a little blur behind.
+look.setFocus({ point: stage.controls.target, blur: 3 });
 // Closer than the world view: a person is 1.7 m on an 18 m island. The
 // stage's resize() frames the whole island, so re-apply after it.
 const camOffset = new THREE.Vector3(5.5, 4.2, 9);

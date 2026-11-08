@@ -8,6 +8,7 @@ import { loadManifest, loadProp } from './library.js';
 
 const stage = createStage(document.getElementById('app'));
 const look = createLook(stage.renderer, stage.scene, stage.camera);
+look.setFocus({ point: stage.controls.target, blur: 0 }); // a catalog: all sharp
 window.addEventListener('resize', () => {
   stage.resize();
   look.setSize(window.innerWidth, window.innerHeight);

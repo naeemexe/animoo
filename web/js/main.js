@@ -11,6 +11,8 @@ import { tickAtmosphere } from './movie/atmosphere.js';
 
 const stage = createStage(document.getElementById('app'));
 const look = createLook(stage.renderer, stage.scene, stage.camera);
+// Free (orbit) view: focus on what the camera orbits. Pages override it.
+look.setFocus({ point: stage.controls.target });
 
 const pages = {
   chat: createChatPage(document.getElementById('page-chat'), stage, look),

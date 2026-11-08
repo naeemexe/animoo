@@ -14,15 +14,16 @@ const RAD = Math.PI / 180;
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 
 // dist: meters from the subject; h: camera height; look: look-at height (×
-// the subject's scale); size: shot size for the jump-cut rule; off: the
+// the subject's scale); blur: depth-of-field blur in px (focus is on the
+// subject; none in wide shots); size: shot size for the jump-cut rule; off: the
 // camera's angle off the subject's facing (degrees, to the chosen side).
 export const TYPES = {
-  wide: { dist: 22, h: 9, look: 0.8, band: 0.16, size: 0, off: 35 },
-  medium: { dist: 7.5, h: 2.4, look: 1.05, band: 0.24, size: 1, off: 30 },
-  close: { dist: 3.4, h: 1.65, look: 1.4, band: 0.34, size: 2, off: 22 },
-  side: { dist: 7, h: 1.3, look: 1.0, band: 0.26, size: 1, off: 90 },
-  low: { dist: 5.2, h: 0.4, look: 1.35, band: 0.3, size: 1.5, off: 28 },
-  ots: { dist: 1.9, h: 1.75, look: 1.35, band: 0.34, size: 2, off: 0 },
+  wide: { dist: 22, h: 9, look: 0.8, blur: 0, size: 0, off: 35 },
+  medium: { dist: 7.5, h: 2.4, look: 1.05, blur: 3.5, size: 1, off: 30 },
+  close: { dist: 3.4, h: 1.65, look: 1.4, blur: 6, size: 2, off: 22 },
+  side: { dist: 7, h: 1.3, look: 1.0, blur: 3.5, size: 1, off: 90 },
+  low: { dist: 5.2, h: 0.4, look: 1.35, blur: 4.5, size: 1.5, off: 28 },
+  ots: { dist: 1.9, h: 1.75, look: 1.35, blur: 6.5, size: 2, off: 0 },
 };
 // The old script framings map onto the new types.
 const LEGACY = { wide: 'wide', medium: 'medium', close: 'close' };
@@ -69,14 +70,11 @@ export class DirectorCamera {
       // Hand over to orbit controls where the director left off.
       c.minDistance = 5;
       c.target.copy(this.target);
-      this.setBand(LOOK.tiltBand);
+      this.look.setFocus({ point: c.target, blur: LOOK.blur });
       if (this.stage.camera.fov !== 28) { this.stage.camera.fov = 28; this.stage.camera.updateProjectionMatrix(); }
     }
   }
 
-  setBand(b) {
-    this.look.uniforms.tiltH.band.value = this.look.uniforms.tiltV.band.value = b;
-  }
 
   shotAt(t) {
     const shots = this.shots ?? this.script?.shots ?? [];
@@ -182,8 +180,12 @@ export class DirectorCamera {
     const cam = this.stage.camera;
     cam.position.copy(pos);
     cam.lookAt(look);
+    // Focus on the subject (the look-at point, so it follows them), and
+    // blur by shot size: none in wide shots, most in close-ups.
     const T = TYPES[shot.type] ?? TYPES[LEGACY[shot.framing]] ?? TYPES.medium;
-    this.setBand(T.band);
+    this.focusPoint ??= new THREE.Vector3();
+    this.focusPoint.copy(look);
+    this.look.setFocus({ point: this.focusPoint, blur: T.blur });
   }
 
   // ---- planning --------------------------------------------------------------

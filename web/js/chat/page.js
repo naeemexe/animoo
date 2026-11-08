@@ -25,7 +25,7 @@ const params = urlParams;
 
 // Camera: a medium-close shot from the front, a little to the right, so the
 // character stands left of the chat panel.
-const CAM = { yaw: 18 * RAD, dist: 6.0, height: 2.0, look: 1.0, band: 0.3 };
+const CAM = { yaw: 18 * RAD, dist: 6.0, height: 2.0, look: 1.0, blur: 5 };
 
 async function fetchText(path) {
   const res = await fetch(LIBRARY_BASE + path);
@@ -324,7 +324,7 @@ export function createChatPage(root, stage, look) {
       const c = stage.controls;
       state.saved = { pos: stage.camera.position.clone(), target: c.target.clone(), enabled: c.enabled };
       c.enabled = false;
-      look.uniforms.tiltH.band.value = look.uniforms.tiltV.band.value = CAM.band;
+      look.setFocus({ point: state.camTarget, blur: CAM.blur }); // sharp on the presenter, soft forest
       setTimeOfDay(stage, CHAT_SET.terrain.time_of_day);
       setVisible(true);
       camera(0, true);
@@ -341,7 +341,7 @@ export function createChatPage(root, stage, look) {
       voice.stop();
       state.performer?.setTalking(false);
       setVisible(false);
-      look.uniforms.tiltH.band.value = look.uniforms.tiltV.band.value = LOOK.tiltBand;
+      look.setFocus({ point: stage.controls.target, blur: LOOK.blur });
       const s = state.saved;
       if (s) {
         stage.camera.position.copy(s.pos);
