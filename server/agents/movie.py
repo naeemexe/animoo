@@ -1057,7 +1057,8 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
         if cut - t < 0.5:
             continue
         subj = s["subject"]
-        shots.append({"id": f"s{len(shots) + 1}", "start": _r(t), "duration": _r(cut - t),
+        # duration from the rounded edges, so start + duration meets the next start exactly
+        shots.append({"id": f"s{len(shots) + 1}", "start": _r(t), "duration": _r(_r(cut) - _r(t)),
                       "framing": s["framing"], "subject": subj if len(subj) > 1 else subj[0], "angle": angles[i % 6]})
         t = cut
     if t < end - 1e-6:
