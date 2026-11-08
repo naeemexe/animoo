@@ -902,6 +902,10 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
                     _, face = slot(here, cid)
                     extra["facing"] = _r(((face + 180) % 360) - 180, 0) if is_seat(here) or \
                         (places[here]["use"] == "water" and water) else here
+                if re.search(r"\b(trips?|falls?|stumbles?|tumbles?)\b", b["prompt"].lower()) and here in places:
+                    # falling forward toward the cart would land in it: fall alongside it
+                    pt, _ = slot(here, cid)
+                    extra["facing"] = _r(((_heading(places[here]["center"], pt) - 90 + 180) % 360) - 180, 0)
                 dur = b["duration"]
                 if seated:
                     dur = max(dur, 4.0)
