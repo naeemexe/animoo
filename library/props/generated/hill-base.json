@@ -1,0 +1,22 @@
+{
+ "id": "hill-base",
+ "name": "hill-base",
+ "prompt": "a grassy hill base at the forest edge",
+ "sent_prompt": "a grassy hill base at the forest edge, solid chunky shapes, thick sturdy parts",
+ "seed": 0,
+ "image_key": "131dfea85c2dd42f",
+ "size_m": 12.0,
+ "normalize": {
+  "normalized": true,
+  "trimmed": false,
+  "size": [
+   24.0,
+   10.81,
+   23.25
+  ],
+  "vertices": 66974,
+  "triangles": 59277
+ },
+ "pod_seconds": 21.9,
+ "created": "2026-11-08T14:56:59+00:00"
+}

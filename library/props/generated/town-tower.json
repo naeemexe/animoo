@@ -1,0 +1,24 @@
+{
+ "id": "town-tower",
+ "name": "town-tower",
+ "prompt": "a stone tower on a hilltop overlooking a town",
+ "sent_prompt": "a stone tower on a hilltop overlooking a town, solid chunky shapes, thick sturdy parts",
+ "seed": 0,
+ "image_key": "977c920ec168d22a",
+ "size_m": 9.0,
+ "normalize": {
+  "normalized": true,
+  "trimmed": true,
+  "cut_fraction": 0.16,
+  "triangles_removed": 18180,
+  "size": [
+   5.35,
+   9.0,
+   5.49
+  ],
+  "vertices": 40655,
+  "triangles": 40575
+ },
+ "pod_seconds": 21.5,
+ "created": "2026-11-08T14:57:21+00:00"
+}

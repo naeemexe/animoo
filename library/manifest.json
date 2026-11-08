@@ -1506,6 +1506,68 @@
    ],
    "license": "CC0-1.0 (this repo's own code)",
    "source": "procedural: built from boxes and cylinders in web/js/furniture.js (task 25)"
+  },
+  {
+   "id": "hill-base",
+   "file": "props/generated/hill-base.glb",
+   "category": "nature",
+   "size": [
+    24.0,
+    10.81,
+    23.25
+   ],
+   "tags": [
+    "base",
+    "edge",
+    "forest",
+    "generated",
+    "grassy",
+    "hill"
+   ],
+   "license": "generated: concept image by NVIDIA SANA-Sprint 1.6B (Apache-2.0; its text encoder Gemma-2-2B-IT is under the Gemma Terms of Use), image to 3D by Microsoft TRELLIS.2-4B (MIT) with BiRefNet background removal (MIT)",
+   "source": "generated",
+   "prompt": "a grassy hill base at the forest edge",
+   "thumbnail": "props/generated/hill-base.png"
+  },
+  {
+   "id": "town-tower",
+   "file": "props/generated/town-tower.glb",
+   "category": "buildings",
+   "size": [
+    5.35,
+    9.0,
+    5.49
+   ],
+   "tags": [
+    "generated",
+    "hilltop",
+    "overlooking",
+    "stone",
+    "tower",
+    "town"
+   ],
+   "license": "generated: concept image by NVIDIA SANA-Sprint 1.6B (Apache-2.0; its text encoder Gemma-2-2B-IT is under the Gemma Terms of Use), image to 3D by Microsoft TRELLIS.2-4B (MIT) with BiRefNet background removal (MIT)",
+   "source": "generated",
+   "prompt": "a stone tower on a hilltop overlooking a town",
+   "thumbnail": "props/generated/town-tower.png"
+  },
+  {
+   "id": "house-s6342",
+   "file": "props/generated/house-s6342.glb",
+   "category": "buildings",
+   "size": [
+    3.84,
+    3.5,
+    3.68
+   ],
+   "tags": [
+    "generated",
+    "house"
+   ],
+   "license": "generated: concept image by NVIDIA SANA-Sprint 1.6B (Apache-2.0; its text encoder Gemma-2-2B-IT is under the Gemma Terms of Use), image to 3D by Microsoft TRELLIS.2-4B (MIT) with BiRefNet background removal (MIT)",
+   "source": "generated",
+   "prompt": "house",
+   "thumbnail": "props/generated/house-s6342.png"
   }
  ]
 }

@@ -1,0 +1,22 @@
+{
+ "id": "house-s6342",
+ "name": "house-s6342",
+ "prompt": "house",
+ "sent_prompt": "house, solid chunky shapes, thick sturdy parts",
+ "seed": 6342,
+ "image_key": "032095dbc82d1d6e",
+ "size_m": 3.5,
+ "normalize": {
+  "normalized": true,
+  "trimmed": false,
+  "size": [
+   3.84,
+   3.5,
+   3.68
+  ],
+  "vertices": 58201,
+  "triangles": 59203
+ },
+ "pod_seconds": 21.4,
+ "created": "2026-11-08T14:59:48+00:00"
+}

@@ -1,0 +1,764 @@
+{
+ "scene": "At dawn a buy walks up to a hill top from where you can see town in distance. where a girl comes in too. they ask about how are they. they seat and enjoy nature",
+ "created": "2026-11-08T14:56:23+00:00",
+ "model": "nvidia/nemotron-3.5-super-vl-120b-a12b + nvidia/nemotron-3.5-lightning-30b-a3b",
+ "backend": "nvidia",
+ "llm_calls": [
+  {
+   "agent": "orchestrator",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+   "ok": true,
+   "seconds": 5.8
+  },
+  {
+   "agent": "world",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+   "ok": true,
+   "seconds": 2.85
+  }
+ ],
+ "llm_seconds": [
+  5.8,
+  2.85
+ ],
+ "plan": {
+  "title": "Dawn on the hilltop",
+  "thoughts": [
+   "Two characters: a boy and a girl meeting at a hilltop at dawn.",
+   "Places: the hill base, the hilltop, and a bench to sit on.",
+   "Boy walks up, girl arrives, they greet and ask how they are, then both sit and enjoy nature."
+  ],
+  "time_of_day": "sunrise",
+  "biome": "forest",
+  "weather": "clear",
+  "water": false,
+  "audio": {
+   "ambience": {
+    "prompt": "A quiet hilltop at dawn with distant town sounds, birds beginning to sing, and a soft morning breeze.",
+    "layers": {
+     "birds": 0.5,
+     "wind": 0.3,
+     "traffic": 0.2
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow ambient piano and strings, gentle and hopeful, no drums, no vocals.",
+    "mood": "hopeful"
+   }
+  },
+  "places": [
+   {
+    "key": "hill_base",
+    "what": "the base of the hill",
+    "use": "stand"
+   },
+   {
+    "key": "hilltop",
+    "what": "the top of the hill overlooking the town",
+    "use": "stand"
+   },
+   {
+    "key": "bench",
+    "what": "a wooden bench on the hilltop",
+    "use": "sit"
+   }
+  ],
+  "cast": [
+   {
+    "id": "boy",
+    "name": "Boy",
+    "character": "avatar_male",
+    "kid": true,
+    "starts_at": "hill_base",
+    "look": {
+     "height_m": 1.35,
+     "top": "blue",
+     "bottom": "khaki",
+     "hair": "brown",
+     "skin": "light",
+     "accessory": "none",
+     "outfit": "casual",
+     "build": "slim"
+    }
+   },
+   {
+    "id": "girl",
+    "name": "Girl",
+    "character": "avatar_female",
+    "kid": true,
+    "starts_at": "hill_base",
+    "look": {
+     "height_m": 1.3,
+     "top": "red",
+     "bottom": "blue",
+     "hair": "blonde",
+     "skin": "light",
+     "accessory": "none",
+     "outfit": "dress",
+     "build": "slim"
+    }
+   }
+  ],
+  "beats": [
+   {
+    "id": "b1",
+    "cast": "boy",
+    "action": "walks up to the hilltop",
+    "prompt": "A person walks forward up a hill.",
+    "duration": 7,
+    "move_to": "hilltop"
+   },
+   {
+    "id": "b2",
+    "cast": "girl",
+    "action": "walks up to the hilltop",
+    "prompt": "A person walks forward up a hill.",
+    "duration": 7,
+    "move_to": "hilltop"
+   },
+   {
+    "id": "b3",
+    "cast": "boy",
+    "action": "greets the girl",
+    "prompt": "A person waves hello with their right hand.",
+    "duration": 3,
+    "face": "girl"
+   },
+   {
+    "id": "b4",
+    "cast": "girl",
+    "action": "greets the boy back",
+    "prompt": "A person waves hello with their right hand.",
+    "duration": 3,
+    "face": "boy",
+    "after": "b3"
+   },
+   {
+    "id": "b5",
+    "cast": "boy",
+    "action": "asks how she is",
+    "prompt": "A person stands and talks with open hand gestures.",
+    "duration": 4,
+    "face": "girl",
+    "after": "b4"
+   },
+   {
+    "id": "b6",
+    "cast": "girl",
+    "action": "replies how she is",
+    "prompt": "A person stands and talks with open hand gestures.",
+    "duration": 4,
+    "face": "boy",
+    "after": "b5"
+   },
+   {
+    "id": "b7",
+    "cast": "boy",
+    "action": "sits on the bench",
+    "prompt": "A person sits down on a bench.",
+    "duration": 5,
+    "move_to": "bench"
+   },
+   {
+    "id": "b8",
+    "cast": "girl",
+    "action": "sits on the bench",
+    "prompt": "A person sits down on a bench.",
+    "duration": 5,
+    "move_to": "bench"
+   },
+   {
+    "id": "b9",
+    "cast": "boy",
+    "action": "enjoys the view",
+    "prompt": "A person sits and looks out at the distant town.",
+    "duration": 6,
+    "face": "hilltop"
+   },
+   {
+    "id": "b10",
+    "cast": "girl",
+    "action": "enjoys the view",
+    "prompt": "A person sits and looks out at the distant town.",
+    "duration": 6,
+    "face": "hilltop"
+   }
+  ]
+ },
+ "world": {
+  "thoughts": [
+   "The hill-base is a generated stand, the hilltop is a generated tower, the bench is a library bench, and the well is generated as a stone well.",
+   "A dawn forest clearing: oaks, pines, bushes, flowers and lily pads by the water's edge."
+  ],
+  "choices": [
+   {
+    "place": "hill-base",
+    "generate": {
+     "name": "hill base",
+     "prompt": "a grassy hill base at the forest edge",
+     "size_m": 15.0,
+     "category": "nature"
+    }
+   },
+   {
+    "place": "hilltop",
+    "generate": {
+     "name": "town tower",
+     "prompt": "a stone tower on a hilltop overlooking a town",
+     "size_m": 9.0,
+     "category": "buildings"
+    }
+   },
+   {
+    "place": "bench",
+    "library": "bench"
+   },
+   {
+    "place": "well",
+    "generate": {
+     "name": "stone well",
+     "prompt": "a round stone village well with a little wooden roof",
+     "size_m": 2.5,
+     "category": "village"
+    }
+   }
+  ],
+  "decor": [
+   {
+    "library": "tree-oak",
+    "count": 5,
+    "near": "edge"
+   },
+   {
+    "library": "pine-tall",
+    "count": 3,
+    "near": "edge"
+   },
+   {
+    "library": "bush-small",
+    "count": 4,
+    "near": "cottage"
+   },
+   {
+    "library": "flower-yellow",
+    "count": 3,
+    "near": "bench"
+   },
+   {
+    "library": "lily-pad",
+    "count": 2,
+    "near": "well"
+   },
+   {
+    "library": "grass-tuft",
+    "count": 3,
+    "near": "hill-base"
+   }
+  ]
+ },
+ "script": {
+  "version": 1,
+  "title": "Dawn on the hilltop",
+  "scene": "At dawn a buy walks up to a hill top from where you can see town in distance. where a girl comes in too. they ask about how are they. they seat and enjoy nature",
+  "terrain": {
+   "time_of_day": "sunrise",
+   "weather": "clear",
+   "biome": "forest",
+   "paths": [
+    {
+     "points": [
+      [
+       -7.19,
+       -3.29
+      ],
+      [
+       0.5,
+       0.17
+      ],
+      [
+       7.89,
+       -3.12
+      ]
+     ],
+     "width": 1.4
+    }
+   ]
+  },
+  "props": [
+   {
+    "key": "hill-base",
+    "library": "hill-base",
+    "position": [
+     -15.46,
+     -21.24
+    ],
+    "rotation": -34,
+    "generate": {
+     "prompt": "a grassy hill base at the forest edge",
+     "size_m": 12,
+     "category": "nature"
+    }
+   },
+   {
+    "key": "hilltop",
+    "library": "town-tower",
+    "position": [
+     -0.81,
+     4.29
+    ],
+    "rotation": 162,
+    "generate": {
+     "prompt": "a stone tower on a hilltop overlooking a town",
+     "size_m": 9,
+     "category": "buildings"
+    }
+   },
+   {
+    "key": "bench",
+    "library": "bench",
+    "position": [
+     7.13,
+     -3.6
+    ],
+    "rotation": 148
+   },
+   {
+    "key": "tree-oak-1",
+    "library": "tree-oak",
+    "position": [
+     -13.17,
+     5.98
+    ],
+    "rotation": 0
+   },
+   {
+    "key": "tree-oak-2",
+    "library": "tree-oak",
+    "position": [
+     13.23,
+     2.67
+    ],
+    "rotation": 60
+   },
+   {
+    "key": "tree-oak-3",
+    "library": "tree-oak",
+    "position": [
+     4.36,
+     12.2
+    ],
+    "rotation": -105
+   },
+   {
+    "key": "tree-oak-4",
+    "library": "tree-oak",
+    "position": [
+     -1.17,
+     -13.14
+    ],
+    "rotation": -150
+   },
+   {
+    "key": "tree-oak-5",
+    "library": "tree-oak",
+    "position": [
+     1.52,
+     11.31
+    ],
+    "rotation": -105
+   },
+   {
+    "key": "pine-tall-6",
+    "library": "pine-tall",
+    "position": [
+     -4.91,
+     9.88
+    ],
+    "rotation": 150
+   },
+   {
+    "key": "pine-tall-7",
+    "library": "pine-tall",
+    "position": [
+     -12.78,
+     -4.84
+    ],
+    "rotation": 60
+   },
+   {
+    "key": "pine-tall-8",
+    "library": "pine-tall",
+    "position": [
+     8.84,
+     11.77
+    ],
+    "rotation": -45
+   },
+   {
+    "key": "bush-small-9",
+    "library": "bush-small",
+    "position": [
+     3.42,
+     -4.57
+    ],
+    "rotation": -45
+   },
+   {
+    "key": "bush-small-10",
+    "library": "bush-small",
+    "position": [
+     -11,
+     -1.24
+    ],
+    "rotation": 45
+   },
+   {
+    "key": "bush-small-11",
+    "library": "bush-small",
+    "position": [
+     -0.52,
+     10.3
+    ],
+    "rotation": 15
+   },
+   {
+    "key": "bush-small-12",
+    "library": "bush-small",
+    "position": [
+     2.64,
+     -7.08
+    ],
+    "rotation": 0
+   },
+   {
+    "key": "flower-yellow-13",
+    "library": "flower-yellow",
+    "position": [
+     6.07,
+     -6.63
+    ],
+    "rotation": -150
+   },
+   {
+    "key": "flower-yellow-14",
+    "library": "flower-yellow",
+    "position": [
+     8.85,
+     0.14
+    ],
+    "rotation": -165
+   },
+   {
+    "key": "flower-yellow-15",
+    "library": "flower-yellow",
+    "position": [
+     4.49,
+     -5.67
+    ],
+    "rotation": 0
+   },
+   {
+    "key": "grass-tuft-16",
+    "library": "grass-tuft",
+    "position": [
+     1.47,
+     -8.04
+    ],
+    "rotation": 120
+   },
+   {
+    "key": "grass-tuft-17",
+    "library": "grass-tuft",
+    "position": [
+     -9.65,
+     -2.59
+    ],
+    "rotation": -180
+   },
+   {
+    "key": "grass-tuft-18",
+    "library": "grass-tuft",
+    "position": [
+     1,
+     -5.45
+    ],
+    "rotation": -150
+   },
+   {
+    "key": "house-19",
+    "library": "house",
+    "position": [
+     9.85,
+     7.11
+    ],
+    "rotation": 60
+   },
+   {
+    "key": "house-20",
+    "library": "house",
+    "position": [
+     3.86,
+     -13.87
+    ],
+    "rotation": 135
+   },
+   {
+    "key": "lantern-post-21",
+    "library": "lantern-post",
+    "position": [
+     -5.19,
+     1.03
+    ],
+    "rotation": 0
+   },
+   {
+    "key": "lantern-post-22",
+    "library": "lantern-post",
+    "position": [
+     -10.37,
+     3.1
+    ],
+    "rotation": -165
+   },
+   {
+    "key": "house-2",
+    "library": "house-s6342",
+    "position": [
+     5.36,
+     -21.4
+    ],
+    "rotation": 45
+   }
+  ],
+  "cast": [
+   {
+    "id": "boy",
+    "name": "Boy",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      -7.02,
+      -3.54
+     ],
+     "facing": 64.0
+    },
+    "scale": 0.672,
+    "look": {
+     "top": "#2f5fb0",
+     "bottom": "#b5a46e",
+     "hair": "#5a3a22",
+     "skin": "#efc9ab",
+     "outfit": "casual",
+     "build": "slim"
+    }
+   },
+   {
+    "id": "girl",
+    "name": "Girl",
+    "character": "avatar_female",
+    "start": {
+     "position": [
+      -2.93,
+      -2.92
+     ],
+     "facing": 48.0
+    },
+    "scale": 0.844,
+    "look": {
+     "top": "#c8352e",
+     "bottom": "#2f5fb0",
+     "hair": "#e0c070",
+     "skin": "#efc9ab",
+     "outfit": "dress",
+     "build": "slim"
+    }
+   }
+  ],
+  "beats": [
+   {
+    "id": "boy-1",
+    "cast": "boy",
+    "start": 0.0,
+    "duration": 6.5,
+    "prompt": "A person walks forward up a hill.",
+    "action": "walks up to the hilltop",
+    "to": [
+     0.4,
+     0.45
+    ],
+    "motion": "walk"
+   },
+   {
+    "id": "girl-1",
+    "cast": "girl",
+    "start": 0.0,
+    "duration": 3.3,
+    "prompt": "A person walks forward up a hill.",
+    "action": "walks up to the hilltop",
+    "to": [
+     -2.83,
+     0.82
+    ],
+    "motion": "walk"
+   },
+   {
+    "id": "girl-2",
+    "cast": "girl",
+    "start": 3.3,
+    "duration": 6.2,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits",
+    "facing": "boy",
+    "motion": "idle"
+   },
+   {
+    "id": "boy-2",
+    "cast": "boy",
+    "start": 6.5,
+    "duration": 3.0,
+    "prompt": "A person waves hello with their right hand.",
+    "action": "greets the girl",
+    "facing": "girl",
+    "motion": "wave"
+   },
+   {
+    "id": "boy-3",
+    "cast": "boy",
+    "start": 9.5,
+    "duration": 3.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits",
+    "facing": "girl",
+    "motion": "idle"
+   },
+   {
+    "id": "girl-3",
+    "cast": "girl",
+    "start": 9.5,
+    "duration": 3.0,
+    "prompt": "A person waves hello with their right hand.",
+    "action": "greets the boy back",
+    "facing": "boy",
+    "seed": 1,
+    "motion": "wave"
+   },
+   {
+    "id": "boy-4",
+    "cast": "boy",
+    "start": 12.5,
+    "duration": 4.0,
+    "prompt": "A person stands and talks with open hand gestures.",
+    "action": "asks how she is",
+    "facing": "girl",
+    "motion": "talk"
+   },
+   {
+    "id": "girl-4",
+    "cast": "girl",
+    "start": 12.5,
+    "duration": 4.0,
+    "prompt": "A person stands and talks with open hand gestures.",
+    "action": "replies how she is",
+    "facing": "boy",
+    "seed": 1,
+    "motion": "talk"
+   },
+   {
+    "id": "boy-5",
+    "cast": "boy",
+    "start": 16.5,
+    "duration": 5.9,
+    "prompt": "A person walks forward.",
+    "action": "walks to bench",
+    "to": [
+     7.1,
+     -3.09
+    ],
+    "motion": "walk"
+   },
+   {
+    "id": "girl-5",
+    "cast": "girl",
+    "start": 16.5,
+    "duration": 8.6,
+    "prompt": "A person walks forward.",
+    "action": "walks to bench",
+    "to": [
+     7.58,
+     -3.85
+    ],
+    "motion": "walk"
+   },
+   {
+    "id": "boy-6",
+    "cast": "boy",
+    "start": 22.4,
+    "duration": 8.7,
+    "prompt": "A person looks out at the distant town.",
+    "action": "enjoys the view",
+    "facing": "hilltop",
+    "motion": "idle"
+   },
+   {
+    "id": "girl-6",
+    "cast": "girl",
+    "start": 25.1,
+    "duration": 6.0,
+    "prompt": "A person looks out at the distant town.",
+    "action": "enjoys the view",
+    "facing": "hilltop",
+    "motion": "idle"
+   }
+  ],
+  "shots": [
+   {
+    "id": "s1",
+    "start": 0.0,
+    "duration": 10.37,
+    "framing": "wide",
+    "subject": [
+     "boy",
+     "girl"
+    ],
+    "angle": 35
+   },
+   {
+    "id": "s2",
+    "start": 10.37,
+    "duration": 10.36,
+    "framing": "medium",
+    "subject": "boy",
+    "angle": -25
+   },
+   {
+    "id": "s3",
+    "start": 20.73,
+    "duration": 10.37,
+    "framing": "wide",
+    "subject": [
+     "boy",
+     "girl"
+    ],
+    "angle": 55
+   }
+  ],
+  "audio": {
+   "ambience": {
+    "prompt": "A quiet hilltop at dawn with distant town sounds, birds beginning to sing, and a soft morning breeze.",
+    "layers": {
+     "birds": 0.5,
+     "wind": 0.3,
+     "traffic": 0.2
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow ambient piano and strings, gentle and hopeful, no drums, no vocals.",
+    "mood": "hopeful"
+   },
+   "volume": 0.25,
+   "source": "nemotron"
+  }
+ }
+}
