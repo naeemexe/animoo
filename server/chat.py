@@ -4,7 +4,7 @@
       -> {reply, demonstrate: null | {prompt, duration}, source: "nemotron" | "mock", seconds,
           error?: "why Nemotron wasn't used"}
 
-Empty `messages` asks for Mira's opening line: she greets the user in her own
+Empty `messages` asks for Milo's opening line: he greets the user in his own
 words. Nemotron writes every reply through `server.llm.complete()` (whichever
 backend `.env` picks), as JSON checked against REPLY_SCHEMA. Only if that call
 fails does a small rule-based mock answer ("show me ..." -> demonstrate), with
@@ -18,7 +18,7 @@ from . import llm
 
 MIN_DURATION, MAX_DURATION = 2.0, 10.0  # Kimodo is clean up to about 10 s
 
-CHAT_SYSTEM_PROMPT = """You are Mira, a friendly character standing in a small storybook village. You talk with the
+CHAT_SYSTEM_PROMPT = """You are Milo, a friendly, curious boy standing in a small storybook village. You talk with the
 user, and you can physically demonstrate movements with your body (a motion generator turns a
 short English description into an animation that you then perform).
 
@@ -50,7 +50,7 @@ Rules for "demonstrate":
 """
 
 
-# The opening turn: Mira speaks first, so the model gets this stage direction
+# The opening turn: Milo speaks first, so the model gets this stage direction
 # as the user turn (it is never shown or stored in the page's history).
 ARRIVAL = ("(Stage direction, not spoken by anyone: a visitor has just walked up to you in the village. "
            "Greet them in your own words, in one or two short sentences, and invite them to talk or to ask "
@@ -176,7 +176,7 @@ def mock_reply(messages: list[dict]) -> dict:
 def chat_reply(messages: list[dict]) -> dict:
     messages = [{"role": m["role"], "content": str(m["content"])} for m in messages
                 if m.get("role") in ("user", "assistant") and m.get("content")][-20:]
-    # Opening line (no history), or a history that starts with Mira's greeting:
+    # Opening line (no history), or a history that starts with Milo's greeting:
     # the model sees the stage direction as the first user turn.
     prompt = messages if messages and messages[0]["role"] == "user" else [{"role": "user", "content": ARRIVAL}, *messages]
     t0 = time.perf_counter()

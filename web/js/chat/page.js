@@ -1,5 +1,5 @@
 // The Chat page (task 10): one character in a little storybook set, and a
-// chat panel. Mira opens with a greeting in her own words, and every reply
+// chat panel. Milo opens with a greeting in his own words, and every reply
 // comes from POST /api/chat (Nemotron; a rule-based mock only when the LLM is
 // down, and then the bubble says so). Replies are spoken with speechSynthesis while the character plays a
 // talking motion. A reply with `demonstrate` asks Kimodo for that motion
@@ -18,8 +18,11 @@ import { CHAT_SET } from './set.js';
 import { createVoice } from './voice.js';
 import { Performer } from './performer.js';
 
-const CHARACTER = 'avatar_female';
-const NAME = 'Mira';
+const CHARACTER = 'avatar_male';
+const NAME = 'Milo';
+// The male VRM is 2.01 m tall as authored: bring him to a boy's 1.6 m, which
+// also keeps the camera's framing.
+const HEIGHT_SCALE = 1.6 / 2.01;
 const RAD = Math.PI / 180;
 const params = urlParams;
 
@@ -120,6 +123,7 @@ export function createChatPage(root, stage, look) {
       state.set = set;
       state.hero = hero;
       hero.group.name = NAME;
+      hero.group.scale.setScalar(HEIGHT_SCALE);
       stage.scene.add(hero.group);
       state.clips = {
         idle: hero.makeClip(idle, 'idle'),
@@ -148,8 +152,8 @@ export function createChatPage(root, stage, look) {
   }
 
   // ---- a turn ---------------------------------------------------------------
-  // send(text) is the user's turn; greet() asks for Mira's opening line (an
-  // empty history), which Nemotron writes in her own words.
+  // send(text) is the user's turn; greet() asks for Milo's opening line (an
+  // empty history), which Nemotron writes in his own words.
   const send = (text) => turn(text.trim());
   const greet = () => (state.messages.length ? Promise.resolve() : turn(null));
 
@@ -193,9 +197,9 @@ export function createChatPage(root, stage, look) {
       }
 
       // Chrome refuses speech before the user has touched the page ("not-allowed"), which
-      // would leave Mira's greeting silent: hold it until the first click or key press.
+      // would leave Milo's greeting silent: hold it until the first click or key press.
       if (!text && navigator.userActivation && !navigator.userActivation.hasBeenActive && voice.available) {
-        const hint = note(li, '🔊 click anywhere to hear Mira');
+        const hint = note(li, '🔊 click anywhere to hear Milo');
         const go = () => {
           removeEventListener('pointerdown', go, true);
           removeEventListener('keydown', go, true);

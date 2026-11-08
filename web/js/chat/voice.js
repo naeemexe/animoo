@@ -6,8 +6,10 @@
 
 const NOVELTY = /\b(albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|good news|hysterical|jester|junior|organ|pipe organ|ralph|superstar|trinoids|whisper|wobble|zarvox|fred|kathy|grandma|grandpa|rocko|shelley|eddy|flo|reed|sandy)\b/i;
 const QUALITY = /\b(premium|enhanced|natural|neural|wavenet|online)\b/i;
-// Clear, warm voices that ship with macOS, Windows, ChromeOS and Android.
-const LIKED = /\b(ava|zoe|samantha|allison|susan|serena|karen|moira|tessa|aria|jenny|libby|sonia|google us english|google uk english female|microsoft (aria|jenny|zira))\b/i;
+// Clear, warm male voices (the chat character is a boy) that ship with macOS,
+// Windows, ChromeOS and Android.
+const LIKED = /\b(aaron|alex|daniel|evan|nathan|tom|oliver|arthur|rishi|google uk english male|microsoft (guy|david|mark|ryan|andrew|brian))\b/i;
+const FEMALE = /\b(female|ava|zoe|samantha|allison|susan|serena|karen|moira|tessa|aria|jenny|libby|sonia|victoria|fiona|kate|zira|google us english)\b/i;
 
 export function scoreVoice(v) {
   let s = 0;
@@ -18,7 +20,7 @@ export function scoreVoice(v) {
   if (LIKED.test(v.name)) s += 4;
   if (/google/i.test(v.name)) s += 2;
   if (NOVELTY.test(v.name)) s -= 30;
-  if (/\bmale\b/i.test(v.name) && !/female/i.test(v.name)) s -= 2;
+  if (FEMALE.test(v.name)) s -= 6;
   return s;
 }
 
