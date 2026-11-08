@@ -151,8 +151,10 @@ PLAN_EXAMPLE = {
         {"key": "jetty", "what": "a little wooden jetty at the pond", "use": "water"},
     ],
     "cast": [
-        {"id": "girl", "name": "Girl", "character": "avatar_female", "kid": True, "starts_at": "cottage"},
-        {"id": "grandpa", "name": "Grandpa", "character": "avatar_male", "kid": False, "starts_at": "cottage"},
+        {"id": "girl", "name": "Girl", "character": "avatar_female", "kid": True, "starts_at": "cottage",
+         "look": {"height_m": 1.3, "top": "yellow", "bottom": "blue", "hair": "auburn", "skin": "light", "accessory": "none"}},
+        {"id": "grandpa", "name": "Grandpa", "character": "avatar_male", "kid": False, "starts_at": "cottage",
+         "look": {"height_m": 1.72, "top": "green", "bottom": "brown", "hair": "gray", "skin": "tan", "accessory": "cap"}},
     ],
     "beats": [
         {"id": "b1", "cast": "grandpa", "action": "walks to the bench", "prompt": "A person walks forward slowly.", "duration": 6, "move_to": "bench"},
@@ -188,6 +190,10 @@ clip at a time, so you split the scene into beats: one simple full-body action p
 Reply with the whole plan in ONE JSON object. Rules:
 - cast: 1 to 3 characters. character is "avatar_male" or "avatar_female"; kid is true for children.
   starts_at is the place where the character is at the start.
+  look: how the story pictures them, so each cast looks its own: height_m (adults 1.6 to 1.85, kids
+  1.1 to 1.45), top and bottom (clothing colors: a color word like red, navy, white, khaki, or #rrggbb;
+  a chef in white, a firefighter in red), hair (black, brown, blonde, auburn, red, gray, white),
+  skin (pale, light, tan, brown, dark), accessory (none, hat, cap, chef_hat, glasses, apron).
 - places: 2 to 6 locations or objects the story needs, with a short key. use is "sit" for something to
   sit on (bench, log, stump), "water" for something at the water's edge (dock, jetty, boat), else "stand".
   Every place, cast member and beat must come from the scene; don't invent extra story.
@@ -336,6 +342,54 @@ PURE_MOVE = re.compile(r"^A person (walks|runs|jogs|sneaks|skips|strolls|sprints
                        r"( \w+ly)? (forward|ahead|away|off|along)?[\w ,]*\.$")
 
 
+# Cast looks (task 27): named colors the plan may use, as hex.
+COLORS = {
+    "black": "#22222a", "white": "#f2f0ea", "gray": "#8a8a8f", "grey": "#8a8a8f", "silver": "#c0c0c6",
+    "red": "#c8352e", "crimson": "#a3202a", "maroon": "#6e1f28", "pink": "#e88aa8", "orange": "#e07a2a",
+    "yellow": "#efc93a", "gold": "#d6a933", "mustard": "#c9a227", "cream": "#efe4c8", "beige": "#d8c7a3",
+    "khaki": "#b5a46e", "tan": "#c49a6c", "brown": "#7a5233", "olive": "#6f7335", "green": "#3f8a45",
+    "lime": "#8cc63f", "teal": "#2a8c8a", "cyan": "#3cb7c9", "blue": "#2f5fb0", "navy": "#23305e",
+    "denim": "#47648f", "purple": "#6b3fa0", "violet": "#8a5cc2", "lavender": "#b9a3dc",
+}
+HAIR = {"black": "#1d1a1c", "brown": "#5a3a22", "dark brown": "#3b2618", "light brown": "#8a6040",
+        "blonde": "#e0c070", "blond": "#e0c070", "auburn": "#8a3b1f", "red": "#b0451f", "ginger": "#c0571f",
+        "gray": "#9a9a9a", "grey": "#9a9a9a", "white": "#e8e6e0", "silver": "#c8c8cc"}
+SKIN = {"pale": "#fbe3d4", "fair": "#f6d6c0", "light": "#efc9ab", "medium": "#d9a77f", "tan": "#c48a5e",
+        "olive": "#b98a5e", "brown": "#8d5a3b", "dark": "#5e3a26", "deep": "#4a2c1d"}
+ACCESSORIES = {"none", "hat", "cap", "chef_hat", "glasses", "apron"}
+ADULT_H, KID_H = (1.6, 1.85), (1.1, 1.45)
+
+
+def _color(v, table) -> str | None:
+    v = str(v or "").strip().lower()
+    if re.fullmatch(r"#[0-9a-f]{6}", v):
+        return v
+    if v in table:
+        return table[v]
+    return next((table[w] for w in sorted(table, key=len, reverse=True) if re.search(rf"\b{w}\b", v)), None)
+
+
+def repair_look(raw, kid: bool) -> dict | None:
+    """The plan's look for one cast member, cleaned: hex colors, a height in range, a known accessory.
+    None when the plan gave nothing usable (old plans), so the cast looks as before."""
+    if not isinstance(raw, dict):
+        return None
+    look = {}
+    for k, table in (("top", COLORS), ("bottom", COLORS), ("shoes", COLORS), ("hair", HAIR), ("skin", SKIN)):
+        c = _color(raw.get(k), table) or (_color(raw.get(k), COLORS) if table is not COLORS else None)
+        if c:
+            look[k] = c
+    h = raw.get("height_m")
+    if isinstance(h, (int, float)) and not isinstance(h, bool) and math.isfinite(h):
+        lo, hi = KID_H if kid else ADULT_H
+        look["height_m"] = round(min(hi, max(lo, float(h))), 2)
+    acc = re.sub(r"[\s-]+", "_", str(raw.get("accessory") or "none").strip().lower())
+    acc = {"chef's_hat": "chef_hat", "toque": "chef_hat", "baseball_cap": "cap", "spectacles": "glasses"}.get(acc, acc)
+    if acc in ACCESSORIES and acc != "none":
+        look["accessory"] = acc
+    return look or None
+
+
 def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
     """Make a plan consistent: unique keys, known references, clamped numbers.
     Returns the plan and what was fixed (for the log)."""
@@ -375,8 +429,12 @@ def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
         cmap[str(c.get("id"))] = k
         ch = str(c.get("character", "")).lower()
         ch = ("avatar_female" if re.search(r"female|woman|girl|lady", ch) else "avatar_male") if ch not in CHARACTERS else ch
-        cast.append({"id": k, "name": str(c.get("name") or k.title()), "character": ch,
-                     "kid": bool(c.get("kid")), "starts_at": c.get("starts_at")})
+        m = {"id": k, "name": str(c.get("name") or k.title()), "character": ch,
+             "kid": bool(c.get("kid")), "starts_at": c.get("starts_at")}
+        look = repair_look(c.get("look"), m["kid"])
+        if look:
+            m["look"] = look
+        cast.append(m)
     if not cast:
         raise ValueError("the plan has no cast")
     if not places:
@@ -964,7 +1022,15 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
             out = {"id": c["id"], "name": c["name"], "character": c["character"],
                    "start": {"position": _pt(pt), "facing": _r(((face + 180) % 360) - 180, 0)}}
             natural, want = HEIGHT.get(c["character"], (1.7, 1.7))
-            out["scale"] = _r(want / natural * (KID if c["kid"] else 1.0), 3)
+            look = c.get("look")
+            if look and look.get("height_m"):
+                out["scale"] = _r(look["height_m"] / natural, 3)
+            else:
+                out["scale"] = _r(want / natural * (KID if c["kid"] else 1.0), 3)
+            if look:
+                out["look"] = {k: v for k, v in look.items() if k != "height_m"} or None
+                if not out["look"]:
+                    del out["look"]
             cast_out.append(out)
         cast_by = {c["id"]: c for c in cast_out}
 

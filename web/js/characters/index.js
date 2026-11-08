@@ -13,6 +13,7 @@ import { Character } from './player.js';
 export { parseBVH } from './bvh.js';
 export { mergeClips, mergeAll, plantFeet } from './merge.js';
 export { Character } from './player.js';
+export { applyLook } from './look.js';
 
 // A standing Kimodo frame that both rigs' bone frames are measured on. Every
 // Kimodo clip shares this skeleton, so one reference serves all of them.

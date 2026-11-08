@@ -8,7 +8,7 @@
 // motion agent's Kimodo calls and the director's merge run here.
 import * as THREE from 'three';
 import { loadManifest } from '../library.js';
-import { loadCharacter } from '../characters/index.js';
+import { loadCharacter, applyLook } from '../characters/index.js';
 import { validateScript, plannedDuration } from './script.js';
 import { FISHERMAN_SCENE, FISHERMAN_SCRIPT } from './mock.js';
 import { API_BASE, urlParams } from '../api.js';
@@ -151,6 +151,7 @@ export function createMoviePage(root, stage, look) {
       // Characters load while the world agent works.
       const heroesReady = Promise.all(script.cast.map(async (c) => {
         const hero = await loadCharacter(c.character);
+        applyLook(hero, c.look); // before scaling: the accessory is placed in the VRM's own frame
         hero.group.scale.setScalar(c.scale ?? 1);
         hero.group.visible = false;
         hero.playing = false;
@@ -169,7 +170,7 @@ export function createMoviePage(root, stage, look) {
       log('world', 'result', `set built · ${state.set.children.length} items`);
       await heroesReady;
       mark('set_and_cast', t0Set);
-      log('world', 'result', `cast on set: ${script.cast.map((c) => `${c.name} (${c.character})`).join(', ')}`);
+      log('world', 'result', `cast on set: ${script.cast.map((c) => `${c.name} (${c.character}${c.look ? `, ${[c.look.top, c.look.hair, c.look.accessory].filter(Boolean).join(' ')}` : ''})`).join(', ')}`);
 
       // Motion agent: one Kimodo clip per beat.
       const up = await motionServerUp();
