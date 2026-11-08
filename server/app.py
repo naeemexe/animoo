@@ -161,6 +161,20 @@ def _bad_path(cp: dict) -> bool:
 
 # Edit mode on the Movie page (task 18): the edited props go into the scene's
 # cache file in library/scripts/, so the next replay of the scene uses them.
+@app.post("/api/movie/revise")
+def movie_revise(body: dict) -> dict:
+    """A follow-up request on the current film: {base, request} → {scene} to play (a cached replay)."""
+    from .agents.movie import revise_movie
+    base, request = str(body.get("base") or ""), str(body.get("request") or "")
+    if not base.strip() or not request.strip():
+        raise HTTPException(status_code=400, detail="base and request are required")
+    try:
+        scene, calls, how = revise_movie(base, request)
+    except ValueError as err:
+        raise HTTPException(status_code=409, detail=str(err))
+    return {"scene": scene, "llm_calls": calls, "how": how}
+
+
 @app.post("/api/movie/script")
 def movie_script_save(req: ScriptEdit) -> dict:
     from .agents.movie import save_edits

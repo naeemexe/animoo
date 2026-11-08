@@ -35,6 +35,7 @@ export function createMoviePage(root, stage, look) {
   const ui = {
     prompt: $('#movie-prompt'),
     make: $('#movie-make'),
+    newScene: $('#movie-new'),
     log: $('#movie-log'),
     scriptView: $('#movie-script'),
     scriptBox: $('#movie-script-box'),
@@ -172,8 +173,23 @@ export function createMoviePage(root, stage, look) {
     state.busy = true;
     ui.make.disabled = true;
     try {
-      clear();
-      const text = ui.prompt.value.trim() || FISHERMAN_SCENE;
+      const typed = ui.prompt.value.trim();
+      // With a film loaded, the prompt is a change to it (weather, time, more action): the server
+      // revises the cached plan and keeps the set. "New scene" starts over.
+      const base = state.script?.scene;
+      let text = typed || FISHERMAN_SCENE;
+      if (base && typed && typed !== base) {
+        const r = await fetch(`${API_BASE}/api/movie/revise`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base, request: typed }),
+        });
+        if (!r.ok) throw new Error(`revise: ${(await r.json().catch(() => ({}))).detail ?? r.status}`);
+        const rev = await r.json();
+        text = rev.scene;
+        clear();
+        log('orchestrator', 'note', `change to the current film: “${typed}” · ${rev.how === 'rule' ? 'weather/time only, 0 LLM calls' : rev.how === 'cached' ? 'made before, 0 LLM calls' : `${rev.llm_calls} Nemotron call (${rev.how})`}; same set`);
+      } else {
+        clear();
+      }
       const t0Plan = performance.now();
       let planned;
       try {
@@ -308,6 +324,10 @@ export function createMoviePage(root, stage, look) {
       log('director', 'result', `film ready · ${state.duration.toFixed(1)} s · merged in ${(performance.now() - t0).toFixed(0)} ms · ${state.timings.total} s from the prompt`);
       seek(0);
       editor.show(true);
+      ui.make.textContent = 'Apply change';
+      ui.newScene.hidden = false;
+      ui.prompt.value = '';
+      ui.prompt.placeholder = 'Describe a change to this film: weather, time of day, what happens next…';
       if (!params.has('t')) setPlaying(true);
       else seek(+params.get('t'));
     } catch (err) {
@@ -319,6 +339,16 @@ export function createMoviePage(root, stage, look) {
     }
   }
   ui.make.onclick = make;
+  ui.newScene.onclick = () => {
+    if (state.busy) return;
+    clear();
+    state.script = null;
+    ui.make.textContent = 'Make movie';
+    ui.newScene.hidden = true;
+    ui.prompt.value = '';
+    ui.prompt.placeholder = 'Describe a new scene…';
+    ui.prompt.focus();
+  };
 
   // Merge each character's clips around the current set (paths avoid the props'
   // footprints), then cut it into shots. Run after building and after edits.

@@ -61,8 +61,9 @@ TIME_WORDS = [
     ("day", r"\b(noon|midday|daytime|sunny|bright day|broad daylight)\b"),
 ]
 WEATHER_WORDS = [
-    ("snow", r"\b(snow\w*|blizzard|wintry|frost\w*)\b"),
+    ("snow", r"\b(snow\w*|blizzard|winter\w*|wintry|frost\w*)\b"),
     ("rain", r"\b(rain\w*|storm\w*|drizzl\w*|downpour|thunder\w*|wet)\b"),
+    ("clear", r"\b(clear|sunny|summer|no (rain|snow|fog))\b"),
     ("fog", r"\b(fog\w*|mist\w*|haz[ey])\b"),
     ("windy", r"\b(wind\w*|breez\w*|gust\w*|blustery)\b"),
 ]
@@ -88,14 +89,25 @@ def biome_from_text(text: str) -> str | None:
     return next((k for k, rx in BIOME_WORDS if re.search(rx, t)), None)
 
 
+CHANGE = "\nChange: "  # a revised film's scene key: the base scene, then each follow-up request
+
+
+def _latest(text: str, table) -> str | None:
+    """The newest follow-up request that names one wins over the base scene ("make it winter")."""
+    for part in reversed(text.lower().split(CHANGE.lower())):
+        got = next((k for k, rx in table if re.search(rx, part)), None)
+        if got:
+            return got
+    return None
+
+
 def time_from_text(text: str) -> str | None:
-    t = text.lower()
-    return next((k for k, rx in TIME_WORDS if re.search(rx, t)), None)
+    return _latest(text, TIME_WORDS)
 
 
 def weather_from_text(text: str) -> str | None:
-    t = text.lower()
-    return next((k for k, rx in WEATHER_WORDS if re.search(rx, t)), None)
+    got = _latest(text, WEATHER_WORDS)
+    return None if got == "clear" and CHANGE.lower() not in text.lower() else got
 CHARACTERS = ["avatar_male", "avatar_female"]
 GEN_CATEGORIES = ["buildings", "village", "nature", "vehicles", "water"]
 MAX_GENERATE = 2
@@ -1127,7 +1139,7 @@ def footprint(entry: dict | None, gen: dict | None, scale=1.0) -> float:
 def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, list[str]]:
     """Plan + world choices → a scene script (web/js/movie/script.js), and notes for the log."""
     notes = []
-    rng = random.Random(int(hashlib.sha1(scene.encode()).hexdigest()[:8], 16))
+    rng = random.Random(int(hashlib.sha1(scene.split(CHANGE)[0].encode()).hexdigest()[:8], 16))
     entries = {p["id"]: p for p in manifest["props"]}
     places = {p["key"]: dict(p, **world["choices"][p["key"]]) for p in plan["places"]}
     for p in places.values():  # a dock or a boat goes by the water, whatever the plan said
@@ -2021,3 +2033,53 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
         path = save_cache(scene, entry)
         yield step("orchestrator", "note", f"cached in library/scripts/{path.name} ({n_calls} LLM calls)")
     yield {"script": script, "source": source, "llm_calls": n_calls}
+
+
+# ---- follow-up requests (build on the current film, don't start over) --------------------
+FILLER = re.compile(r"\b(make|it|its|change|changes|the|weather|to|set|turn|into|a|an|now|please|switch|time|of|day|"
+                    r"lighting|light|need|needs|be|should|and|at|in|with|scene|season|same|but|instead|go|let|lets|"
+                    r"want|i|we|can|you|is|more|bit|little|from|this|that)\b", re.I)
+
+
+def revise_movie(base: str, request: str) -> tuple[str, int, str]:
+    """A follow-up request on a cached film: returns (new scene key, LLM calls, how).
+    Weather or time alone is a rule edit (0 calls); anything else asks Nemotron to return the
+    same plan with only that change. The world agent's choices (and hand edits, when the
+    places stay the same) carry over, so the set is the same set."""
+    base, request = base.strip(), request.strip()
+    entry = load_cached(base)
+    if not entry:
+        raise ValueError("the current film isn't cached; make it first")
+    scene = base + CHANGE + request
+    if load_cached(scene):
+        return scene, 0, "cached"
+    raw = json.loads(json.dumps(entry["plan"]))
+    rest = request.lower()
+    for _, rx in TIME_WORDS + WEATHER_WORDS:
+        rest = re.sub(rx, " ", rest)
+    rest = re.sub(r"[^a-z ]", " ", FILLER.sub(" ", rest)).split()
+    calls, how = 0, "rule"
+    if rest or not (time_from_text(request) or _latest(request, WEATHER_WORDS)):
+        try:
+            raw = _ask(ORCHESTRATOR_ROLE,
+                       f"The current film's plan (JSON):\n{json.dumps(entry['plan'], ensure_ascii=False)}\n\n"
+                       f"The user asks for this change: {request}\n\nReturn the whole plan with ONLY that change. Keep "
+                       "every other place, cast member, beat and shot exactly as it is, with the same ids. New beats go "
+                       "after the existing ones unless the request says otherwise; new characters or places only if asked.",
+                       PLAN_SCHEMA, PLAN_EXAMPLE, "orchestrator", uuid.uuid4().hex[:8])
+            calls, how = 1, "nemotron"
+        except llm.LLMError:
+            how = "rule (Nemotron failed)"
+    wx, tod = _latest(request, WEATHER_WORDS), time_from_text(request)
+    if wx:
+        raw["weather"] = wx
+    if tod:
+        raw["time_of_day"] = tod
+    new = {**entry, "scene": scene, "plan": raw, "revised_from": base, "request": request,
+           "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+           "llm_calls": calls}
+    same = {p.get("key") for p in entry["plan"].get("places", [])} == {p.get("key") for p in raw.get("places", [])}
+    if not same:
+        new.pop("edits", None)
+    save_cache(scene, new)
+    return scene, calls, how
