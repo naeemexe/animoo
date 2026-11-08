@@ -10,6 +10,8 @@ import { Clip } from './clip.js';
 
 const _a = new THREE.Quaternion();
 const _b = new THREE.Quaternion();
+const _pa = new THREE.Quaternion();
+const _pb = new THREE.Quaternion();
 
 const smooth = (x) => x * x * (3 - 2 * x);
 
@@ -23,17 +25,68 @@ export function meanHeading(clip, from, to) {
   return Math.atan2(s, c);
 }
 
+const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+const _Y = new THREE.Vector3(0, 1, 0);
+const _t = new THREE.Quaternion();
+
+// The bones that carry the pose (legs, spine, arms), for pose matching.
+const POSE_BONES = /^(hips|spine|chest|upperChest|neck|head|(left|right)(UpperLeg|LowerLeg|Foot|UpperArm|LowerArm|Shoulder))$/;
+
+// Which of B's first `window` frames best continues A's frame `fa`: the pose
+// (bone rotations relative to each clip's own heading) closest to A's. Ties
+// go to the earliest frame, so a clip whose start already fits is not cut.
+export function bestStart(A, fa, B, window) {
+  const idx = A.bones.map((b, i) => (POSE_BONES.test(b) ? i : -1)).filter((i) => i >= 0);
+  const B4 = A.bones.length * 4;
+  const unA = _t.setFromAxisAngle(_Y, -A.heading(fa)).clone();
+  let best = 0, score = Infinity;
+  for (let k = 0; k <= Math.min(window, B.frames - 2); k++) {
+    const unB = new THREE.Quaternion().setFromAxisAngle(_Y, -B.heading(k));
+    let d = 0;
+    for (const i of idx) {
+      _a.fromArray(A.rot, fa * B4 + i * 4).premultiply(unA);
+      _b.fromArray(B.rot, k * B4 + i * 4).premultiply(unB);
+      d += _a.angleTo(_b) ** 2;
+    }
+    // Planted feet: prefer the same feet down.
+    for (const s of ['left', 'right']) if (A.contact[s][fa] !== B.contact[s][k]) d += 0.05;
+    d += 0.002 * k; // a little cost per skipped frame
+    if (d < score - 1e-6) { score = d; best = k; }
+  }
+  return best;
+}
+
+function dropFrames(B, k0) {
+  if (k0 <= 0) return B;
+  const c = Clip.like(B, B.frames - k0, B.name);
+  for (let f = 0; f < c.frames; f++) c.copyFrame(f, B, f + k0);
+  c.segments = B.segments.map((s) => ({ ...s, start: Math.max(0, s.start - k0), end: Math.max(1, s.end - k0) }));
+  c.blends = B.blends?.map((x) => ({ start: Math.max(0, x.start - k0), end: Math.max(0, x.end - k0) })).filter((x) => x.end > x.start);
+  return c;
+}
+
 // `heading` (radians, 0 = +Z) turns B to start facing that way instead of A's
-// end heading; the turn happens over the blend.
-export function mergeClips(A, B, { blend = 0.3, heading } = {}) {
+// end heading. The turn is spread over the blend: B's overlap frames are first
+// turned back to A's heading and come round as the weight rises, so the pose
+// crossfade only ever slerps between bodies facing the same way (a direct
+// slerp across a big turn flips the short arc mid-blend and pops).
+// `match` (seconds): B may start up to that far in, at the frame whose pose
+// best continues A's (task 33), so a join never jumps pose.
+export function mergeClips(A, B, { blend = 0.5, heading, match = 0.4 } = {}) {
   if (A.fps !== B.fps) throw new Error(`clips differ in fps (${A.fps} vs ${B.fps})`);
-  const n = Math.max(1, Math.min(Math.round(blend * A.fps), A.frames - 1, B.frames - 1));
+  let n = Math.max(1, Math.min(Math.round(blend * A.fps), A.frames - 1, B.frames - 1));
   const start = A.frames - n; // first overlap frame in A
+  if (match > 0 && B.frames > n + 2) B = dropFrames(B, bestStart(A, start, B, Math.min(Math.round(match * A.fps), B.frames - n - 2)));
+  n = Math.max(1, Math.min(n, B.frames - 1));
 
   // Align B's frame 0 to A's frame `start`: same heading, same root x/z.
   const b = B.clone();
-  const turn = (heading ?? meanHeading(A, start, A.frames)) - meanHeading(b, 0, n);
+  const headA = meanHeading(A, start, A.frames);
+  const target = heading ?? headA;
+  const turn = target - meanHeading(b, 0, n);
   b.transform(turn, [b.hips[0], b.hips[2]], [A.hips[start * 3] - b.hips[0], A.hips[start * 3 + 2] - b.hips[2]]);
+  const delta = wrap(target - headA);
+  const pivot = [A.hips[start * 3], A.hips[start * 3 + 2]];
   const out = Clip.like(A, A.frames + B.frames - n, `${A.name} + ${B.name}`);
   for (let f = 0; f < start; f++) out.copyFrame(f, A, f);
 
@@ -41,10 +94,23 @@ export function mergeClips(A, B, { blend = 0.3, heading } = {}) {
   for (let k = 0; k < n; k++) {
     const w = smooth((k + 1) / (n + 1));
     const fa = start + k, g = start + k;
+    // B's frame k, turned back by the part of the turn not yet made.
+    const back = -delta * (1 - w);
+    if (Math.abs(back) > 1e-4) turnFrameAbout(b, k, back, pivot);
+    // Crossfade each bone's rotation relative to its parent (world rotations
+    // of hands and fingers can be far apart when the arm moves, and slerping
+    // those flips the short arc mid-blend), then rebuild down the hierarchy.
     for (let i = 0; i < A.bones.length; i++) {
+      const p = A.parents[i];
       _a.fromArray(A.rot, fa * B4 + i * 4);
       _b.fromArray(b.rot, k * B4 + i * 4);
-      _a.slerp(_b, w).toArray(out.rot, g * B4 + i * 4);
+      if (p >= 0) {
+        _a.premultiply(_pa.fromArray(A.rot, fa * B4 + p * 4).invert());
+        _b.premultiply(_pb.fromArray(b.rot, k * B4 + p * 4).invert());
+      }
+      _a.slerp(_b, w);
+      if (p >= 0) _a.premultiply(_pa.fromArray(out.rot, g * B4 + p * 4));
+      _a.toArray(out.rot, g * B4 + i * 4);
     }
     // Root: A's own path keeps moving; B's is anchored where A was at `start`.
     // Blend the two positions, so the root decelerates or accelerates smoothly.
@@ -62,6 +128,18 @@ export function mergeClips(A, B, { blend = 0.3, heading } = {}) {
   ];
   out.blends = [...(A.blends ?? []), { start, end: start + n }, ...(B.blends ?? []).map((x) => ({ start: x.start + start, end: x.end + start }))];
   return plantFeet(out);
+}
+
+function turnFrameAbout(clip, f, yaw, pivot) {
+  const c = Math.cos(yaw), sn = Math.sin(yaw);
+  for (const arr of [clip.hips, clip.feet.left, clip.feet.right]) {
+    const x = arr[f * 3] - pivot[0], z = arr[f * 3 + 2] - pivot[1];
+    arr[f * 3] = c * x + sn * z + pivot[0];
+    arr[f * 3 + 2] = -sn * x + c * z + pivot[1];
+  }
+  _t.setFromAxisAngle(_Y, yaw);
+  const B4 = clip.bones.length * 4;
+  for (let i = f * B4; i < f * B4 + B4; i += 4) _a.fromArray(clip.rot, i).premultiply(_t).toArray(clip.rot, i);
 }
 
 export function mergeAll(clips, opts) {

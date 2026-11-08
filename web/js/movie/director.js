@@ -220,7 +220,7 @@ export function bodiesHit(posAt, t0, t1, others, ends = []) {
 // One timeline row. `clips` maps beat id → retargeted Clip (origin, +Z).
 // → { castId, offset, clip, beats: [{ beat, start, end, stretch }], positionAt(t) }
 // A scaled character (a kid) lives in its group's space: world / scale.
-export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.3, obstacles = [], seats = [], walks = {}, others = [] } = {}) {
+export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.5, obstacles = [], seats = [], walks = {}, others = [] } = {}) {
   const k = castEntry.scale ?? 1;
   const resolve = (target, t) => resolveWorld(target, t).map((v) => v / k);
   const clipOf = (e) => e.clip ?? e;
@@ -271,10 +271,12 @@ export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.3, o
       const walkOn = (path) => {
         const len = pathLength(path);
         let c = pickVariant(act.variants, len).clone();
-        // A drawn path can be much longer than any walk clip: chain the walk, so the stride stays natural.
-        if (drawn?.length) {
-          const base = c, reach = (x) => Math.hypot(x.hips[(x.frames - 1) * 3] - x.hips[0], x.hips[(x.frames - 1) * 3 + 2] - x.hips[2]);
-          for (let i = 0; i < 4 && len / Math.max(reach(c), 0.5) > 1.3; i++) c = mergeClips(c, base, { blend: 0.6 });
+        // A path (drawn or planned) can be longer than any walk clip: chain the walk, so the
+        // stride stays natural. Stretched past ~1.15× the legs can't reach the foot targets
+        // (task 33: that is where knees snapped straight and flipped).
+        const base = c, reach = (x) => Math.hypot(x.hips[(x.frames - 1) * 3] - x.hips[0], x.hips[(x.frames - 1) * 3 + 2] - x.hips[2]);
+        if (len / Math.max(reach(c), 0.5) > 1.15) {
+          for (let i = 0; i < 4 && len / Math.max(reach(c), 0.5) > 1.15; i++) c = mergeClips(c, base, { blend: 0.6, match: 1.0 });
           c.segments = [{ name: base.name, start: 0, end: c.frames }]; // one beat on the timeline
         }
         // Retargeted clips start at the origin facing +Z: put frame 0 at `at`, then bend.
@@ -301,8 +303,8 @@ export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.3, o
         const n = Math.max(1, Math.min(n0, c.frames - 1));
         const current = meanHeading(acc, joinAt, acc.frames);
         const heading = meanHeading(c, 0, n);
-        const b = blend + 0.5 * Math.abs(wrap(heading - current)) / Math.PI;
-        acc = mergeClips(acc, c, { blend: b, heading });
+        const b = blend + 1.0 * Math.abs(wrap(heading - current)) / Math.PI;
+        acc = mergeClips(acc, c, { blend: b, heading, match: 0 }); // the walk is on its path: never skip its start
         const seg = acc.segments.at(-1);
         placed.push({ beat, start: offset + seg.start / fps, end: offset + acc.duration, stretch: c.scale, path, pathInfo: info });
       }
@@ -334,7 +336,7 @@ export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.3, o
     if (beat.to !== undefined && tr.dist > 0.3) heading = angleTo(at, resolve(beat.to, tJoin)) - tr.angle;
     // Big turns get a longer blend so the character pivots instead of snapping.
     const turn = heading === undefined ? 0 : Math.abs(wrap(heading - current));
-    const b = blend + 0.5 * turn / Math.PI;
+    const b = blend + 1.0 * turn / Math.PI;
     acc = mergeClips(acc, c, { blend: b, heading: heading === undefined ? undefined : current + wrap(heading - current) });
     const seg = acc.segments.at(-1);
     const stretch = beat.to !== undefined && !act ? stretchTail(acc, seg.start, resolve(beat.to, tJoin)) : 1;
