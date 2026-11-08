@@ -22,6 +22,7 @@ import { recordWebM } from './export.js';
 import { createEditor } from './edit.js';
 import { createFreeCam } from './freecam.js';
 import { createSceneAudio } from './audio.js';
+import { addExtras, npcsWanted, preloadExtras } from './npcs.js';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const params = urlParams;
@@ -158,7 +159,8 @@ export function createMoviePage(root, stage, look) {
     setPlaying(false);
     if (state.set) stage.scene.remove(state.set);
     for (const h of Object.values(state.heroes)) stage.scene.remove(h.group);
-    Object.assign(state, { script: null, set: null, heroes: {}, rows: {}, t: 0, duration: 0 });
+    state.extras?.dispose();
+    Object.assign(state, { script: null, set: null, heroes: {}, rows: {}, t: 0, duration: 0, extras: null });
     sound.load(null);
     ui.log.innerHTML = '';
     ui.scriptBox.hidden = true;
@@ -210,7 +212,8 @@ export function createMoviePage(root, stage, look) {
         r.files.then((note) => { if (note) log('orchestrator', 'note', note); });
       }).catch((err) => { console.warn(err); log('orchestrator', 'error', `scene sound: ${err.message}`, { err: true }); });
 
-      // Characters load while the world agent works.
+      // Characters load while the world agent works (and the extras' base figures, task 36).
+      preloadExtras(script, params);
       const heroesReady = Promise.all(script.cast.map(async (c) => {
         const hero = await loadCharacter(c.character);
         // ?skin=man:suit:heavy,woman:dress  tries a skin (task 35) on a cached scene's cast.
@@ -289,6 +292,18 @@ export function createMoviePage(root, stage, look) {
       log('director', 'thought', `Cutting ${state.duration.toFixed(1)} s into shots: establish wide, then one shot per new action; every cut changes the size or the angle by 35°+, the camera stays on one side of the line between the characters, and swings around props that block the view.`);
       for (const s of shots) log('director', 'call', `shot(${s.id}, ${s.start.toFixed(1)}–${(s.start + s.duration).toFixed(1)} s, ${s.type} ${s.move} on ${[].concat(s.subject).join(' + ')}${s.partner ? ` over ${s.partner}'s shoulder` : ''}, from ${s.angle}°) · ${s.action}`);
       mark('direct', t0);
+      // Background extras (task 36): ambient loops from the action library, off the cast's paths.
+      if (npcsWanted(script, params)) {
+        const t0x = performance.now();
+        try {
+          state.extras = await addExtras(stage, script, state.set, state.rows, state.heroes, state.duration);
+          if (state.extras) log('world', 'result', `${state.extras.summary} · ambient loops from the action library, clear of the cast's paths · ${(performance.now() - t0x).toFixed(0)} ms`);
+        } catch (err) {
+          console.error(err);
+          log('world', 'error', `extras: ${err.message}`, { err: true });
+        }
+        mark('extras', t0x);
+      }
       state.timings.total = +((performance.now() - t0Plan) / 1000).toFixed(2);
       log('director', 'result', `film ready · ${state.duration.toFixed(1)} s · merged in ${(performance.now() - t0).toFixed(0)} ms · ${state.timings.total} s from the prompt`);
       seek(0);
@@ -344,6 +359,7 @@ export function createMoviePage(root, stage, look) {
       hero.apply();
       hero.vrm.update(dt);
     }
+    state.extras?.update(t);
   }
   function seek(t) {
     state.t = THREE.MathUtils.clamp(t, 0, state.duration);
@@ -369,6 +385,7 @@ export function createMoviePage(root, stage, look) {
 
   function setVisible(on) {
     if (state.set) state.set.visible = on;
+    if (state.extras) state.extras.group.visible = on;
     for (const [id, h] of Object.entries(state.heroes)) h.group.visible = on && state.t >= (state.rows[id]?.offset ?? Infinity);
   }
 
