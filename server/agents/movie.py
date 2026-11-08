@@ -401,6 +401,254 @@ def repair_look(raw, kid: bool) -> dict | None:
     return look or None
 
 
+# ---- natural posture (task 34) -----------------------------------------------------------
+# Kimodo makes each beat on its own, and the LLM likes to "sit, stand up to say hi, sit
+# again". After the plan is repaired, each character's posture (stand, sit, down after a
+# fall) is tracked through its beats, and a sit-down or stand-up is kept only when the
+# scene text gives that character a reason (or a walk needs them on their feet).
+STAND_UP = re.compile(r"\b(stands? up|gets? up|getting up|standing up|rises|jumps? up|springs? up|stands? back up)\b", re.I)
+SIT_DOWN = re.compile(r"\b(sits?|sat)\s+(back\s+)?(down|on|at|in|by|beside|next|across|onto|upon|near|with)\b|"
+                      r"\btakes? a seat\b|\bsits?\.?$", re.I)
+SEATED_ACT = re.compile(r"^a person ((sits|is sitting|is seated)\s+(still|and)\b|is sitting\b|is seated\b)", re.I)
+FALL = re.compile(r"\b(trips?|falls?|stumbles?|tumbles?|lies down|kneels?)\b", re.I)
+GREET = re.compile(r"\b(waves?|waving|greets?|says? (hi|hello)|hello)\b", re.I)
+BYE = re.compile(r"\b(goodbye|bye|farewell)\b", re.I)
+SCENE_SIT = re.compile(r"\b(sits?|sitting|seated|sat|takes? a seat)\b", re.I)
+OBJECT_WORDS = {"to", "at", "with", "him", "her", "from", "across", "beside", "toward", "towards", "by", "past", "of",
+                "for", "near", "behind", "around", "than", "on", "into"}
+NEEDS_FEET = re.compile(r"\b(dances?|dancing|jumps?|runs?|walks?|jogs?|chases?|skips?|kicks?)\b", re.I)
+
+
+def scene_postures(scene: str, cast: list[dict]) -> dict[str, dict[str, int]]:
+    """How many sit-downs and stand-ups the scene text gives each cast member
+    ("*" for a verb whose subject wasn't found). A clause's posture verb belongs to the
+    nearest cast mention before it, else to the clause's subject (carried over from
+    the clause before: "a woman walks in and waves, sits down across from him")."""
+    out = {c["id"]: {"sit": 0, "stand": 0} for c in cast}
+    out["*"] = {"sit": 0, "stand": 0}
+    if not scene:
+        return out
+    every = [c["id"] for c in cast]
+    words_of = {}
+    for c in cast:
+        ws = {re.sub(r"\d+$", "", w) for w in re.split(r"[^a-z0-9]+", f"{c['id']} {c.get('name', '')}".lower())} - STOP - {""}
+        words_of[c["id"]] = ws
+    gender = {c["id"]: ("f" if c["character"] == "avatar_female" else "m") for c in cast}
+
+    def mentions(tokens):
+        """(index, [cast ids], subject position?) for each mention in a clause."""
+        got = []
+        for i, w in enumerate(tokens):
+            ids = []
+            if w in ("they", "both", "together", "everyone", "all"):
+                ids = every
+            elif w in ("he", "his", "him"):
+                ids = ["m"]
+            elif w in ("she", "her", "hers"):
+                ids = ["f"]
+            else:
+                hit = [cid for cid, ws in words_of.items() if w in ws or (w.endswith("s") and w[:-1] in ws)]
+                ids = hit
+            if ids:
+                obj = i > 0 and tokens[i - 1] in OBJECT_WORDS or w in ("him", "her", "his")
+                got.append((i, ids, not obj))
+        return got
+
+    last_m = last_f = None
+    subject: list[str] = []
+    for clause in re.split(r"[,;.]|\band then\b|\bthen\b|\band\b|\bwho\b|\bwhile\b|\bas\b", scene.lower()):
+        tokens = re.findall(r"[a-z]+(?:-[a-z]+)?", clause)
+        ms = mentions(tokens)
+        resolved = []
+        for i, ids, subj in ms:
+            if ids == ["m"]:
+                ids = [last_m] if last_m else []
+            elif ids == ["f"]:
+                ids = [last_f] if last_f else []
+            for cid in ids:
+                if gender.get(cid) == "m":
+                    last_m = cid
+                else:
+                    last_f = cid
+            if ids:
+                resolved.append((i, ids, subj))
+        verbs = [(i, "stand" if STAND_UP.search(" ".join(tokens[i:i + 2])) else "sit")
+                 for i, w in enumerate(tokens)
+                 if STAND_UP.search(" ".join(tokens[i:i + 2])) or (SCENE_SIT.fullmatch(w) or w == "takes" and tokens[i + 1:i + 3] == ["a", "seat"])]
+        for vi, kind in verbs:
+            before = [ids for i, ids, _ in resolved if i < vi]
+            who = before[-1] if before else subject
+            for cid in (who or ["*"]):
+                out.setdefault(cid, {"sit": 0, "stand": 0})[kind] += 1
+        subj = next((ids for i, ids, s in resolved if s), None)
+        if subj:
+            subject = subj
+    return out
+
+
+def natural_beats(beats: list[dict], cast: list[dict], scene: str) -> tuple[list[dict], list[str]]:
+    """Per-character posture through the beats (see above). Returns the beats and fixes."""
+    budget = scene_postures(scene, cast) if scene else None
+    fixes, drop, state, greeted, seen = [], {}, {}, set(), set()
+
+    def allow(cid, kind):
+        if budget is None:
+            return True  # no scene text: trust the plan
+        for k in (cid, "*"):
+            if budget.get(k, {}).get(kind, 0) > 0:
+                budget[k][kind] -= 1
+                return True
+        return False
+
+    def rest_of(prompt):
+        """'A person sits and waves.' → 'waves.'; 'A person waves.' → 'waves.'"""
+        p = re.sub(r"^a person\s+", "", prompt.strip(), flags=re.I)
+        p = re.sub(r"^(sits|is sitting|is seated)( still)?( and)?\s*", "", p, flags=re.I)
+        p = re.sub(r"^(stands?)( still)?( and)?\s*(?=\w)", lambda m: "" if m.group(3) else m.group(0), p, flags=re.I)
+        return p
+
+    def seated_prompt(prompt):
+        r = rest_of(prompt)
+        if re.match(r"^(stands? still|still|looks around|waits)\b", r, re.I) or not r:
+            return "A person sits still and looks around."
+        return f"A person sits and {r[0].lower()}{r[1:]}"
+
+    def standing_prompt(prompt):
+        r = rest_of(prompt)
+        if re.match(r"^(still|looks around|waits)\b", r, re.I) or not r:
+            return "A person stands still and looks around."
+        return f"A person {r[0].lower()}{r[1:]}"
+
+    def strip_posture(prompt, pat):
+        p = pat.sub("", prompt)
+        p = re.sub(r"\b(from|off) (the |a |an |his |her )?\w+( \w+)?(?= and| to|\.|,)", "", p) if pat is STAND_UP else p
+        p = re.sub(r"^(a person)\s*(and|to|,)?\s*", r"\1 ", p, flags=re.I)
+        p = re.sub(r"\s+", " ", p).strip()
+        return p if len(p) > len("A person .") + 2 and re.search(r"[a-z]{3,}", p[9:]) else None
+
+    for i, b in enumerate(beats):
+        cid, first = b["cast"], b["cast"] not in seen
+        seen.add(cid)
+        st = state.get(cid, "stand")
+        text = f"{b['action']}. {b['prompt']} {b.get('then', '')} {b.get('first', '')}"
+        later = [x for x in beats[i + 1:] if x["cast"] == cid and x["id"] not in drop]
+        if b.get("move_to"):
+            if st != "stand":
+                allow(cid, "stand")  # a walk is reason enough to get up
+                if not b.get("first"):
+                    b["first"] = "A person stands up."
+                    fixes.append(f"{b['id']}: {cid} is {'seated' if st == 'sit' else 'down'} → stands up before the walk")
+                st = "stand"
+            then = b.get("then", "")
+            if then and SIT_DOWN.search(then):
+                if allow(cid, "sit"):
+                    st = "ground" if GROUND_WORDS.search(then) else "sit"
+                else:
+                    fixes.append(f"{b['id']}: {cid} sits down for no reason in the scene → just arrives")
+                    b.pop("then")
+                    b["action"] = f"walks to {b['move_to'].replace('-', ' ')}"
+            state[cid] = st
+            continue
+        stands = bool(STAND_UP.search(text))
+        sits = not stands and bool(SIT_DOWN.search(f"{b['action']}. {b['prompt']}")) and not SEATED_ACT.match(b["prompt"]) \
+            or (not stands and re.match(r"^sits\b(?! and)", b["action"].strip(), re.I) and not SEATED_ACT.match(b["prompt"]))
+        if first and not stands and SEATED_ACT.match(b["prompt"]) and not b.get("after") and not b.get("with"):
+            sits = True  # "A person sits and talks." as the first beat: seated from the start
+        if stands:
+            if st == "stand":
+                p = strip_posture(b["prompt"], STAND_UP)
+                if p:
+                    fixes.append(f"{b['id']}: {cid} is already standing → “{p}”")
+                    b["prompt"] = p
+                else:
+                    drop[b["id"]] = b
+                    fixes.append(f"{b['id']}: {cid} is already standing → dropped “{b['action']}”")
+            elif st == "down" or allow(cid, "stand") or any(x.get("move_to") or NEEDS_FEET.search(x["prompt"]) for x in later[:1]):
+                st = "stand"
+            else:
+                p = strip_posture(b["prompt"], STAND_UP)
+                if p:
+                    b["prompt"] = seated_prompt(p)
+                    b["action"] = re.sub(r"\b(stands? up|gets? up|rises)( and| to)?\s*", "", b["action"]).strip() or b["action"]
+                    fixes.append(f"{b['id']}: {cid} stands up for no reason in the scene → stays seated: “{b['prompt']}”")
+                else:
+                    drop[b["id"]] = b
+                    fixes.append(f"{b['id']}: {cid} stands up for no reason in the scene → stays seated (dropped)")
+        elif sits:
+            if st in ("sit", "ground"):
+                if re.search(r"\b(talks?|laughs?|waves?|tells?|chats?|says|points?)\b", rest_of(b["prompt"]), re.I):
+                    b["prompt"] = seated_prompt(b["prompt"])
+                else:
+                    drop[b["id"]] = b
+                    fixes.append(f"{b['id']}: {cid} is already seated → dropped “{b['action']}”")
+            elif allow(cid, "sit"):
+                st = "ground" if GROUND_WORDS.search(text) else "sit"
+                if first and not b.get("after") and not b.get("with"):
+                    # The scene starts with them sitting: seated from the first frame, not a sit-down.
+                    r = re.sub(r"^a person\s+(sits|is sitting|is seated)(\s+(down|still))?\s*", "", b["prompt"], flags=re.I)
+                    b["prompt"] = f"A person sits still {r}" if r and not r.startswith("and") else seated_prompt(b["prompt"])
+                    fixes.append(f"{b['id']}: {cid} starts seated: “{b['prompt']}”")
+            else:
+                p = strip_posture(b["prompt"], re.compile(r"\b(sits?|sat)( back)?( down)?\b( (on|at|in|by|beside|next to|across from|onto|near) [^,.]*)?( and)?", re.I))
+                if p and not re.match(r"^A person (rests|\.)", p):
+                    b["prompt"] = standing_prompt(p)
+                    fixes.append(f"{b['id']}: {cid} sits down for no reason in the scene → stays standing: “{b['prompt']}”")
+                else:
+                    drop[b["id"]] = b
+                    fixes.append(f"{b['id']}: {cid} sits down for no reason in the scene → dropped “{b['action']}”")
+        elif FALL.search(text):
+            st = "down"
+        else:
+            if st in ("sit", "ground") and not SEATED_ACT.match(b["prompt"]):
+                p = seated_prompt(b["prompt"])
+                fixes.append(f"{b['id']}: {cid} is seated → “{p}”")
+                b["prompt"] = p
+            elif st == "stand" and SEATED_ACT.match(b["prompt"]):
+                p = standing_prompt(b["prompt"])
+                fixes.append(f"{b['id']}: {cid} is standing → “{p}”")
+                b["prompt"] = p
+        if b["id"] not in drop and GREET.search(f"{b['action']} {b['prompt']}") and not BYE.search(text):
+            key = (cid, b.get("face") or "*")
+            if key in greeted or (cid, "*") in greeted:
+                talk = "A person sits and talks, gesturing with both hands." if st in ("sit", "ground") else \
+                    "A person talks, gesturing with both hands."
+                fixes.append(f"{b['id']}: {cid} already greeted {key[1]} → talks instead")
+                b["prompt"], b["action"] = talk, f"talks to {b['face']}" if b.get("face") else "talks"
+            greeted.add(key)
+        state[cid] = st
+    if drop:
+        kept = [b for b in beats if b["id"] not in drop]
+
+        def anchor(x):
+            # A reaction to a dropped beat reacts to what that beat reacted to,
+            # or to the dropped character's beat before it.
+            d = drop[x]
+            if d.get("after") or d.get("with"):
+                return d.get("after") or d.get("with")
+            prev = [b for b in beats[:beats.index(d)] if b["cast"] == d["cast"] and b["id"] not in drop]
+            return prev[-1]["id"] if prev else None
+        for b in kept:
+            for f in ("after", "with"):
+                seen_ids = set()
+                while b.get(f) in drop and b[f] not in seen_ids:
+                    seen_ids.add(b[f])
+                    a = anchor(b[f])
+                    if a and a != b["id"] and next(x for x in beats if x["id"] == a)["cast"] != b["cast"]:
+                        b[f] = a
+                    else:
+                        b.pop(f)
+                        # Still a reaction: to the other character's latest beat before it
+                        # ("they talk": both talk together).
+                        other = [x for x in kept[:kept.index(b)] if x["cast"] != b["cast"]]
+                        if other:
+                            talky = re.compile(r"\b(talks?|chats?|laughs?|tells?)\b", re.I)
+                            together = talky.search(b["prompt"]) and talky.search(other[-1]["prompt"])
+                            b["with" if together else "after"] = other[-1]["id"]
+                        break
+        beats = kept
+    return beats, fixes
+
+
 def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
     """Make a plan consistent: unique keys, known references, clamped numbers.
     Returns the plan and what was fixed (for the log)."""
@@ -545,6 +793,8 @@ def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
         fr = s.get("framing") if s.get("framing") in ("wide", "medium", "close") else "medium"
         shots.append({"framing": fr, "subject": subj or [c["id"] for c in cast],
                       "until": str(s.get("until")) if str(s.get("until")) in bids else None})
+    beats, pfix = natural_beats(beats, cast, scene)
+    fixes += pfix
     plan = {"title": str(raw.get("title") or "Untitled"), "time_of_day": tod, "weather": wx, "biome": bio,
             "water": bio == "sea" or (bio not in INTERIORS and (bool(WATER_WORDS.search(scene)) if scene else bool(raw.get("water")))),
             "places": places, "cast": cast, "beats": beats, "shots": shots,
@@ -1070,7 +1320,8 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
             # sitting); otherwise an idle beat fills it.
             mine = [x for x in beats if x["cast"] == cid]
             transition = mine and re.search(r"\b(stands? up|gets? up|rises|trips|falls|stumbles|jumps)\b", mine[-1]["prompt"].lower())
-            if mine and "to" not in mine[-1] and not transition and until - cursor[cid] > 0.05 and \
+            gesture = mine and GREET.search(mine[-1]["prompt"])  # a wave doesn't go on for 10 s: wait after it
+            if mine and "to" not in mine[-1] and not transition and not gesture and until - cursor[cid] > 0.05 and \
                     mine[-1]["duration"] + until - cursor[cid] <= MAX_BEAT:
                 mine[-1]["duration"] = _r(until - mine[-1]["start"], 1)
                 cursor[cid] = _r(mine[-1]["start"] + mine[-1]["duration"])
@@ -1373,6 +1624,15 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
     return script, notes
 
 
+SEATED_TALK = {"bench": "sit_bench_talk", "ground": "sit_ground_idle"}
+
+
+def live_cached(prompt: str) -> bool:
+    """Is there a Kimodo live clip for this prompt in library/motions/live/ (any duration)?"""
+    s = re.sub(r"[^a-z0-9]+", "-", prompt.lower()).strip("-")[:40]
+    return any((ROOT / "library" / "motions" / "live").glob(f"{s}-*.bvh"))
+
+
 def tag_motions(beats: list[dict]) -> list[str]:
     """Each beat gets `motion`: an action from the library (server/tools/actions.py),
     or none for a move outside it (Kimodo live, then cached). Tracks sitting, so a
@@ -1381,7 +1641,13 @@ def tag_motions(beats: list[dict]) -> list[str]:
     for b in beats:
         text = f"{b.get('action', '')}. {b['prompt']}"
         ground = bool(GROUND_WORDS.search(text))
+        if SEATED_ACT.match(b["prompt"]) and not STAND_UP.search(text):
+            # "A person sits still / sits and talks": already seated (task 34: a scene that
+            # starts with someone sitting starts them on the seat, not with a sit-down).
+            seated.setdefault(b["cast"], "ground" if ground else "bench")
         m = action_for(text, seated.get(b["cast"]), ground)
+        if not m and seated.get(b["cast"]) and GREET.search(text) and not live_cached(b["prompt"]):
+            m = SEATED_TALK[seated[b["cast"]]]  # a wave from the seat: the seated gesture clip, no GPU needed
         if m:
             b["motion"] = m
         else:
