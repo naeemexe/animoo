@@ -33,10 +33,12 @@ open http://localhost:8000               # Movie | Chat
   Details are in `docs/gpu-log.md`.
 - **RunPod:** the old pod is stopped ($0/hr). Its volume `framed-models` still bills a little storage;
   delete the pod and the volume in the RunPod console when convenient.
-- **LLM:** Nemotron through the local OpenCode CLI free tier (`LLM_BACKEND=opencode`,
-  `opencode/nemotron-3.5-lightning-free`). It rate-limits after about 30 calls per ~30 min, so keep
-  2–4 calls per movie and cache everything. To lift the limit, put a free build.nvidia.com key in
-  `.env` as `NVIDIA_API_KEY` and set `LLM_BACKEND=nvidia`; no code changes are needed.
+- **LLM: self-hosted Nemotron Nano 9B v2** on the Brev box (vLLM, `:8104`, served as `nemotron`), with no key and
+  no rate limit, about 0.6–0.8 s per small JSON call. The app uses `LLM_BACKEND=openai`,
+  `NEMOTRON_BASE_URL=http://localhost:8104/v1`, `NEMOTRON_MODEL=nemotron`. Start it with `bash /opt/app/serve.sh start llm`.
+  Fallbacks: the OpenCode free tier (rate-limited after about 30 calls per 30 min), or a build.nvidia.com key
+  (`LLM_BACKEND=nvidia`, `NVIDIA_API_KEY`), which allows the bigger Nemotron Super for better plans.
+  GPU memory with everything loaded is about 60 of 80 GB.
 
 ## Next
 
