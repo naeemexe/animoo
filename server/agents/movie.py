@@ -746,6 +746,132 @@ def natural_beats(beats: list[dict], cast: list[dict], scene: str) -> tuple[list
     return beats, fixes
 
 
+# Group moves, like NPCs in a game: plain walks, stops and greetings from the library, laid out
+# so people who go somewhere together walk side by side and arrive together.
+PURE_STOP = re.compile(r"^A person (stops|halts|pauses|comes to a (stop|halt)|arrives)( walking)?"
+                       r"( (in front of|at|by|near|outside|beside) [\w ]+)?\.$", re.I)
+LEAVE = re.compile(r"\b(leaves?|leaving|walks? (away|off)|goes? (away|off|home)|heads? (off|home|away)|departs?|exits?|takes? off)\b", re.I)
+MUTUAL = re.compile(r"\b(daps?|dabs?|fist[- ]?bumps?|bumps? fists|high[- ]fives?|shakes? hands|handshakes?|hugs?)\b", re.I)
+DAP = re.compile(r"\b(daps?|fist[- ]?bumps?|bumps? fists)\b|\bdabs?\b.*\b(with|each other|back)\b", re.I)
+DAP_PROMPT = "A person gives a fist bump, reaching one fist forward."
+TALKING = re.compile(r"\b(talk\w*|chat\w*|convers\w*|speak\w*)\b", re.I)
+TALK_PROMPT = "A person talks, gesturing with both hands."
+SIDE_BY_SIDE = 0.9  # m between two people walking together (hips)
+
+
+def _is_walk(b: dict) -> bool:
+    return bool(LOCOMOTION.search(b["prompt"].lower())) and not b.get("then") and not b.get("first")
+
+
+def group_moves(beats: list[dict], cast: list[dict], scene: str) -> tuple[list[dict], list[str]]:
+    """Walking together, stopping, greeting each other and leaving, as plain game moves:
+    - "stops in front of the shop" is where the walk there ends, not another clip;
+    - a walk with nowhere to go followed by a walk to a place is one walk there;
+    - two walks started together to the same place go side by side (`together`);
+    - a mutual greeting (dap, fist bump, hug, "dabs each other") is done at once, facing each other;
+    - "leaves" walks on away from the others (`leave`), not back to where they came from."""
+    fixes = []
+    starts = {c["id"]: c.get("starts_at") for c in cast}
+
+    def relink(old, new):
+        for x in beats:
+            for f in ("after", "with"):
+                if x.get(f) == old:
+                    if new and new != x["id"]:
+                        x[f] = new
+                    else:
+                        x.pop(f)
+
+    for b in beats:  # the arrival is the stop
+        if b.get("move_to") and b.get("then") and PURE_STOP.match(b["then"]):
+            fixes.append(f"{b['id']}: “{b['then']}” is the end of the walk to {b['move_to']}")
+            b.pop("then")
+    drop = set()
+    for i, b in enumerate(beats):
+        if b["id"] in drop:
+            continue
+        mine = [x for x in beats[i + 1:] if x["cast"] == b["cast"] and x["id"] not in drop]
+        if PURE_STOP.match(b["prompt"]) and not b.get("move_to"):
+            prev = [x for x in beats[:i] if x["cast"] == b["cast"] and x["id"] not in drop]
+            if prev and _is_walk(prev[-1]):
+                drop.add(b["id"])
+                relink(b["id"], prev[-1]["id"])
+                fixes.append(f"{b['id']}: “{b['prompt']}” is the end of {prev[-1]['id']}'s walk (dropped)")
+            continue
+        if _is_walk(b) and not any(b.get(k) for k in ("move_to", "goto", "past", "chase")) and mine \
+                and mine[0].get("move_to") and _is_walk(mine[0]):
+            nxt = mine[0]
+            b["move_to"], b["still_prompt"] = nxt["move_to"], b["prompt"]
+            drop.add(nxt["id"])
+            relink(nxt["id"], b["id"])
+            fixes.append(f"{b['id']}: walks on to {nxt['move_to']} ({nxt['id']} merged into it)")
+    beats = [b for b in beats if b["id"] not in drop]
+    byid = {b["id"]: b for b in beats}
+    for b in beats:
+        if b.get("move_to") and _is_walk(b):
+            b.pop("face", None)  # a walker looks where they go
+    # Side by side: walks synced with each other (or each one's first beat) to the same place.
+    first = {}
+    for b in beats:
+        first.setdefault(b["cast"], b)
+    for b in beats:
+        if not (b.get("move_to") and _is_walk(b)) or b.get("together"):
+            continue
+        w = byid.get(b.get("with"))
+        if not w:
+            w = next((x for x in beats if x is not b and first.get(x["cast"]) is x and first.get(b["cast"]) is b
+                      and x["cast"] != b["cast"] and not x.get("after") and not b.get("after")
+                      and starts.get(x["cast"]) and starts.get(x["cast"]) == starts.get(b["cast"])
+                      and beats.index(x) < beats.index(b)), None)
+        if w and w["cast"] != b["cast"] and _is_walk(w) and w.get("move_to") == b["move_to"] and not w.get("together"):
+            b["together"], b["with"] = w["id"], w["id"]
+            b.pop("after", None)
+            fixes.append(f"{b['id']}: {b['cast']} walks to {b['move_to']} side by side with {w['cast']}")
+            # They were talking on the way: once there, they turn and talk, then go on with the plan.
+            if TALKING.search(f"{w['action']} {w['prompt']} {b['action']} {b['prompt']} {scene}"):
+                nxt = [x for x in beats[beats.index(b) + 1:] if x["cast"] in (b["cast"], w["cast"])]
+                if nxt and not any(TALKING.search(f"{x['action']} {x['prompt']}") for x in nxt):
+                    t1 = {"id": f"{w['id']}t", "cast": w["cast"], "action": f"talks to {b['cast']}", "prompt": TALK_PROMPT,
+                          "duration": 3.0, "face": b["cast"], "after": b["id"]}
+                    t2 = {"id": f"{b['id']}t", "cast": b["cast"], "action": f"talks to {w['cast']}", "prompt": TALK_PROMPT,
+                          "duration": 3.0, "face": w["cast"], "after": t1["id"]}
+                    relink(b["id"], t2["id"])
+                    t1["after"] = b["id"]
+                    i = beats.index(b) + 1
+                    beats[i:i] = [t1, t2]
+                    byid.update({t1["id"]: t1, t2["id"]: t2})
+                    fixes.append(f"{b['id']}: at {b['move_to']} they turn to each other and talk ({t1['id']}, {t2['id']})")
+    # A mutual greeting: both at once, facing each other.
+    for b in beats:
+        a = byid.get(b.get("after")) or byid.get(b.get("with"))
+        if a and a["cast"] != b["cast"] and MUTUAL.search(f"{a['action']} {a['prompt']}") \
+                and MUTUAL.search(f"{b['action']} {b['prompt']}") and a.get("face") in (None, b["cast"]) \
+                and b.get("face") in (None, a["cast"]):
+            if b.get("after"):
+                b["with"] = b.pop("after")
+                fixes.append(f"{b['id']}: {b['cast']} and {a['cast']} do it at the same time")
+            a["face"], b["face"] = b["cast"], a["cast"]
+    for b in beats:
+        if DAP.search(f"{b['action']} {b['prompt']}") and b["prompt"] != DAP_PROMPT:
+            fixes.append(f"{b['id']}: “{b['prompt']}” → a dap: “{DAP_PROMPT}”")
+            b["prompt"], b["duration"] = DAP_PROMPT, min(b["duration"], 3.0)
+            b.pop("still_prompt", None)
+    # Leaving: walk on, away from the others, not back to the start.
+    been = {c["id"]: {starts.get(c["id"])} for c in cast}
+    for b in beats:
+        if LEAVE.search(b["action"]) and (_is_walk(b) or b.get("move_to")) and \
+                (not b.get("move_to") or b["move_to"] in been[b["cast"]]):
+            b["leave"] = True
+            for k in ("move_to", "face", "then", "still_prompt", "goto"):
+                b.pop(k, None)
+            if not _is_walk(b):
+                b["prompt"] = "A person walks forward."
+            fixes.append(f"{b['id']}: {b['cast']} leaves: walks on away from the others")
+        if b.get("move_to"):
+            been[b["cast"]].add(b["move_to"])
+    return beats, fixes
+
+
 def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
     """Make a plan consistent: unique keys, known references, clamped numbers.
     Returns the plan and what was fixed (for the log)."""
@@ -898,6 +1024,8 @@ def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
                       "until": str(s.get("until")) if str(s.get("until")) in bids else None})
     beats, pfix = natural_beats(beats, cast, scene)
     fixes += pfix
+    beats, gfix = group_moves(beats, cast, scene)
+    fixes += gfix
     plan = {"title": str(raw.get("title") or "Untitled"), "time_of_day": tod, "weather": wx, "biome": bio,
             "water": bio == "sea" or (bio not in INTERIORS and (bool(WATER_WORDS.search(scene)) if scene else bool(raw.get("water")))),
             "places": places, "cast": cast, "beats": beats, "shots": shots,
@@ -1415,6 +1543,8 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
 
         # Beats: timing from the sync links, walks fitted to their distance.
         cursor = {c["id"]: 0.0 for c in plan["cast"]}
+        heading_of = {c["id"]: cast_by[c["id"]]["start"]["facing"] for c in plan["cast"]}
+        walked: dict[str, tuple] = {}  # walk beat id → (from, to): a partner walks beside it
         at_place = {c["id"]: c["starts_at"] for c in plan["cast"]}
         fast = {c["id"]: False for c in plan["cast"]}  # their last move was a run
         timing: dict[str, tuple[float, float]] = {}
@@ -1435,7 +1565,9 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
             # sitting); otherwise an idle beat fills it.
             mine = [x for x in beats if x["cast"] == cid]
             transition = mine and re.search(r"\b(stands? up|gets? up|rises|trips|falls|stumbles|jumps)\b", mine[-1]["prompt"].lower())
-            gesture = mine and GREET.search(mine[-1]["prompt"])  # a wave doesn't go on for 10 s: wait after it
+            # A wave, a talk or a dap doesn't go on for 10 s: wait after it (listening, not talking over them).
+            gesture = mine and (GREET.search(mine[-1]["prompt"]) or MUTUAL.search(mine[-1]["action"]) or
+                                mine[-1]["prompt"] in (TALK_PROMPT, DAP_PROMPT))
             if mine and "to" not in mine[-1] and not transition and not gesture and until - cursor[cid] > 0.05 and \
                     mine[-1]["duration"] + until - cursor[cid] <= MAX_BEAT:
                 mine[-1]["duration"] = _r(until - mine[-1]["start"], 1)
@@ -1463,6 +1595,8 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
             parts = max(1, math.ceil(need / 9.0))
             plain = "A person runs forward fast." if speed >= 2.0 else "A person walks forward."
             src = pos[cid]
+            if dist > 0.3:
+                heading_of[cid] = _heading(src, dest)
             for j in range(parts):
                 f = (j + 1) / parts
                 to = (src[0] + (dest[0] - src[0]) * f, src[1] + (dest[1] - src[1]) * f)
@@ -1540,7 +1674,42 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
                 add(cid, start, dur, b["prompt"], b["action"], to=_pt(dest))
                 pos[cid], at_place[cid] = dest, None
                 fast[cid] = speed_of(b["prompt"]) >= 2.0
+            elif b.get("leave") or (not mv and _is_walk(b)):
+                # Leaving, or walking with nowhere to go: straight on the way they were heading
+                # (turning a little if the edge is near), like an NPC walking off.
+                h0, far = heading_of[cid], 9.0 if b.get("leave") else speed_of(b["prompt"]) * b["duration"]
+                dest = None
+                for dh in (0, 30, -30, 60, -60, 90, -90, 135, -135, 180):
+                    d = _dir(h0 + dh)
+                    q = (pos[cid][0] + d[0] * far, pos[cid][1] + d[1] * far)
+                    if math.hypot(*q) <= ISLAND - 1.0:
+                        dest = q
+                        break
+                dest = dest or (0.0, 0.0)
+                notes.append(f"{b['id']} {cid} {'leaves' if b.get('leave') else 'walks on'}: " +
+                             go(cid, dest, b["prompt"], b["action"], start))
+                at_place[cid] = None
             elif mv:
+                lead = walked.get(b.get("together"))
+                if lead and not any(x["cast"] == cid and "to" in x for x in beats):
+                    # Side by side with the one they walk with: the same walk, shifted sideways
+                    # (away from the place, so nobody ends up in the stall), from the same start.
+                    src, dl = lead
+                    h = _heading(src, dl)
+                    perp = _dir(h + 90)
+                    c0 = places[mv]["center"] if mv in places else dl
+                    s = 1 if (dl[0] - c0[0]) * perp[0] + (dl[1] - c0[1]) * perp[1] >= 0 else -1
+                    off = (perp[0] * s * SIDE_BY_SIDE, perp[1] * s * SIDE_BY_SIDE)
+                    if not any(x["cast"] == cid for x in beats):
+                        pos[cid] = (src[0] + off[0], src[1] + off[1])
+                        cast_by[cid]["start"] = {"position": _pt(pos[cid]), "facing": _r(((h + 180) % 360) - 180, 0)}
+                    dest = (dl[0] + off[0], dl[1] + off[1])
+                    walked[b["id"]] = (pos[cid], dest)
+                    notes.append(f"{b['id']} {cid} → {mv} beside {b['together']}: "
+                                 + go(cid, dest, b["prompt"], b["action"], start))
+                    at_place[cid] = mv if mv in places else None
+                    timing[b["id"]] = (t0, cursor[cid])
+                    continue
                 if mv in places:
                     dest, face = slot(mv, cid)
                 else:  # another character: stop a meter short of them
@@ -1548,6 +1717,7 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
                     h = _heading(other, pos[cid])
                     dest, face = (other[0] + _dir(h)[0] * 1.1, other[1] + _dir(h)[1] * 1.1), h + 180
                 dist = _dist(pos[cid], dest)
+                walked[b["id"]] = (pos[cid], dest)
                 if dist < 1.0 and b.get("first"):
                     pass  # stood up already, and is already there
                 elif dist < 1.0:  # already there: do the action in place
