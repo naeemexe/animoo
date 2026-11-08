@@ -1,0 +1,126 @@
+// The scene script: what the orchestrator agent emits for the Movie page, and
+// everything downstream (world, motion and director) reads. Task 08 makes
+// Nemotron produce exactly this JSON; `validateScript()` is the contract.
+//
+// Units and conventions
+//   - Meters, seconds, degrees. The ground is the x/z plane, +y is up, and the
+//     island is a disc of radius 18 m centered on the origin (stay inside 15 m).
+//   - A heading (`facing`, `rotation`, camera `angle`) is degrees about +y,
+//     0 = facing +z, 90 = facing +x (the camera's default view is from +x/+z).
+//   - A target is a prop `key`, a cast `id`, or a point [x, z].
+//
+// {
+//   "version": 1,
+//   "title": "Morning on the dock",
+//   "scene": "the user's scene text, unchanged",
+//   "terrain": {
+//     "time_of_day": "sunrise" | "day" | "golden" | "dusk",
+//     "water": [{ "shape": "pond", "center": [x, z], "radius": m }],   // optional
+//     "paths": [{ "points": [[x, z], ...], "width": m }]                // optional
+//   },
+//   "props": [{
+//     "key": "hut",              // unique in this script; beats and shots refer to it
+//     "library": "stilt-hut",    // a library/manifest.json prop id
+//     "position": [x, z],
+//     "rotation": deg,           // optional, default 0
+//     "scale": 1                 // optional, multiplies the library size
+//   }],
+//   "cast": [{
+//     "id": "fisherman",
+//     "name": "Old fisherman",
+//     "character": "avatar_male",           // a library/characters/ VRM file name
+//     "scale": 1,                           // optional (a kid is about 0.8)
+//     "start": { "position": [x, z], "facing": deg }
+//   }],
+//   "beats": [{                             // one clip for one character
+//     "id": "f1",
+//     "cast": "fisherman",
+//     "start": s,                           // planned start on the film's clock
+//     "duration": s,                        // 0.5 to 10: Kimodo's clean range
+//     "prompt": "A person walks forward slowly.",   // Kimodo text, "A person ..."
+//     "action": "walks out of the hut",     // a short label for the timeline
+//     "facing": deg | "target",             // optional: turn to this at the beat's start
+//     "to": "target"                        // optional: end the beat here (walks, runs)
+//   }],
+//   "shots": [{                             // the camera, in film order, no gaps
+//     "id": "s1",
+//     "start": s,
+//     "duration": s,
+//     "framing": "wide" | "medium" | "close",
+//     "subject": "target" | ["target", ...],   // what the camera looks at
+//     "angle": deg                          // optional: where the camera stands, around the subject
+//   }]
+// }
+//
+// How the director reads beats: each character's beats play in order and never
+// overlap. A beat starts at max(its `start`, the end of that character's
+// previous clip); a gap holds the last pose, so the orchestrator should fill
+// long waits with an idle beat instead. A character is off screen until its
+// first beat. `facing` turns the character at the join (over the blend), and
+// `to` bends and stretches the clip's ground path (by at most ±35 %) so it
+// ends at the target.
+
+export const MAX_BEAT = 10;
+export const FRAMINGS = ['wide', 'medium', 'close'];
+
+// Problems with a script, as readable strings. Empty means valid. `manifest`
+// (library/manifest.json) is optional; with it, prop ids are checked too.
+export function validateScript(s, manifest) {
+  const errs = [];
+  const err = (m) => errs.push(m);
+  const isNum = (x) => typeof x === 'number' && Number.isFinite(x);
+  const isPoint = (p) => Array.isArray(p) && p.length === 2 && p.every(isNum);
+  if (!s || typeof s !== 'object') return ['script is not an object'];
+  if (s.version !== 1) err('version must be 1');
+  for (const k of ['props', 'cast', 'beats', 'shots']) if (!Array.isArray(s[k])) err(`${k} must be an array`);
+  if (errs.length) return errs;
+
+  const propIds = new Set(manifest?.props.map((p) => p.id));
+  const keys = new Set();
+  for (const p of s.props) {
+    if (!p.key || keys.has(p.key)) err(`prop key "${p.key}" is missing or repeated`);
+    keys.add(p.key);
+    if (manifest && !propIds.has(p.library)) err(`prop ${p.key}: no library prop "${p.library}"`);
+    if (!isPoint(p.position)) err(`prop ${p.key}: position must be [x, z]`);
+  }
+  const castIds = new Set();
+  for (const c of s.cast) {
+    if (!c.id || castIds.has(c.id) || keys.has(c.id)) err(`cast id "${c.id}" is missing or repeated`);
+    castIds.add(c.id);
+    if (!c.character) err(`cast ${c.id}: character is missing`);
+    if (!isPoint(c.start?.position) || !isNum(c.start?.facing)) err(`cast ${c.id}: start needs position [x, z] and facing`);
+  }
+  const isTarget = (t) => isPoint(t) || keys.has(t) || castIds.has(t);
+
+  const lastEnd = {};
+  const beatIds = new Set();
+  for (const b of s.beats) {
+    const at = `beat ${b.id}`;
+    if (!b.id || beatIds.has(b.id)) err(`${at}: id missing or repeated`);
+    beatIds.add(b.id);
+    if (!castIds.has(b.cast)) err(`${at}: unknown cast "${b.cast}"`);
+    if (!isNum(b.start) || b.start < 0) err(`${at}: start must be a number ≥ 0`);
+    if (!isNum(b.duration) || b.duration < 0.5 || b.duration > MAX_BEAT) err(`${at}: duration must be 0.5–${MAX_BEAT} s`);
+    if (typeof b.prompt !== 'string' || !b.prompt.trim()) err(`${at}: prompt is missing`);
+    if (b.facing !== undefined && !isNum(b.facing) && !isTarget(b.facing)) err(`${at}: facing must be degrees or a target`);
+    if (b.to !== undefined && !isTarget(b.to)) err(`${at}: to must be a target`);
+    if (b.start < (lastEnd[b.cast] ?? 0) - 1e-6) err(`${at}: overlaps ${b.cast}'s previous beat`);
+    lastEnd[b.cast] = b.start + b.duration;
+  }
+  let t = 0;
+  for (const sh of s.shots) {
+    if (!FRAMINGS.includes(sh.framing)) err(`shot ${sh.id}: framing must be ${FRAMINGS.join(' | ')}`);
+    if (Math.abs(sh.start - t) > 1e-6) err(`shot ${sh.id}: starts at ${sh.start}, expected ${t} (no gaps)`);
+    const subj = Array.isArray(sh.subject) && !isPoint(sh.subject) ? sh.subject : [sh.subject];
+    if (!subj.length || !subj.every(isTarget)) err(`shot ${sh.id}: unknown subject`);
+    t = sh.start + sh.duration;
+  }
+  return errs;
+}
+
+// The planned film length: the end of the last beat or shot.
+export function plannedDuration(s) {
+  return Math.max(0, ...s.beats.map((b) => b.start + b.duration), ...s.shots.map((x) => x.start + x.duration));
+}
+
+export const beatsOf = (s, castId) => s.beats.filter((b) => b.cast === castId).sort((a, b) => a.start - b.start);
