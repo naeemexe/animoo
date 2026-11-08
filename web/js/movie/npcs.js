@@ -1,7 +1,9 @@
 // Background extras (task 36): no LLM call. In city, park, beach and restaurant sets
 // 4–8 people go about their day on loops from the action library: strolling
 // round the square, sitting on free benches or the grass, chatting in pairs,
-// a worker hammering, diners at the other tables. They keep well away from
+// someone waiting, diners at the other tables. Only the calm clips (CALM) are
+// used: big gestures (hammering with no hammer, stretching, laughing, digging)
+// read as broken arms or dancing from afar. They keep well away from
 // every spot the cast passes through (sampled from the merged clips), from
 // the props and the fill (trees, lamps, buildings), so they stay out of the
 // action, out of the camera's focus and out of everyone's paths.
@@ -22,6 +24,8 @@ import { seaSide } from './fill.js';
 import { prepareAction, loopTo, warpToPath, obstaclesFromSet, seatsFromSet } from './control.js';
 
 const BIOMES = new Set(['city', 'park', 'restaurant', 'sea']);
+// The only clips an extra plays: stand, talk, sit, walk. Never live Kimodo.
+const CALM = new Set(['idle', 'talk', 'walk', 'sit_bench_idle', 'sit_bench_talk', 'sit_ground_idle']);
 const MAX = 8;
 // The base VRMs' natural heights → adult heights (server/agents/movie.py HEIGHT).
 const ADULT = { avatar_male: 1.76 / 2.01, avatar_female: 1.70 / 1.54 };
@@ -66,11 +70,13 @@ function cloneVRM(vrm, { ownGeometry = false } = {}) {
     if (bone?.node && map.has(bone.node)) humanBones[name] = { node: map.get(bone.node) };
   }
   // The normalized rig is measured in the VRM's own frame, as at load (before rotateVRM0).
-  const ry = scene.rotation.y;
-  scene.rotation.y = 0;
+  // By quaternion: the clone's Euler for the VRM 0 half turn comes out as (-π, 0, -π),
+  // so zeroing rotation.y left it turned and every extra's arms bent the wrong way.
+  const q = scene.quaternion.clone();
+  scene.quaternion.identity();
   scene.updateMatrixWorld(true);
   const humanoid = new VRMHumanoid(humanBones);
-  scene.rotation.y = ry;
+  scene.quaternion.copy(q);
   scene.add(humanoid.normalizedHumanBonesRoot);
   scene.updateMatrixWorld(true);
   return { scene, humanoid, meta: vrm.meta, update() { humanoid.update(); } };
@@ -245,9 +251,9 @@ export async function addExtras(stage, script, set, rows, heroes, duration, { se
     }
   } else {
     // Strollers (and a jogger in the park) on arcs round the square.
-    const walkers = biome === 'park' ? [['walk', 1.25], ['walk', 1.25], ['run', 2.6]] : [['walk', 1.25], ['walk', 1.25]];
+    const walkers = biome === 'park' ? [['walk', 1.25], ['walk', 1.25], ['walk', 1.25]] : [['walk', 1.25], ['walk', 1.25]];
     for (const [action, speed] of walkers) {
-      const len = Math.min(speed * D, action === 'run' ? 60 : 40);
+      const len = Math.min(speed * D, 40);
       const pts = arc(len, 8, 20);
       if (!pts) continue;
       for (const p of pts) taken.push([p[0], p[1], 1.0]);
@@ -264,7 +270,7 @@ export async function addExtras(stage, script, set, rows, heroes, duration, { se
       benches++;
     }
     // A chatting pair; in the park a second pair sits on the grass.
-    const pairs = biome === 'park' || biome === 'sea' ? [['talk', 'laugh'], ['sit_ground_idle', 'sit_ground_idle']] : [['talk', 'idle']];
+    const pairs = biome === 'park' || biome === 'sea' ? [['talk', 'idle'], ['sit_ground_idle', 'sit_ground_idle']] : [['talk', 'idle']];
     for (const [a1, a2] of pairs) {
       const c = spot(7, 14, { body: 1.0 });
       if (!c) continue;
@@ -274,10 +280,8 @@ export async function addExtras(stage, script, set, rows, heroes, duration, { se
       plans.push({ kind: 'chat', female: rng() < 0.5, action: a1, at: p1, facing: face(p1, p2) });
       plans.push({ kind: 'chat', female: rng() < 0.5, action: a2, at: p2, facing: face(p2, p1) });
     }
-    // City: a worker at a job (hammering); park: someone stretching after a run.
-    // Both turned a little away from the action.
-    const solo = biome === 'city' ? { kind: 'worker', female: false, action: 'hammer' }
-      : biome === 'sea' ? { kind: 'digger', female: rng() < 0.5, action: 'dig' } : { kind: 'solo', female: rng() < 0.5, action: 'stretch' };
+    // Someone standing and waiting (for a bus, a friend), turned a little away from the action.
+    const solo = { kind: 'solo', female: rng() < 0.5, action: 'idle' };
     const c = spot(8, 15, { body: 0.8 });
     if (c) { taken.push([c[0], c[1], 1.5]); plans.push({ ...solo, at: c, facing: face(center, c) + (rng() - 0.5) }); }
   }
@@ -302,7 +306,7 @@ export async function addExtras(stage, script, set, rows, heroes, duration, { se
   group.name = 'extras';
   for (const o of await Promise.all(furnitureJobs.map((j) => j.catch(() => null)))) if (o) group.add(o);
   const list = [];
-  await Promise.all(plans.slice(0, MAX).map(async (p, i) => {
+  await Promise.all(plans.filter((p) => CALM.has(p.action)).slice(0, MAX).map(async (p, i) => {
     const character = p.female ? 'avatar_female' : 'avatar_male';
     const entry = await clipFor(character, p.action).catch((err) => { console.warn('extra clip:', err.message); return null; });
     if (!entry) return;
@@ -351,7 +355,7 @@ function summarize(list) {
   const n = (k) => list.filter((x) => x.plan.kind === k).length;
   const parts = [
     [n('stroll'), 'on a stroll'], [n('sitter'), 'on benches'], [n('chat'), 'chatting'],
-    [n('worker'), 'at work'], [n('solo'), 'stretching'], [n('digger'), 'digging in the sand'], [n('diner'), 'dining'], [n('chef'), 'by the counter'],
+    [n('solo'), 'waiting'], [n('diner'), 'dining'], [n('chef'), 'by the counter'],
   ].filter(([k]) => k).map(([k, w]) => `${k} ${w}`);
   return `${list.length} extras: ${parts.join(', ')}`;
 }
