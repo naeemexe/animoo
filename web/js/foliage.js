@@ -3,7 +3,7 @@
 // normals are smoothed, so each crown mesh is rebuilt once per template:
 // broadleaf crowns become a cluster of smooth puffs filling the old crown's
 // volume, conifers a 16-sided lathe of their own radius profile (tiers kept).
-// Trunks are untouched. About 1k vertices per crown, so the instanced forest
+// Trunks are stretched up into the crown. About 1k vertices per crown, so the instanced forest
 // stays cheap.
 import * as THREE from 'three';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -83,18 +83,45 @@ export function roundTree(object, entry) {
   const box = new THREE.Box3().setFromObject(object);
   const H = box.max.y - box.min.y;
   let i = 0;
+  const trunks = [], crowns = [];
   object.traverse((node) => {
-    if (!node.isMesh || node.geometry.attributes.position.count < 30) return;
+    if (!node.isMesh) return;
     // Trunks stand on the ground; crowns start well above it.
     const nb = new THREE.Box3().setFromObject(node);
-    if (nb.min.y - box.min.y < H * 0.05) return;
+    if (nb.min.y - box.min.y < H * 0.05) { trunks.push(node); return; }
+    if (node.geometry.attributes.position.count < 30) return;
     const old = node.geometry;
     node.geometry = conifer ? latheCrown(old) : puffCrown(old, i++);
     old.dispose();
+    crowns.push(node);
     const m = node.material;
     if (m.vertexColors) { m.vertexColors = false; m.needsUpdate = true; }
   });
+  growTrunks(trunks, crowns);
   return object;
+}
+
+// The kit's trunks stop short of the crown (tree_oak: trunk to 2.06 m, crown from 2.28 m), and
+// the rounded crown's middle starts higher still: from close up the leaves float over the trunk.
+// Stretch each trunk upward from its base so its top reaches well into the crown.
+function growTrunks(trunks, crowns) {
+  if (!crowns.length) return;
+  const crown = new THREE.Box3();
+  for (const c of crowns) crown.union(new THREE.Box3().setFromObject(c));
+  const target = crown.min.y + 0.35 * (crown.max.y - crown.min.y);
+  for (const t of trunks) {
+    const tb = new THREE.Box3().setFromObject(t);
+    if (tb.max.y >= target || tb.max.y - tb.min.y < 1e-3) continue;
+    const f = (target - tb.min.y) / (tb.max.y - tb.min.y);
+    const g = t.geometry.clone();
+    g.computeBoundingBox();
+    const y0 = g.boundingBox.min.y, pos = g.attributes.position;
+    for (let k = 0; k < pos.count; k++) pos.setY(k, y0 + (pos.getY(k) - y0) * f);
+    pos.needsUpdate = true;
+    g.computeBoundingBox();
+    g.computeBoundingSphere();
+    t.geometry = g;
+  }
 }
 
 // Kit trees only: generated trees (TRELLIS) are dense and already round.
