@@ -38,7 +38,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 19 | A | Camera paths: draw a keyframed camera path between two timestamps in edit mode; it overrides the director for that span | 2.5 h | todo | 16, 18 |
 | 21 | A | Full pipeline check + optimization: load times, GLB sizes, caching, LLM call budget, GPU memory, bug bash | 2 h | done (session closed early: export width, snow ground, shot defaults, 2 scenes cached; timing table not written) | 13–17 |
 | 22 | A | Motion control: a game-style action library (cached clips) plus position control: paths around props, facing, gestures aimed at a target, consistent heights | 3 h | done | 14, 16 |
-| 23 | A | Look fixes: intentional depth of field, stable shadows, thinner outlines on small props, less blocky props, no visible circular world edge | 1.5 h | doing | 15 |
+| 23 | A | Look fixes: intentional depth of field, stable shadows, thinner outlines on small props, less blocky props, no visible circular world edge | 1.5 h | done | 15 |
 | 24 | A | Scene variety: city, sea/beach, park sets (not only forest), one cached scene each | 2 h | todo | 15, 22 |
 | 25 | A | Interiors: room and restaurant sets, with an interior camera (eye level, horizontal moves, two-shots, over-the-shoulder; never above the roof) | 2 h | todo | 16, 24 |
 | 26 | A | Spoken dialogue: Nemotron writes cinematic lines per character; ElevenLabs voices them; talk gesture + timeline sync | 2 h | waiting (needs `ELEVENLABS_API_KEY` in `.env`) | 22 |
@@ -485,3 +485,28 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
   faces away from the boy while she waits (she turns only for her wave back); the Chat page still uses its own clips.
 - 22: the `pathInfo` log says "straight" when the A* line needs no corner, even if it passes a prop's end (the park walk
   did: the talking spot is diagonal past the bench).
+- 23 (2026-11-08): the tilt-shift (a sharp screen band) is gone. `look.js` now blurs by depth: `look.setFocus({ point, blur })`
+  focuses on a world point (followed every frame), sharp within ±18% of its distance, blur growing behind (×1.6) and
+  faster in front (×2.5), each tap weighted by its own blur so the sharp subject doesn't halo. The director focuses on
+  the shot's look-at point with `blur` per shot type in `TYPES` (`camera.js`): wide 0, medium/side 3.5, low 4.5,
+  close 6, OTS 6.5 (the partner's shoulder goes soft). Free orbit focuses on the orbit target (blur 3), Chat on the
+  presenter (5), `/props.html` none.
+- 23: outlines: the normal pass is now a `ShaderMaterial` (skinning, morphs and instancing via three's chunks) that writes
+  each object's ink width in alpha: `inkFor(size)` = 0.3 + 0.35 × the size of its top-level prop (clamped 0.4–1), measured
+  once and cached in `userData.ink` (a set can pre-tag objects). The composite takes the smallest ink around a pixel, so
+  small props get thin, fainter lines on both sides of their silhouette.
+- 23: shadows: `fitShadow()` in `world.js` fits the sun's ortho box to `shadowArea(script)` (props, cast starts and walk
+  targets, +5 m, radius 12–36 m) and snaps its centre to whole texels in light space; `normalBias` follows the texel
+  size. `setTimeOfDay()` takes the script as a 4th argument for this. The sun never moved before either, so the
+  jitter the user saw was probably acne/band crawl on moving characters; a tighter box and the bias should help, but
+  this was checked in stills only, not in a playing film (efficiency rule).
+- 23: blockiness: `toonify()` now gives library meshes under 20k vertices crease-angle normals (`smoothed()`, 65°), and
+  the fill's bushes and hills are smooth spheres (rocks stay faceted dodecahedra). Bushes and round props read much
+  softer; the Kenney kit trees' crowns are octagonal *silhouettes*, which smoothing can't change. Rounder trees would
+  need different tree models (or more segments) in the fill.
+- 23: the forest clearing's edge is warped by low-frequency noise (`warped()` in `fillWorld`) and glades thin the forest
+  past 22 m, so from above it's an irregular glade opening out, not a round island.
+- 23: one screenshot each of the 7 other cached scenes (t = 9 s): nothing broken in 23's scope, no console errors.
+  Seen, outside 23: in the fisherman film at 9 s the fisherman and the kid overlap (same spot, 22/positions); in the
+  foggy film the woman stands inside the well's footprint while drawing water; the snowy scene's trees and bushes stay
+  summer-green (24: biomes); the market is in a forest clearing (24).
