@@ -1,0 +1,24 @@
+{
+ "id": "street-cafe",
+ "name": "street-cafe",
+ "prompt": "a small city cafe with outdoor tables and a awning",
+ "sent_prompt": "a small city cafe with outdoor tables and a awning, solid chunky shapes, thick sturdy parts",
+ "seed": 0,
+ "image_key": "d27d5791ed206e42",
+ "size_m": 4.0,
+ "normalize": {
+  "normalized": true,
+  "trimmed": true,
+  "cut_fraction": 0.1,
+  "triangles_removed": 1985,
+  "size": [
+   3.95,
+   3.6,
+   4.0
+  ],
+  "vertices": 54083,
+  "triangles": 55121
+ },
+ "pod_seconds": 37.6,
+ "created": "2026-11-08T08:26:18+00:00"
+}

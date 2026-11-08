@@ -1253,6 +1253,29 @@
    "source": "generated",
    "prompt": "a single tropical coconut palm tree with a curved trunk and green fronds, isolated",
    "thumbnail": "props/generated/palm-tree.png"
+  },
+  {
+   "id": "street-cafe",
+   "file": "props/generated/street-cafe.glb",
+   "category": "buildings",
+   "size": [
+    3.95,
+    3.6,
+    4.0
+   ],
+   "tags": [
+    "awning",
+    "cafe",
+    "city",
+    "generated",
+    "outdoor",
+    "street",
+    "tables"
+   ],
+   "license": "generated: concept image by NVIDIA SANA-Sprint 1.6B (Apache-2.0; its text encoder Gemma-2-2B-IT is under the Gemma Terms of Use), image to 3D by Microsoft TRELLIS.2-4B (MIT) with BiRefNet background removal (MIT)",
+   "source": "generated",
+   "prompt": "a small city cafe with outdoor tables and a awning",
+   "thumbnail": "props/generated/street-cafe.png"
   }
  ]
 }
