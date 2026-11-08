@@ -1,0 +1,428 @@
+{
+ "scene": "At night in the rain a lamplighter walks down the village street, lights a lantern by the houses, and waves to a girl at her window.",
+ "created": "2026-11-08T06:54:29+00:00",
+ "model": "nvidia/nemotron-3.5-super-vl-120b-a12b + nvidia/nemotron-3.5-lightning-30b-a3b",
+ "backend": "nvidia",
+ "llm_calls": [
+  {
+   "agent": "orchestrator",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+   "ok": true,
+   "seconds": 5.15
+  },
+  {
+   "agent": "world",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+   "ok": true,
+   "seconds": 2.41
+  }
+ ],
+ "llm_seconds": [
+  5.15,
+  2.41
+ ],
+ "plan": {
+  "title": "The Lamplighter",
+  "thoughts": [
+   "Two characters: a lamplighter and a girl. Nighttime rain on a village street.",
+   "Places: the village street, a lantern by the houses, and the girl's window.",
+   "The lamplighter walks down the street, lights the lantern, and waves to the girl at her window."
+  ],
+  "time_of_day": "night",
+  "weather": "rain",
+  "water": false,
+  "places": [
+   {
+    "key": "street",
+    "what": "a village street",
+    "use": "stand"
+   },
+   {
+    "key": "lantern",
+    "what": "a lantern by the houses",
+    "use": "stand"
+   },
+   {
+    "key": "window",
+    "what": "a girl's window",
+    "use": "stand"
+   }
+  ],
+  "cast": [
+   {
+    "id": "lamplighter",
+    "name": "Lamplighter",
+    "character": "avatar_male",
+    "kid": false,
+    "starts_at": "street"
+   },
+   {
+    "id": "girl",
+    "name": "Girl",
+    "character": "avatar_female",
+    "kid": true,
+    "starts_at": "window"
+   }
+  ],
+  "beats": [
+   {
+    "id": "b1",
+    "cast": "lamplighter",
+    "action": "walks down the street",
+    "prompt": "A person walks forward down a street.",
+    "duration": 6,
+    "move_to": "lantern"
+   },
+   {
+    "id": "b2",
+    "cast": "lamplighter",
+    "action": "lights a lantern",
+    "prompt": "A person lights a lantern.",
+    "duration": 4
+   },
+   {
+    "id": "b3",
+    "cast": "lamplighter",
+    "action": "waves to the girl",
+    "prompt": "A person waves hello with their right hand.",
+    "duration": 3,
+    "face": "window"
+   },
+   {
+    "id": "b4",
+    "cast": "girl",
+    "action": "waves back",
+    "prompt": "A person waves back with their right hand.",
+    "duration": 3,
+    "face": "lamplighter",
+    "after": "b3"
+   }
+  ],
+  "shots": [
+   {
+    "framing": "wide",
+    "subject": [
+     "lamplighter",
+     "street"
+    ],
+    "until": "b1"
+   },
+   {
+    "framing": "medium",
+    "subject": "lamplighter",
+    "until": "b2"
+   },
+   {
+    "framing": "medium",
+    "subject": [
+     "lamplighter",
+     "girl"
+    ],
+    "until": "b4"
+   }
+  ]
+ },
+ "world": {
+  "thoughts": [
+   "The street, lantern, and window are set with library props or generated items.",
+   "A rainy night lamplighter scene: the street has logs, a well, and a campfire; the lantern sits by a house; the girl watches from a generated window."
+  ],
+  "choices": [
+   {
+    "place": "street",
+    "library": "log-stack"
+   },
+   {
+    "place": "lantern",
+    "library": "lantern-post"
+   },
+   {
+    "place": "window",
+    "generate": {
+     "name": "girls window",
+     "prompt": "a small cottage window with glass panes and a wooden frame, rainy night",
+     "size_m": 1.5,
+     "category": "buildings"
+    }
+   }
+  ],
+  "decor": [
+   {
+    "library": "bush-small",
+    "count": 2,
+    "near": "street"
+   },
+   {
+    "library": "flower-yellow",
+    "count": 2,
+    "near": "lantern"
+   },
+   {
+    "library": "rock-small",
+    "count": 2,
+    "near": "street"
+   },
+   {
+    "library": "lily-pad",
+    "count": 1,
+    "near": "edge"
+   }
+  ]
+ },
+ "script": {
+  "version": 1,
+  "title": "The Lamplighter",
+  "scene": "At night in the rain a lamplighter walks down the village street, lights a lantern by the houses, and waves to a girl at her window.",
+  "terrain": {
+   "time_of_day": "night",
+   "weather": "rain",
+   "paths": [
+    {
+     "points": [
+      [
+       -7.19,
+       -3.29
+      ],
+      [
+       0.5,
+       0.17
+      ],
+      [
+       7.89,
+       -3.12
+      ]
+     ],
+     "width": 1.4
+    }
+   ]
+  },
+  "props": [
+   {
+    "key": "street",
+    "library": "log-stack",
+    "position": [
+     -6.13,
+     -4.87
+    ],
+    "rotation": -34.0
+   },
+   {
+    "key": "window",
+    "library": "girls-window",
+    "position": [
+     0.02,
+     1.61
+    ],
+    "rotation": 162.0,
+    "generate": {
+     "prompt": "a small cottage window with glass panes and a wooden frame, rainy night",
+     "size_m": 1.5,
+     "category": "buildings"
+    }
+   },
+   {
+    "key": "lantern",
+    "library": "lantern-post",
+    "position": [
+     6.89,
+     -3.75
+    ],
+    "rotation": 58.0
+   },
+   {
+    "key": "bush-small-1",
+    "library": "bush-small",
+    "position": [
+     -5.26,
+     -6.98
+    ],
+    "rotation": -105
+   },
+   {
+    "key": "bush-small-2",
+    "library": "bush-small",
+    "position": [
+     -3.79,
+     -7.4
+    ],
+    "rotation": 0
+   },
+   {
+    "key": "flower-yellow-3",
+    "library": "flower-yellow",
+    "position": [
+     10.23,
+     -4.64
+    ],
+    "rotation": 60
+   },
+   {
+    "key": "flower-yellow-4",
+    "library": "flower-yellow",
+    "position": [
+     3.94,
+     -3.44
+    ],
+    "rotation": 120
+   },
+   {
+    "key": "rock-small-5",
+    "library": "rock-small",
+    "position": [
+     -4.21,
+     -8.17
+    ],
+    "rotation": 45
+   },
+   {
+    "key": "rock-small-6",
+    "library": "rock-small",
+    "position": [
+     -6.14,
+     -7.12
+    ],
+    "rotation": 0
+   }
+  ],
+  "cast": [
+   {
+    "id": "lamplighter",
+    "name": "Lamplighter",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      -7.02,
+      -3.54
+     ],
+     "facing": 88.0
+    },
+    "scale": 0.886
+   },
+   {
+    "id": "girl",
+    "name": "Girl",
+    "character": "avatar_female",
+    "start": {
+     "position": [
+      0.4,
+      0.45
+     ],
+     "facing": -18.0
+    },
+    "scale": 0.862
+   }
+  ],
+  "beats": [
+   {
+    "id": "girl-1",
+    "cast": "girl",
+    "start": 0.0,
+    "duration": 8.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits"
+   },
+   {
+    "id": "lamplighter-1",
+    "cast": "lamplighter",
+    "start": 0.0,
+    "duration": 5.4,
+    "prompt": "A person walks forward down a street.",
+    "action": "walks down the street",
+    "to": [
+     0.31,
+     -3.41
+    ]
+   },
+   {
+    "id": "lamplighter-2",
+    "cast": "lamplighter",
+    "start": 5.4,
+    "duration": 5.4,
+    "prompt": "A person walks forward.",
+    "action": "walks down the street",
+    "to": [
+     7.64,
+     -3.28
+    ]
+   },
+   {
+    "id": "girl-2",
+    "cast": "girl",
+    "start": 8.0,
+    "duration": 8.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits",
+    "seed": 1
+   },
+   {
+    "id": "lamplighter-3",
+    "cast": "lamplighter",
+    "start": 10.8,
+    "duration": 4.0,
+    "prompt": "A person lights a lantern.",
+    "action": "lights a lantern",
+    "facing": "lantern"
+   },
+   {
+    "id": "lamplighter-4",
+    "cast": "lamplighter",
+    "start": 14.8,
+    "duration": 6.0,
+    "prompt": "A person waves hello with their right hand.",
+    "action": "waves to the girl",
+    "facing": "window"
+   },
+   {
+    "id": "girl-3",
+    "cast": "girl",
+    "start": 16.0,
+    "duration": 1.8,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits"
+   },
+   {
+    "id": "girl-4",
+    "cast": "girl",
+    "start": 17.8,
+    "duration": 3.0,
+    "prompt": "A person waves back with their right hand.",
+    "action": "waves back",
+    "facing": "lamplighter"
+   }
+  ],
+  "shots": [
+   {
+    "id": "s1",
+    "start": 0.0,
+    "duration": 10.8,
+    "framing": "wide",
+    "subject": [
+     "lamplighter",
+     "street"
+    ],
+    "angle": 35
+   },
+   {
+    "id": "s2",
+    "start": 10.8,
+    "duration": 4.0,
+    "framing": "medium",
+    "subject": "lamplighter",
+    "angle": -25
+   },
+   {
+    "id": "s3",
+    "start": 14.8,
+    "duration": 6.0,
+    "framing": "medium",
+    "subject": [
+     "lamplighter",
+     "girl"
+    ],
+    "angle": 55
+   }
+  ]
+ }
+}
