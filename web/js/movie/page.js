@@ -23,6 +23,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const params = urlParams;
 const FAST = params.has('fast'); // skip the log's typing delays (for tests)
 const FRESH = params.has('fresh'); // ask Nemotron again instead of the cached plan
+const EXPORT_WIDTH = 1920; // px; ?exportw= overrides
 
 export function createMoviePage(root, stage, look) {
   const $ = (sel) => root.querySelector(sel);
@@ -280,6 +281,13 @@ export function createMoviePage(root, stage, look) {
     const wasCam = state.directorCam;
     state.directorCam = true;
     cam.setEnabled(true);
+    // Real-time VP9 at retina size (2864×1510) dropped the page to ~30 fps and the file stuttered;
+    // record at most 1920 px wide (Full HD) and put the pixel ratio back afterwards.
+    const renderer = stage.renderer;
+    const pr = renderer.getPixelRatio();
+    const exportPr = Math.min(pr, (+params.get('exportw') || EXPORT_WIDTH) / innerWidth);
+    const resize = () => dispatchEvent(new Event('resize'));
+    if (exportPr < pr) { renderer.setPixelRatio(exportPr); resize(); }
     try {
       seek(0);
       const result = await recordWebM(stage.renderer.domElement, {
@@ -295,6 +303,7 @@ export function createMoviePage(root, stage, look) {
       console.error(err);
       log('director', 'error', `export failed: ${err.message}`, { err: true });
     } finally {
+      if (renderer.getPixelRatio() !== pr) { renderer.setPixelRatio(pr); resize(); }
       state.exporting = false;
       state.directorCam = wasCam;
       cam.setEnabled(wasCam);
