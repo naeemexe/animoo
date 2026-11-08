@@ -276,7 +276,11 @@ export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.5, o
         // (task 33: that is where knees snapped straight and flipped).
         const base = c, reach = (x) => Math.hypot(x.hips[(x.frames - 1) * 3] - x.hips[0], x.hips[(x.frames - 1) * 3 + 2] - x.hips[2]);
         if (len / Math.max(reach(c), 0.5) > 1.15) {
-          for (let i = 0; i < 4 && len / Math.max(reach(c), 0.5) > 1.15; i++) c = mergeClips(c, base, { blend: 0.6, match: 1.0 });
+          // Each extension is the length variant that best fills what is left (task 34: two
+          // walk_longs for an 11 m path came out at stride ×0.62, an 18 s slow-motion walk).
+          for (let i = 0; i < 4 && len / Math.max(reach(c), 0.5) > 1.15; i++) {
+            c = mergeClips(c, pickVariant(act.variants, Math.max(0.5, len - reach(c))), { blend: 0.6, match: 1.0 });
+          }
           c.segments = [{ name: base.name, start: 0, end: c.frames }]; // one beat on the timeline
         }
         // Retargeted clips start at the origin facing +Z: put frame 0 at `at`, then bend.
@@ -461,7 +465,8 @@ export function syncReactions(script, aimed, rows, shift) {
   let moved = false;
   for (const b of aimed.beats.filter(isGesture)) {
     const g = aimed.beats.find((x) => x.cast === b.facing && isGesture(x) && x.facing === b.cast &&
-      Math.abs(x.start - b.start) < 2.5 && (x.start < b.start - 0.05 ||
+      // planned together, or right after it (task 34: "waves back" follows the wave it answers)
+      b.start - x.start < Math.max(2.5, x.duration + 0.5) && x.start - b.start < 2.5 && (x.start < b.start - 0.05 ||
         (Math.abs(x.start - b.start) <= 0.05 && (/\bback\b/.test(b.action ?? '') || order.get(x.id) < order.get(b.id)))));
     if (!g || actual[g.id] === undefined) continue;
     // Starts here include the turn blend, so correct by the difference.
