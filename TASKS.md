@@ -28,7 +28,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 09b | A | Movie: wire the real agents in, motion agent generates clips on the pod, director merges | 1.5 h | done (with 08: real agents over SSE, Kimodo clips, merge, export) | 08, 09a |
 | 10 | A | Chat page: a character talks (Nemotron + browser voice) and demonstrates moves | 2 h | done (mock replies; live Nemotron path untested) | 05, 06 |
 | 11 | A | Prop generation in the world agent (image → TRELLIS.2 → library) | 1.5 h | done (mechanics; the world agent calls it in 08) | 07, 08 |
-| 12 | A | Demo: cache the demo scenes, record the video, write the submission | 2 h | doing | 09, 10 |
+| 12 | A | Demo: cache the demo scenes, record the video, write the submission | 2 h | done (5 WebM takes + `demo/SUBMISSION.md`; the narrated 2–3 min cut is the user's) | 09, 10 |
 | 13 | A | Chat: remove the canned mock lines and suggestion chips ("Hi! I can show you a squat…"); Nemotron persona only | 0.5 h | done | 06 |
 | 14 | A | Scale + placement: characters and props at consistent real-world size; grounded, no overlaps, positions that follow the script | 2 h | done | 08 |
 | 15 | A | World fill + backdrop: no empty island. Ground scatter (grass, flowers, rocks), a dense tree/hill ring, a painted sky/backdrop that fills the frame | 2.5 h | done | 08 |
@@ -580,3 +580,15 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
   (sideways on the sofa); interiors have no fill-window light at night beyond the lamps; the fill's armchairs and
   chairs aren't seats (only the script's props are).
 
+- 12 (2026-11-08): five takes in `demo/` (01 park bench 21 s, 02 city street 24 s, 03 beach harbor 11 s, 04 restaurant
+  17 s, 05 night rain lamplighter 21 s; 1920×1080 VP9, 6–15 MB each, 57 MB in all, so committed). Each recorded once with
+  Export WebM and checked by playing the blob back in the page at one time (no ffmpeg on the Mac).
+- 12: offline check: the local `animo-world-offline` launch config starts the server with `MOTION_URL`/`ASSET_URL` on
+  `127.0.0.1:9`, and the page gets `?motion=http://127.0.0.1:9`. All five scenes loaded their cached plans and every clip
+  came from the action library or `library/motions/live/` (the lamplighter's "lights a lantern"); no beat fell back to
+  the sample motions. The only console errors are `ERR_UNSAFE_PORT` from the dead :9 probe. The real tunnel was left up.
+- 12: `?scene=` fills the prompt but doesn't start the film; press Make (or `animo.pages.movie.make()`).
+- 12: `SUBMISSION.md` says Kimodo's and Nemotron 3.5's license terms are "per the model card"; check the exact names
+  before submitting. The five old-project props still have no recorded origin.
+- 12: not checked: whether the lamplighter's girl is visible at her window, and the city street's middle shot frames
+  the man from behind. The beach film is short (11 s) for its story.
