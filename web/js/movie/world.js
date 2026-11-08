@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { generateProp, loadManifest, loadProp } from '../library.js';
 import { toonMaterial } from '../toon.js';
+import { fillWorld } from './fill.js';
 
 const RAD = Math.PI / 180;
 
@@ -119,6 +120,15 @@ export async function buildSet(stage, script, onStep = () => {}) {
     await onStep(err
       ? `place(${p.key}) failed: ${err.message}`
       : `place('${p.library}' as ${p.key}, at=(${p.position.join(', ')})${p.rotation ? `, rot=${p.rotation}°` : ''})`, !!err);
+  }
+  // Fill everything around the action: scatter, tree ring, hills, sky.
+  try {
+    const fill = await fillWorld(stage, script, set);
+    set.add(fill);
+    const c = fill.userData.counts;
+    await onStep(`fill_world() → ${c.trees} trees, ${c.bushes} bushes, ${c.grass} grass tufts, ${c.flowers} flowers, ${c.rocks} rocks · keeps off paths, water, props and walk lines`, false, 'result');
+  } catch (err) {
+    console.warn('fill:', err);
   }
   return set;
 }

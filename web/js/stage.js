@@ -122,6 +122,7 @@ export function createStage(container) {
     controls.update();
     // Haze only beyond the island's far rim, wherever the camera sits.
     const dist = baseOffset.length() * k;
+    if (scene.userData.fogLocked) return; // the world fill owns the haze
     scene.fog.near = dist + GROUND_RADIUS;
     scene.fog.far = dist + GROUND_RADIUS + 70;
   }
