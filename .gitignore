@@ -23,3 +23,6 @@ tmp/
 
 # Local tooling
 .claude/
+
+# Chat speech (ElevenLabs, one mp3 per sentence): a local cache, replies vary too much to be worth committing
+library/audio/speech-*
