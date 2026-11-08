@@ -9,6 +9,7 @@
 import * as THREE from 'three';
 import { LOOK } from '../look.js';
 import { meanHeading } from '../characters/merge.js';
+import { isInterior, roomBounds } from './interior.js';
 
 const RAD = Math.PI / 180;
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
@@ -24,6 +25,20 @@ export const TYPES = {
   side: { dist: 7, h: 1.3, look: 1.0, blur: 3.5, size: 1, off: 90 },
   low: { dist: 5.2, h: 0.4, look: 1.35, blur: 4.5, size: 1.5, off: 28 },
   ots: { dist: 1.9, h: 1.75, look: 1.35, blur: 6.5, size: 2, off: 0 },
+};
+// Indoors (task 25) the camera works like a set camera in a real room: eye
+// level, horizontal moves (dolly in, pull out, truck sideways), two-shots from
+// the side, over the shoulder, from behind one character; never a crane, and
+// never outside the walls (shots that would leave the room are rejected, and
+// the pose is clamped inside as a last resort).
+export const TYPES_IN = {
+  wide: { dist: 5.0, h: 1.6, look: 0.95, blur: 0, size: 0, off: 35 },
+  medium: { dist: 3.2, h: 1.55, look: 1.05, blur: 3, size: 1, off: 30 },
+  close: { dist: 1.9, h: 1.5, look: 1.35, blur: 5, size: 2, off: 22 },
+  side: { dist: 3.0, h: 1.4, look: 1.0, blur: 3, size: 1, off: 90 },
+  low: { dist: 3.2, h: 1.0, look: 1.2, blur: 3.5, size: 1.5, off: 28 },
+  ots: TYPES.ots,
+  behind: { dist: 2.4, h: 1.6, look: 1.05, blur: 3, size: 1.5, off: 180 },
 };
 // The old script framings map onto the new types.
 const LEGACY = { wide: 'wide', medium: 'medium', close: 'close' };
@@ -57,6 +72,7 @@ export class DirectorCamera {
 
   setScript(script, resolve) {
     this.script = script;
+    this.room = isInterior(script) ? roomBounds(script) : null;
     this.resolve = resolve;
     this.shots = null;
     this.shot = null;
@@ -129,12 +145,63 @@ export class DirectorCamera {
 
   // ---- the camera for a shot at time t ---------------------------------------
   // `s` is the subject point (smoothed while playing). Returns {pos, look}.
-  pose(shot, t, rows, s) {
-    const T = TYPES[shot.type] ?? TYPES[LEGACY[shot.framing]] ?? TYPES.medium;
+  typeOf(shot) {
+    const tab = this.room ? TYPES_IN : TYPES;
+    return tab[shot.type] ?? tab[LEGACY[shot.framing]] ?? tab.medium;
+  }
+
+  // Inside the room's walls (with a margin), or anywhere outdoors.
+  inRoom(pos, m = 0.3) {
+    const R = this.room;
+    return !R || (pos.x > R.x0 + m && pos.x < R.x1 - m && pos.z > R.z0 + m && pos.z < R.z1 - m && pos.y < R.h - 0.3);
+  }
+
+  pose(shot, t, rows, s, { clamp = true } = {}) {
+    const p = this.rawPose(shot, t, rows, s);
+    const R = this.room;
+    if (R && clamp) {
+      p.pos.x = THREE.MathUtils.clamp(p.pos.x, R.x0 + 0.3, R.x1 - 0.3);
+      p.pos.z = THREE.MathUtils.clamp(p.pos.z, R.z0 + 0.3, R.z1 - 0.3);
+      p.pos.y = THREE.MathUtils.clamp(p.pos.y, 0.6, R.h - 0.4);
+    }
+    return p;
+  }
+
+  rawPose(shot, t, rows, s) {
+    const T = this.typeOf(shot);
     const u = ease(THREE.MathUtils.clamp((t - shot.start) / Math.max(shot.duration, 0.01), 0, 1));
     const k = s.k ?? 1;
     const r = shot.type === 'wide' ? k : (s.hips ?? 0.95 * k) / 0.95;
     const look = new THREE.Vector3(s.x, Math.max(0.5, T.look * r), s.z);
+    if (this.room && shot.type !== 'ots' && shot.type !== 'low') {
+      // Eye level: a seated subject lowers the camera a little, never to the floor.
+      const eye = THREE.MathUtils.clamp(T.h * (0.5 + 0.5 * r), 1.1, 1.7);
+      look.y = THREE.MathUtils.clamp(look.y, 0.7, 1.5);
+      if (shot.type === 'behind' && shot.partner) {
+        // Behind one character (their back and shoulder in frame), looking at the others.
+        const b = this.pointAt(shot.partner, t, rows);
+        let dx = b[0] - s.x, dz = b[1] - s.z;
+        const L = Math.hypot(dx, dz) || 1;
+        dx /= L; dz /= L;
+        const side = shot.side ?? 1;
+        const back = T.dist * (1.08 - 0.12 * u);
+        return { pos: new THREE.Vector3(b[0] + dx * back - dz * 0.8 * side, eye, b[1] + dz * back + dx * 0.8 * side), look };
+      }
+      let dist = (shot.dist ?? T.dist) + s.spread * (shot.type === 'wide' ? 1.1 : 1.3);
+      let az = shot.angle * RAD;
+      let truck = 0;
+      switch (shot.move) {
+        case 'dolly': dist *= 1.15 - 0.22 * u; break;
+        case 'pull': dist *= 0.92 + 0.2 * u; break;
+        case 'orbit': az += (shot.orbit ?? 12) * RAD * (u - 0.5) * 2; break;
+        case 'truck': truck = (u - 0.5) * 1.4 * (shot.side ?? 1); break; // sideways, parallel to the subject
+      }
+      const flat = Math.sqrt(Math.max(dist * dist - (eye - look.y) ** 2, dist * dist * 0.5));
+      const pos = new THREE.Vector3(s.x + Math.sin(az) * flat + Math.cos(az) * truck, eye, s.z + Math.cos(az) * flat - Math.sin(az) * truck);
+      look.x += Math.cos(az) * truck * 0.6;
+      look.z -= Math.sin(az) * truck * 0.6;
+      return { pos, look };
+    }
     if (shot.type === 'ots' && shot.partner) {
       // Behind the partner's shoulder, looking at the subject's face.
       const b = this.pointAt(shot.partner, t, rows);
@@ -182,7 +249,7 @@ export class DirectorCamera {
     cam.lookAt(look);
     // Focus on the subject (the look-at point, so it follows them), and
     // blur by shot size: none in wide shots, most in close-ups.
-    const T = TYPES[shot.type] ?? TYPES[LEGACY[shot.framing]] ?? TYPES.medium;
+    const T = this.typeOf(shot);
     this.focusPoint ??= new THREE.Vector3();
     this.focusPoint.copy(look);
     this.look.setFocus({ point: this.focusPoint, blur: T.blur });
@@ -204,6 +271,12 @@ export class DirectorCamera {
       if (!keys.has(o.name)) return;
       const b = new THREE.Box3().setFromObject(o);
       if (b.max.y > 0.7) boxes.push(b.expandByScalar(0.15));
+    });
+    // Indoors, the fill's furniture (shelves, counters, other tables) blocks too.
+    set?.getObjectByName('fill')?.children.forEach((o) => {
+      if (!o.userData.prop) return;
+      const b = new THREE.Box3().setFromObject(o);
+      if (b.max.y > 0.7) boxes.push(b.expandByScalar(0.1));
     });
     // The world fill's bushes and boulders are tall enough to block a low
     // camera too (its trees hide themselves near the camera).
@@ -275,8 +348,8 @@ export class DirectorCamera {
       for (const f of [0.1, 0.5, 0.9]) {
         const t = shot.start + shot.duration * f;
         const s = this.subjectAt(shot, t, rows);
-        const { pos } = this.pose(shot, t, rows, s);
-        if (pos.y < 0.2) return true;
+        const { pos } = this.pose(shot, t, rows, s, { clamp: false });
+        if (pos.y < 0.2 || !this.inRoom(pos)) return true;
         for (const id of subs) {
           const p = this.pointAt(id, t, rows);
           const k = typeof id === 'string' && rows[id] ? this.castScale(id) : 1;
@@ -340,9 +413,19 @@ export class DirectorCamera {
         })()) ?? null;
       }
 
+      // Indoors, two subjects: one of them can be the back we shoot past.
+      if (this.room && subject.length > 1 && !partner) partner = subject[1];
       // The type and move, by what's happening.
       let prefs;
-      if (first) prefs = [['wide', 'crane']];
+      if (this.room) {
+        if (first) prefs = [['wide', 'truck'], ['wide', 'dolly']];
+        else if (closing) prefs = [['wide', 'pull']];
+        else if (k === 'run' || k === 'walk') prefs = [['side', 'truck'], ['medium', 'pull'], ['behind', 'static']];
+        else if (k === 'dance') prefs = [['medium', 'orbit'], ['close', 'static']];
+        else if (k === 'gesture') prefs = partner ? [['ots', 'dolly'], ['behind', 'static'], ['close', 'dolly'], ['side', 'static']] : [['close', 'dolly'], ['medium', 'static'], ['side', 'truck']];
+        else if (k === 'sit') prefs = [['side', 'truck'], ['ots', 'static'], ['behind', 'static'], ['medium', 'dolly']];
+        else prefs = [['medium', 'dolly'], ['side', 'static'], ['close', 'static']];
+      } else if (first) prefs = [['wide', 'crane']];
       else if (closing) prefs = [['wide', 'rise']];
       else if (k === 'run') prefs = [['low', 'static'], ['side', 'static'], ['medium', 'pull']];
       else if (k === 'walk') prefs = [['side', 'static'], ['medium', 'pull'], ['low', 'static']];
@@ -351,8 +434,13 @@ export class DirectorCamera {
       else if (k === 'sit') prefs = [['medium', 'orbit'], ['close', 'static'], ['side', 'static']];
       else prefs = [['medium', 'dolly'], ['close', 'static'], ['side', 'static']];
       if (split && !closing) prefs = [...prefs.slice(1), prefs[0]];
-      if (subject.length > 1) prefs = prefs.filter(([t]) => t !== 'ots').map(([t, m]) => [t === 'close' ? 'medium' : t, m]).concat([['medium', 'orbit'], ['wide', 'static']]);
-      prefs.push(['medium', 'static'], ['wide', 'static']);
+      if (this.room) {
+        if (subject.length > 1) prefs = prefs.filter(([t]) => t !== 'ots').map(([t, m]) => [t === 'close' ? 'medium' : t, m]).concat([['side', 'truck'], ['behind', 'static'], ['medium', 'static']]);
+        prefs.push(['medium', 'static'], ['side', 'static'], ['wide', 'static']);
+      } else {
+        if (subject.length > 1) prefs = prefs.filter(([t]) => t !== 'ots').map(([t, m]) => [t === 'close' ? 'medium' : t, m]).concat([['medium', 'orbit'], ['wide', 'static']]);
+        prefs.push(['medium', 'static'], ['wide', 'static']);
+      }
 
       // The subject's facing (or travel direction while it moves).
       const lead = subject[0];
@@ -364,23 +452,23 @@ export class DirectorCamera {
 
       let chosen = null;
       for (const [type, move] of prefs) {
-        if (type === 'ots' && !partner) continue;
-        const T = TYPES[type];
+        if ((type === 'ots' || type === 'behind') && !partner) continue;
+        const T = (this.room ? TYPES_IN : TYPES)[type];
         // No jump cut: same subject, same size, close angle.
         const sameSubj = prev && [].concat(prev.subject).sort().join() === [...subject].sort().join();
         if (prev && sameSubj && prev.type === type && !first) continue;
         // Faces, not backs: only wide and side shots may swing far around.
-        const offs = [0, 20, -20, 40, -40, 60, -60, ...(type === 'wide' || type === 'side' ? [90, -90, 130, -130, 180] : [])];
+        const offs = [0, 20, -20, 40, -40, 60, -60, ...(type === 'wide' || type === 'side' || this.room ? [90, -90, 130, -130, 180] : [])];
         for (const off of offs) {
           for (const sgn of [1, -1]) {
             const shot = {
               id: `s${shots.length + 1}`, start: +start.toFixed(2), duration: +(end - start).toFixed(2),
               type, move, framing: type, subject: subject.length > 1 ? subject : subject[0],
               angle: Math.round(wrap(face + sgn * (T.off + off) * RAD) / RAD), side: sgn,
-              ...(type === 'ots' ? { partner } : {}),
+              ...(type === 'ots' || type === 'behind' ? { partner } : {}),
               action: main ? `${main.cast} ${main.beat.action ?? main.kind}` : 'the scene',
             };
-            if (prev && sameSubj && TYPES[prev.type].size === T.size && Math.abs(wrap((shot.angle - prev.angle) * RAD)) < 35 * RAD) continue;
+            if (prev && sameSubj && this.typeOf(prev).size === T.size && Math.abs(wrap((shot.angle - prev.angle) * RAD)) < 35 * RAD) continue;
             const m = this.pose(shot, mid, rows, this.subjectAt(shot, mid, rows)).pos;
             const side = sideOf(m, mid);
             if (lineSide && side && side !== lineSide && type !== 'wide') continue;
@@ -394,8 +482,9 @@ export class DirectorCamera {
         if (chosen) break;
       }
       if (!chosen) {
-        chosen = { id: `s${shots.length + 1}`, start: +start.toFixed(2), duration: +(end - start).toFixed(2), type: 'wide', move: 'static',
-          framing: 'wide', subject: all.length > 1 ? all : all[0], angle: Math.round(face / RAD + 35), side: 1, action: 'the scene' };
+        const fb = this.room ? 'medium' : 'wide';
+        chosen = { id: `s${shots.length + 1}`, start: +start.toFixed(2), duration: +(end - start).toFixed(2), type: fb, move: 'static',
+          framing: fb, subject: all.length > 1 ? all : all[0], angle: Math.round(face / RAD + 35), side: 1, action: 'the scene' };
       }
       shots.push(chosen);
       prev = chosen;

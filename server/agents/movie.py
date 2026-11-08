@@ -69,8 +69,11 @@ WEATHER_WORDS = [
 
 # The biome sets the ground, scatter, backdrop and decor (web/js/movie/fill.js).
 # First match wins: a "village street" stays a village (forest), a "city park" is a park.
-BIOMES = ["forest", "city", "sea", "park"]
+BIOMES = ["forest", "city", "sea", "park", "room", "restaurant"]
+INTERIORS = {"room", "restaurant"}  # indoors: a room set, furniture, the interior camera (task 25)
 BIOME_WORDS = [
+    ("restaurant", r"\b(restaurants?|diner|bistro|cafeteria|pizzeria|tavern|pub|(in|inside) (a|the) (cozy |small |little )?(cafe|café|coffee shop))\b"),
+    ("room", r"\b(living room|bedroom|kitchen|dining room|classroom|indoors|(a|the|his|her|their|my|our) (\w+ )?room)\b"),
     ("forest", r"\b(village|forest|woods?|camp\w*|cabin)\b"),
     ("sea", r"\b(beach\w*|sea|seaside|ocean|harbou?r|coast\w*|seashore|surf\w*|sand castle|sandcastle)\b"),
     ("park", r"\b(park|playground|picnic|garden)\b"),
@@ -100,7 +103,8 @@ MAX_GENERATE = 2
 # Both adults land in 1.65-1.8 m with a small gap (task 22); a kid is KID x that, only when the story asks.
 HEIGHT = {"avatar_male": (2.01, 1.76), "avatar_female": (1.54, 1.70)}
 KID = 0.8
-SEATS = {"bench", "stump"}
+SEATS = {"bench", "stump", "chair", "armchair", "sofa"}
+BENCHLIKE = {"bench": 90, "sofa": 0}  # seats for several, side by side: the model's rotation offset from its front
 SIT_BACK = 0.45  # Kimodo's sit-down clips step back 0.1-0.45 m: stand a little in front of the seat  # props a character sits on (others: sit or stand beside them)
 
 
@@ -188,7 +192,9 @@ Reply with the whole plan in ONE JSON object. Rules:
   sit on (bench, log, stump), "water" for something at the water's edge (dock, jetty, boat), else "stand".
   Every place, cast member and beat must come from the scene; don't invent extra story.
 - biome: one of forest (also villages and camps), city (streets, markets, town squares), sea (beach,
-  seaside, harbor), park (a city park or garden).
+  seaside, harbor), park (a city park or garden), room (indoors: a living room, bedroom, kitchen),
+  restaurant (indoors: a restaurant, cafe or diner). Indoors, a table people sit at is a place with use
+  "sit" (what: "a table for two"), and a sofa or chair is a place with use "sit".
 - water: true only if the scene has a pond, lake, river or sea.
 - time_of_day: one of sunrise, day, golden, dusk, night (what the scene says; golden if it says nothing).
 - weather: one of clear, rain, snow, fog, windy (clear unless the scene names weather).
@@ -259,6 +265,10 @@ lantern-post, flowers, tree-round. near is a place key or "edge" (the rim of the
 A window, door or porch is part of a building: choose house or wooden-cottage for it, never generate a
 lone window. A village gets houses (house, wooden-cottage) and lantern-post in the decor; a city shop,
 cafe or apartment is a city-building-* prop.
+Indoors (biome room or restaurant) everything is furniture: chair, armchair, sofa, dining-table (a table
+people sit at; layout puts the chairs around it), table-long, coffee-table, bookshelf, counter, fireplace,
+bed, potted-plant, floor-lamp, rug; decor is only furniture (fill code adds the walls, windows, lamps and
+the other diners' tables).
 You don't place anything: layout code puts every prop in its spot. Reply with ONE JSON object."""
 
 
@@ -453,6 +463,9 @@ def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
     bio = str(raw.get("biome", "forest")).lower()
     bio = biome_from_text(scene) or (bio if bio in BIOMES else {"beach": "sea", "harbor": "sea", "street": "city", "town": "city",
                                                                "village": "forest", "garden": "park"}.get(bio, "forest"))
+    if bio in INTERIORS and wx != "clear":
+        fixes.append(f"weather {wx} → clear (indoors)")
+        wx = "clear"
     shots = []
     for s in (raw.get("shots") or [])[:6]:
         if not isinstance(s, dict):
@@ -464,7 +477,7 @@ def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
         shots.append({"framing": fr, "subject": subj or [c["id"] for c in cast],
                       "until": str(s.get("until")) if str(s.get("until")) in bids else None})
     plan = {"title": str(raw.get("title") or "Untitled"), "time_of_day": tod, "weather": wx, "biome": bio,
-            "water": bio == "sea" or (bool(WATER_WORDS.search(scene)) if scene else bool(raw.get("water"))),
+            "water": bio == "sea" or (bio not in INTERIORS and (bool(WATER_WORDS.search(scene)) if scene else bool(raw.get("water")))),
             "places": places, "cast": cast, "beats": beats, "shots": shots,
             "thoughts": [str(t) for t in (raw.get("thoughts") or [])][:4]}
     return plan, fixes
@@ -476,6 +489,12 @@ def default_world(plan: dict, manifest: dict) -> dict:
     choices = []
     for p in plan["places"]:
         hits = search_library(f"{p['key']} {p['what']}", 1, manifest, p["key"], p["use"])
+        if plan.get("biome") in INTERIORS:
+            hits = search_library(f"{p['key']} {p['what']}", 1, {"props": [x for x in manifest["props"] if x.get("category") == "furniture"]}, p["key"], p["use"])
+            seat = "dining-table" if TABLE_WORDS.search(f"{p['key']} {p['what']}") else "chair"
+            choices.append({"place": p["key"], "library": seat if p["use"] == "sit" and (not hits or hits[0]["id"] not in TABLES | INDOOR_SEATS)
+                            else hits[0]["id"] if hits else "potted-plant"})
+            continue
         choices.append({"place": p["key"], "library": hits[0]["id"] if hits else
                         ("bench" if p["use"] == "sit" else "dock-small" if p["use"] == "water" else "signpost")})
     decor = BIOME_DECOR.get(plan.get("biome"), BIOME_DECOR["forest"])
@@ -491,7 +510,14 @@ BIOME_DECOR = {
             {"library": "chest", "count": 1}],
     "park": [{"library": "tree-round", "count": 4, "near": "edge"}, {"library": "hedge", "count": 4}, {"library": "lantern-post", "count": 3},
              {"library": "flower-red", "count": 3}, {"library": "bench", "count": 1}],
+    "room": [{"library": "potted-plant", "count": 2}, {"library": "floor-lamp", "count": 1}, {"library": "rug", "count": 1},
+             {"library": "coffee-table", "count": 1}],
+    "restaurant": [{"library": "potted-plant", "count": 2}, {"library": "floor-lamp", "count": 1}],
 }
+TABLES = {"dining-table"}  # a table people sit at: layout puts chairs around it
+INDOOR_SEATS = {"chair", "armchair", "sofa"}
+TABLE_WORDS = re.compile(r"\btables?\b", re.I)
+INDOOR_SETTING = re.compile(r"\b(room|restaurant|kitchen|floor|inside|indoors|cafe|café|diner|house|home|apartment)\b", re.I)
 # Decor that doesn't belong in a biome (the fill adds the city's buildings itself).
 NOT_IN = {"city": re.compile(r"^(tree|pine|bush|rock|flower|mushroom|grass|stump|log|house|wooden-cottage|city-)"),
           "sea": re.compile(r"^(mushroom|stump|house|wooden-cottage|city-|lily|flower)"),
@@ -535,11 +561,37 @@ def repair_world(raw: dict, plan: dict, manifest: dict, scene: str = "") -> tupl
     houses = [i for i in ("wooden-cottage", "house") if i in ids]
     for pl in plan["places"]:  # a window or a door is a house, not a prop of its own
         c = by_place[pl["key"]]
+        if plan.get("biome") in INTERIORS:
+            break
         if houses and HOUSE_PART.search(f"{pl['key']} {pl['what']}") and c["library"] not in houses:
             fixes.append(f"{pl['key']}: {c['library']} → {houses[0]} (a {pl['key']} belongs to a house)")
             by_place[pl["key"]] = {"library": houses[0]}
     big = {p["id"] for p in manifest["props"] if p.get("category") in ("city", "buildings")}
-    for pl in plan["places"]:
+    furniture = {"props": [p for p in manifest["props"] if p.get("category") == "furniture"]}
+    by_id = {p["id"]: p for p in manifest["props"]}
+    for pl in plan["places"] if plan.get("biome") in INTERIORS else []:
+        # Indoors every place is furniture: the room itself is the set (a rug marks the spot),
+        # a table people sit at is a dining table, anything outdoorsy becomes the closest piece.
+        c, text = by_place[pl["key"]], f"{pl['key']} {pl['what']}"
+        e = by_id.get(c["library"])
+        new = None
+        if TABLE_WORDS.search(text) and c["library"] not in TABLES:
+            if pl["use"] == "sit" or plan.get("biome") == "restaurant":
+                new = "dining-table"
+            elif c["library"] not in ("table-long", "coffee-table"):
+                new = "table-long"
+        elif INDOOR_SETTING.search(text) and (c.get("generate") or (e and e.get("category") != "furniture")):
+            new = "rug"
+        elif c.get("generate") or (e and e.get("category") != "furniture"):
+            hits = search_library(text, 1, furniture, pl["key"], pl["use"])
+            new = hits[0]["id"] if hits else ("chair" if pl["use"] == "sit" else "potted-plant")
+        if pl["use"] == "sit" and (new or c["library"]) not in TABLES | INDOOR_SEATS:
+            new = "sofa" if re.search(r"sofa|couch", text, re.I) else "armchair" if "armchair" in text.lower() else \
+                "dining-table" if TABLE_WORDS.search(text) else "chair"
+        if new and new in ids and new != c["library"]:
+            fixes.append(f"{pl['key']}: {c['library']} → {new} (indoors)")
+            by_place[pl["key"]] = {"library": new}
+    for pl in plan["places"] if plan.get("biome") not in INTERIORS else []:
         c = by_place[pl["key"]]
         # The setting itself ("the street", "a park path") is no building: the fill makes it; a lamp marks the spot.
         if SETTING.search(f"{pl['key']} {pl['what']}") and (c["library"] in big or c.get("generate")) \
@@ -560,7 +612,7 @@ def repair_world(raw: dict, plan: dict, manifest: dict, scene: str = "") -> tupl
     seats = {p["id"] for p in manifest["props"] if "seat" in p.get("tags", [])}
     for pl in plan["places"]:  # a seat must be something to sit on (a log stack is too tall)
         c = by_place[pl["key"]]
-        if pl["use"] == "sit" and not c.get("generate") and c["library"] not in seats and seats \
+        if pl["use"] == "sit" and not c.get("generate") and c["library"] not in seats | TABLES and seats \
                 and not GROUND_WORDS.search(f"{pl['key']} {pl['what']}"):  # sitting on the grass needs no seat
             new = "bench" if "bench" in pl["what"].lower() and "bench" in seats else \
                 "stump" if "stump" in seats else sorted(seats)[0]
@@ -578,7 +630,8 @@ def repair_world(raw: dict, plan: dict, manifest: dict, scene: str = "") -> tupl
             fixes.append(f"decor {d['library']}: a boat isn't decor, dropped")
             continue
         bad = NOT_IN.get(plan.get("biome"))
-        if bad and bad.match(d["library"]):
+        indoor_bad = plan.get("biome") in INTERIORS and by_id.get(d["library"], {}).get("category") != "furniture"
+        if indoor_bad or (bad and bad.match(d["library"])):
             fixes.append(f"decor {d['library']}: not in a {plan['biome']} scene, dropped")
             continue
         try:
@@ -712,9 +765,12 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
     # The walking route across the island; land places sit beside it.
     route = ([(-10.5, -7.5), (-5.5, -2.5), (-0.5, 1.5), (3.5, 3.5)] if water
              else [(-10.5, -5.5), (-4.5, -1.5), (1.5, 0.5), (7.5, -2.5), (10, -6.5)])
+    indoors = plan.get("biome") in INTERIORS
+    if indoors:  # a room: the same route, shrunk (the walls go around the action)
+        route = [(x * 0.42, z * 0.42) for x, z in route]
     total = sum(_dist(a, b) for a, b in zip(route, route[1:]))
     n = len(land)
-    spacing = min(8.5, total / max(n - 1, 1))
+    spacing = min(3.6 if indoors else 8.5, total / max(n - 1, 1))
     first = (total - spacing * (n - 1)) / 2 if n > 1 else total / 2
     for i, k in enumerate(land):
         foot, h = _along(route, first + i * spacing)
@@ -780,7 +836,7 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
     # Single seats (a stump): one per person who sits there.
     for k, p in places.items():
         e = entries.get(p["library"])
-        if not e or "seat" not in e.get("tags", []) or p["library"] == "bench":
+        if not e or "seat" not in e.get("tags", []) or p["library"] in BENCHLIKE:
             continue
         n_seat = max(1, len(users.get(k, [])))
         A = places.get(p.get("anchor"))
@@ -794,6 +850,15 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
             along = _dir(p["face"] + 90)
             p["seats"] = [((p["center"][0] + along[0] * 1.1 * j, p["center"][1] + along[1] * 1.1 * j), p["face"])
                           for j in range(n_seat)]
+    # A table people sit at: chairs around it, facing it (two across from each other, side-on to the route).
+    for k, p in places.items():
+        if p["library"] not in TABLES:
+            continue
+        n_seat = max(2, len(users.get(k, [])))
+        angs = [p["face"] + 90, p["face"] - 90] if n_seat == 2 else [p["face"] + 90 + j * 360 / n_seat for j in range(n_seat)]
+        p["seats"] = [((p["center"][0] + _dir(a)[0] * 0.95, p["center"][1] + _dir(a)[1] * 0.95), (a + 180) % 360) for a in angs]
+        p["chairs"] = True
+        notes.append(f"{k}: {n_seat} chairs around the table")
     # "Sits on the dock": a place that is no seat gets a bench in front of it, so nobody sits on air.
     SIT = re.compile(r"\bsits?\b(?! and)")
     for i, b in enumerate(plan["beats"]):
@@ -823,7 +888,13 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
     props = []
     for k in order:
         p = places[k]
-        rot = p["face"] + 90 if p["library"] == "bench" else p["face"]  # the bench's front is its -x side
+        rot = p["face"] + BENCHLIKE.get(p["library"], 0)  # the bench's front is its -x side
+        if p.get("chairs"):  # the table, then its chairs
+            props.append({"key": k, "library": p["library"], "position": _pt(p["center"]), "rotation": _r(((p["face"] + 180) % 360) - 180, 0)})
+            for j, (pt, face) in enumerate(p["seats"]):
+                props.append({"key": f"{k}-chair{j + 1}", "library": "chair", "position": _pt(pt),
+                              "rotation": _r(((face + 180) % 360) - 180, 0)})
+            continue
         for j, (pt, face) in enumerate(p.get("seats") or [(p["center"], rot)]):
             prop = {"key": k if j == 0 else f"{k}-{j + 1}", "library": p["library"], "position": _pt(pt),
                     "rotation": _r(((face + 180) % 360) - 180, 0)}
@@ -832,8 +903,9 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
             props.append(prop)
         if p.get("bench"):
             (c, face) = p["bench"]
-            props.append({"key": f"{k}-bench", "library": "bench", "position": _pt(c),
-                          "rotation": _r(((face + 90 + 180) % 360) - 180, 0)})
+            seat = "chair" if indoors else "bench"  # indoors a chair (front +z), outdoors a bench (front -x)
+            props.append({"key": f"{k}-{seat}", "library": seat, "position": _pt(c),
+                          "rotation": _r(((face + BENCHLIKE.get(seat, 0) + 180) % 360) - 180, 0)})
 
     def is_boat(k):
         return bool(water and k in places and places[k]["use"] == "water" and re.search(r"boat|canoe|raft", places[k]["library"]))
@@ -848,10 +920,11 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
         if p.get("seats"):  # sit on it, facing its front
             (q, face) = p["seats"][i % len(p["seats"])]
             f = _dir(face)
-            return (q[0] + f[0] * (SIT_BACK - 0.2), q[1] + f[1] * (SIT_BACK - 0.2)), face  # a stump is small
+            off = 0.15 if p.get("chairs") else SIT_BACK - 0.2  # at a table: the chair's front edge (the hips snap to the seat)
+            return (q[0] + f[0] * off, q[1] + f[1] * off), face  # a stump is small
         if is_boat(k):  # in the boat
             return p["center"], p["face"]
-        if p["library"] == "bench" or p.get("bench"):
+        if p["library"] in BENCHLIKE or p.get("bench"):
             c, face = p.get("bench") or (p["center"], p["face"])
             along = _dir(face + 90)
             off = [-0.45, 0.45, 0.0][i % 3]
@@ -1189,8 +1262,11 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
         for _ in range(d["count"]):
             for _try in range(40):
                 if near:
-                    ang, rad = rng.uniform(0, 360), near["R"] + rng.uniform(1.2, 3.5)
+                    ang, rad = rng.uniform(0, 360), near["R"] + rng.uniform(1.2, 3.5) * (0.6 if indoors else 1)
                     pt = (near["center"][0] + _dir(ang)[0] * rad, near["center"][1] + _dir(ang)[1] * rad)
+                elif indoors:  # inside the room, around the action
+                    ang, rad = rng.uniform(0, 360), rng.uniform(1.5, 5.0)
+                    pt = (_dir(ang)[0] * rad, _dir(ang)[1] * rad)
                 elif d.get("near") == "edge" or e["size"][1] > 3:
                     ang, rad = rng.uniform(0, 360), rng.uniform(11, 14.8)
                     pt = (_dir(ang)[0] * rad, _dir(ang)[1] * rad)
@@ -1201,7 +1277,8 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
                     n_dec += 1
                     taken.append((pt, r))
                     props.append({"key": f"{d['library']}-{n_dec}", "library": d["library"], "position": _pt(pt),
-                                  "rotation": rng.randrange(-180, 180, 15)})
+                                  "rotation": _r(((_heading(pt, (0, 0)) + 180) % 360) - 180, 0) if indoors
+                                  else rng.randrange(-180, 180, 15)})
                     break
 
     terrain = {"time_of_day": plan["time_of_day"], "weather": plan.get("weather", "clear"), "biome": plan.get("biome", "forest")}

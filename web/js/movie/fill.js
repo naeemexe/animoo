@@ -9,6 +9,7 @@ import { loadProp } from '../library.js';
 import { mulberry32 } from '../stage.js';
 import { toonMaterial, faceted, smoothed } from '../toon.js';
 import { addWind } from './atmosphere.js';
+import { INTERIORS, interiorFill } from './interior.js';
 
 const DOME_R = 300;
 
@@ -639,6 +640,7 @@ function streetMeshes(streets, half) {
 
 export async function fillWorld(stage, script, set, { seed = 11 } = {}) {
   const biome = script.terrain?.biome ?? 'forest';
+  if (INTERIORS.has(biome)) return interiorFill(stage, script, set, keepOut(script, set), { seed });
   const P = palette(script.terrain?.time_of_day, script.terrain?.weather);
   // Strong blues: the toon light (lavender at sunrise) shifts them a lot.
   P.sea = '#' + new THREE.Color('#2f8fd0').lerp(new THREE.Color(P.fog), 0.12).getHexString();

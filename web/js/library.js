@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { toonify } from './toon.js';
+import { buildFurniture } from './furniture.js';
 import { API_BASE } from './api.js';
 
 export const LIBRARY_BASE = `${API_BASE}/library/`;
@@ -42,6 +43,15 @@ function normalize(model, entry) {
 }
 
 function template(entry) {
+  if (!templates.has(entry.file) && entry.file.startsWith('procedural:')) {
+    // Built in code at its real size (furniture.js), no file to load.
+    const t = buildFurniture(entry.file.slice('procedural:'.length));
+    if (!t) return Promise.reject(new Error(`no procedural prop "${entry.file}"`));
+    const wrap = new THREE.Group();
+    wrap.add(t);
+    wrap.name = entry.id;
+    templates.set(entry.file, Promise.resolve(wrap));
+  }
   if (!templates.has(entry.file)) {
     const url = LIBRARY_BASE + entry.file;
     templates.set(entry.file, loader.loadAsync(url).then((gltf) => {

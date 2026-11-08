@@ -342,7 +342,7 @@ export function addAtmosphere(stage, script, set) {
   }
 
   let precip = null;
-  if (weather === 'rain' || weather === 'snow') {
+  if ((weather === 'rain' || weather === 'snow') && !['room', 'restaurant'].includes(t.biome)) { // not indoors
     precip = precipitation(weather, stage.scene);
     g.add(precip);
   }

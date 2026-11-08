@@ -5,6 +5,7 @@ import { generateProp, loadManifest, loadProp } from '../library.js';
 import { toonMaterial } from '../toon.js';
 import { fillWorld } from './fill.js';
 import { addAtmosphere } from './atmosphere.js';
+import { INTERIORS } from './interior.js';
 
 const RAD = Math.PI / 180;
 
@@ -159,7 +160,7 @@ export async function buildSet(stage, script, onStep = () => {}) {
   const t = script.terrain ?? {};
   setTimeOfDay(stage, t.time_of_day, t.weather, script);
   for (const w of t.water ?? []) set.add(pond(w));
-  for (const p of t.paths ?? []) set.add(path(p, t.biome));
+  if (!INTERIORS.has(t.biome)) for (const p of t.paths ?? []) set.add(path(p, t.biome)); // indoors the floor is the path
 
   await generateMissing(script, onStep);
   const placed = await Promise.all(script.props.map(async (p) => {
@@ -187,7 +188,8 @@ export async function buildSet(stage, script, onStep = () => {}) {
     const fill = await fillWorld(stage, script, set);
     set.add(fill);
     const c = fill.userData.counts;
-    await onStep(`fill_world(biome='${c.biome}') → ${c.buildings ? `${c.buildings} buildings, ${c.lamps} street lamps, ` : ''}${c.trees} trees, ${c.bushes} bushes, ${c.grass} grass tufts, ${c.flowers} flowers, ${c.rocks} rocks · keeps off paths, water, props and walk lines`, false, 'result');
+    if (c.furniture !== undefined) await onStep(`fill_world(biome='${c.biome}') → a ${fill.userData.room ? `${(fill.userData.room.x1 - fill.userData.room.x0).toFixed(1)} × ${(fill.userData.room.z1 - fill.userData.room.z0).toFixed(1)} m ` : ''}room: floor, walls with ${c.windows} windows and a door, ceiling, lamps, ${c.furniture} pieces of furniture · keeps off the action`, false, 'result');
+    else await onStep(`fill_world(biome='${c.biome}') → ${c.buildings ? `${c.buildings} buildings, ${c.lamps} street lamps, ` : ''}${c.trees} trees, ${c.bushes} bushes, ${c.grass} grass tufts, ${c.flowers} flowers, ${c.rocks} rocks · keeps off paths, water, props and walk lines`, false, 'result');
   } catch (err) {
     console.warn('fill:', err);
   }
