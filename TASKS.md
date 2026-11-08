@@ -28,6 +28,15 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 10 | A | Chat page: a character talks (Nemotron + browser voice) and demonstrates moves | 2 h | done (mock replies; live Nemotron path untested) | 05, 06 |
 | 11 | A | Prop generation in the world agent (image → TRELLIS.2 → library) | 1.5 h | done (mechanics; the world agent calls it in 08) | 07, 08 |
 | 12 | A | Demo: cache the demo scenes, record the video, write the submission | 2 h | todo | 09, 10 |
+| 13 | A | Chat: remove the canned mock lines and suggestion chips ("Hi! I can show you a squat…"); Nemotron persona only | 0.5 h | todo | 06 |
+| 14 | A | Scale + placement: characters and props at consistent real-world size; grounded, no overlaps, positions that follow the script | 2 h | todo | 08 |
+| 15 | A | World fill + backdrop: no empty island. Ground scatter (grass, flowers, rocks), a dense tree/hill ring, a painted sky/backdrop that fills the frame | 2.5 h | todo | 08 |
+| 16 | A | Cinematic camera: the director picks shots per beat (wide, medium, close, side, over-the-shoulder, low), with cuts and moves (dolly, orbit, crane) | 2.5 h | todo | 08 |
+| 17 | A | Time of day + weather: day/dusk/night lighting with glowing lamps and windows at night, plus rain/snow/fog. The orchestrator sets it from the prompt | 2 h | todo | 15 |
+| 18 | A | Edit mode: select, move/rotate/scale, duplicate, delete, replace with a library item, regenerate a prop on the GPU | 3 h | todo | 14 |
+| 19 | A | Camera paths: draw a keyframed camera path between two timestamps in edit mode; it overrides the director for that span | 2.5 h | todo | 16, 18 |
+| 20 | B | Paint-over look (research → prototype): render the blocked-out set from the shot camera, have SANA img2img paint it, project the painting back onto the geometry | 3 h | todo | 15 |
+| 21 | A | Full pipeline check + optimization: load times, GLB sizes, caching, LLM call budget, GPU memory, bug bash | 2 h | todo | 13–17 |
 
 **Cut rule.** If it's 6:00 am and task 09 isn't working, demo the Chat page plus a
 Movie page with one generated world and the sample clips. A finished small demo
@@ -81,6 +90,27 @@ run TRELLIS.2, normalize scale and pivot, `toonify()` it, and save it to
 
 **12 Demo.** The video plays from cached assets only. List every model and
 license used.
+
+**Order after 08:** 13 (quick) → 14 → 15 → 16 → 17 → 12 (demo, which must be recorded before the 12:00 pm deadline) → 18 → 19 → 20 → 21.
+Before the deadline, work only on what improves the demo; 18–20 can continue after it.
+
+**13 Chat cleanup.** Remove the mock's canned greeting and the "Hi Mira!" / "Show me a squat" chips. Mira greets in her own words from Nemotron, and the mock is used only when the LLM is down, with that shown clearly.
+
+**14 Scale + placement.** Characters are 1.6–1.8 m; props use `size` from the manifest (generated props get a sensible `size_m` per category, since the fishing boat came out 10 m long because size was applied to height). Everything sits on the ground. Layout code keeps props off paths and away from characters' walk lines, and characters start and end where the script says (next to "the well", on "the dock"). *Done when* the three test scenes look right in screenshots, with no floating, sinking, giant or tiny items.
+
+**15 World fill + backdrop.** Reference: the beach/forest still the user shared (dense trees, rocks and layered depth behind the action). Add instanced ground scatter, a ring of trees and hills to the horizon, distance fog, and a painted backdrop (a SANA panorama, or layered cards) instead of empty space. *Done when* no camera angle in the demo shows bare ground or an empty sky edge.
+
+**16 Cinematic camera.** The director agent (Nemotron, inside the 2–4-call budget, or rules from the script) gives each beat a shot type and a move, cutting between angles like a film edit. *Done when* the fisherman scene has at least 5 distinct shots with sensible cuts.
+
+**17 Time of day + weather.** Lighting presets (dawn, day, dusk, night) with emissive windows and lamp glow at night (see the day/night city reference), plus particle rain/snow and fog. The script carries `time_of_day` and `weather`.
+
+**18 Edit mode.** Toggle in the Movie page: click to select, a gizmo to move/rotate/scale, duplicate, delete, a "replace" picker from the library, and "regenerate" (calls `generate_prop` with a new seed). Edits are saved into the scene script.
+
+**19 Camera paths.** In edit mode, pick a start and end time on the timeline and place camera keyframes in the scene; a spline camera follows that path for the span.
+
+**20 Paint-over look.** Technique from the reference posts: (1) render the plain blocked-out set from the shot camera, (2) an image model paints over that render in our style, (3) project the painting back onto the geometry from the same camera, so it holds up while moving a little. Try it first on the backdrop and ground. Needs img2img or depth control on the pod (check SANA-Sprint img2img or add a ControlNet), so research first.
+
+**21 Full check + optimization.** Time every step of a fresh prompt, shrink slow loads, confirm the cache hit paths, fix the bugs found, and update `docs/STATUS.md`.
 
 ## Later
 
