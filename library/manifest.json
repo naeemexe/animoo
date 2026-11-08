@@ -958,6 +958,26 @@
    "source": "generated",
    "prompt": "a red wooden windmill",
    "thumbnail": "props/generated/windmill.png"
+  },
+  {
+   "id": "fishing-boat",
+   "file": "props/generated/fishing-boat.glb",
+   "category": "generated",
+   "size": [
+    6.28,
+    4.0,
+    10.21
+   ],
+   "tags": [
+    "boat",
+    "fishing",
+    "generated",
+    "wooden"
+   ],
+   "license": "generated: concept image by NVIDIA SANA-Sprint 1.6B (Apache-2.0; its text encoder Gemma-2-2B-IT is under the Gemma Terms of Use), image to 3D by Microsoft TRELLIS.2-4B (MIT) with BiRefNet background removal (MIT)",
+   "source": "generated",
+   "prompt": "a small wooden fishing boat",
+   "thumbnail": "props/generated/fishing-boat.png"
   }
  ]
 }

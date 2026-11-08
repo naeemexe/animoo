@@ -1,0 +1,22 @@
+{
+ "id": "fishing-boat",
+ "name": "fishing boat",
+ "prompt": "a small wooden fishing boat",
+ "sent_prompt": "a small wooden fishing boat, solid chunky shapes, thick sturdy parts",
+ "seed": 0,
+ "image_key": "7af5f93c71049ea5",
+ "size_m": 4.0,
+ "normalize": {
+  "normalized": true,
+  "trimmed": false,
+  "size": [
+   6.28,
+   4.0,
+   10.21
+  ],
+  "vertices": 59386,
+  "triangles": 59178
+ },
+ "pod_seconds": 144.4,
+ "created": "2026-11-08T03:35:34+00:00"
+}
