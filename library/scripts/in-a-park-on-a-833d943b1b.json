@@ -1,0 +1,623 @@
+{
+ "scene": "In a park on a sunny afternoon, three friends sit on the grass by a big oak tree, a fourth friend walks over to them and waves, they wave back, and all four of them laugh together.",
+ "created": "2026-11-08T14:14:35+00:00",
+ "model": "nvidia/nemotron-3.5-super-vl-120b-a12b + nvidia/nemotron-3.5-lightning-30b-a3b",
+ "backend": "nvidia",
+ "llm_calls": [
+  {
+   "agent": "orchestrator",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+   "ok": true,
+   "seconds": 7.16
+  },
+  {
+   "agent": "world",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+   "ok": true,
+   "seconds": 1.75
+  }
+ ],
+ "llm_seconds": [
+  7.16,
+  1.75
+ ],
+ "plan": {
+  "title": "Four friends under the oak",
+  "thoughts": [
+   "Three friends are already sitting on the grass by the oak tree when the scene starts, so their first beats show them seated.",
+   "The fourth friend walks over from elsewhere in the park and waves once they arrive.",
+   "The three seated friends wave back and then all four laugh together while remaining seated."
+  ],
+  "time_of_day": "day",
+  "biome": "park",
+  "weather": "clear",
+  "water": false,
+  "audio": {
+   "ambience": {
+    "prompt": "A sunny park afternoon by a big oak tree: birdsong, distant children playing, and a gentle breeze rustling leaves.",
+    "layers": {
+     "birds": 0.5,
+     "wind": 0.3
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow acoustic guitar and light piano, gentle and sparse, no drums, no vocals.",
+    "mood": "warm"
+   }
+  },
+  "places": [
+   {
+    "key": "oak",
+    "what": "a big oak tree in a park",
+    "use": "stand"
+   }
+  ],
+  "cast": [
+   {
+    "id": "friend1",
+    "name": "Friend 1",
+    "character": "avatar_female",
+    "kid": false,
+    "starts_at": "oak",
+    "look": {
+     "height_m": 1.65,
+     "top": "white",
+     "bottom": "khaki",
+     "hair": "brown",
+     "skin": "light",
+     "accessory": "none",
+     "outfit": "casual",
+     "build": "average"
+    }
+   },
+   {
+    "id": "friend2",
+    "name": "Friend 2",
+    "character": "avatar_male",
+    "kid": false,
+    "starts_at": "oak",
+    "look": {
+     "height_m": 1.75,
+     "top": "navy",
+     "bottom": "khaki",
+     "hair": "black",
+     "skin": "tan",
+     "accessory": "none",
+     "outfit": "casual",
+     "build": "average"
+    }
+   },
+   {
+    "id": "friend3",
+    "name": "Friend 3",
+    "character": "avatar_female",
+    "kid": false,
+    "starts_at": "oak",
+    "look": {
+     "height_m": 1.6,
+     "top": "red",
+     "bottom": "blue",
+     "hair": "blonde",
+     "skin": "pale",
+     "accessory": "glasses",
+     "outfit": "casual",
+     "build": "slim"
+    }
+   },
+   {
+    "id": "friend4",
+    "name": "Friend 4",
+    "character": "avatar_male",
+    "kid": false,
+    "starts_at": "oak",
+    "look": {
+     "height_m": 1.8,
+     "top": "green",
+     "bottom": "navy",
+     "hair": "brown",
+     "skin": "light",
+     "accessory": "cap",
+     "outfit": "casual",
+     "build": "sturdy"
+    }
+   }
+  ],
+  "beats": [
+   {
+    "id": "b1",
+    "cast": "friend1",
+    "action": "sits by the oak tree",
+    "prompt": "A person sits still on the grass under a big oak tree.",
+    "duration": 4
+   },
+   {
+    "id": "b2",
+    "cast": "friend2",
+    "action": "sits by the oak tree",
+    "prompt": "A person sits still on the grass under a big oak tree.",
+    "duration": 4
+   },
+   {
+    "id": "b3",
+    "cast": "friend3",
+    "action": "sits by the oak tree",
+    "prompt": "A person sits still on the grass under a big oak tree.",
+    "duration": 4
+   },
+   {
+    "id": "b4",
+    "cast": "friend4",
+    "action": "walks over to the friends",
+    "prompt": "A person walks forward.",
+    "duration": 6,
+    "move_to": "oak"
+   },
+   {
+    "id": "b5",
+    "cast": "friend4",
+    "action": "waves at the friends",
+    "prompt": "A person waves hello with their right hand.",
+    "duration": 3,
+    "face": "oak",
+    "after": "b4"
+   },
+   {
+    "id": "b6",
+    "cast": "friend1",
+    "action": "waves back",
+    "prompt": "A person sits and waves hello with their right hand.",
+    "duration": 3,
+    "face": "friend4",
+    "after": "b5"
+   },
+   {
+    "id": "b7",
+    "cast": "friend2",
+    "action": "waves back",
+    "prompt": "A person sits and waves hello with their right hand.",
+    "duration": 3,
+    "face": "friend4",
+    "after": "b5"
+   },
+   {
+    "id": "b8",
+    "cast": "friend3",
+    "action": "waves back",
+    "prompt": "A person sits and waves hello with their right hand.",
+    "duration": 3,
+    "face": "friend4",
+    "after": "b5"
+   },
+   {
+    "id": "b9",
+    "cast": "friend1",
+    "action": "laughs together",
+    "prompt": "A person sits and laughs heartily.",
+    "duration": 4,
+    "with": "b10"
+   },
+   {
+    "id": "b10",
+    "cast": "friend2",
+    "action": "laughs together",
+    "prompt": "A person sits and laughs heartily.",
+    "duration": 4,
+    "with": "b9"
+   },
+   {
+    "id": "b11",
+    "cast": "friend3",
+    "action": "laughs together",
+    "prompt": "A person sits and laughs heartily.",
+    "duration": 4,
+    "with": "b9"
+   },
+   {
+    "id": "b12",
+    "cast": "friend4",
+    "action": "laughs together",
+    "prompt": "A person sits and laughs heartily.",
+    "duration": 4,
+    "with": "b9"
+   }
+  ]
+ },
+ "world": {
+  "thoughts": [
+   "The big oak tree anchors the park scene; the bench and grass provide the seating area for the friends.",
+   "A sunny park setting with golden hour lighting and clear weather, focusing on natural elements."
+  ],
+  "choices": [
+   {
+    "place": "oak",
+    "library": "tree-oak"
+   },
+   {
+    "place": "bench",
+    "library": "bench"
+   },
+   {
+    "place": "grass",
+    "library": "grass-tuft"
+   },
+   {
+    "place": "walkway",
+    "library": "hedge"
+   }
+  ],
+  "decor": [
+   {
+    "library": "tree-oak",
+    "count": 1,
+    "near": "edge"
+   },
+   {
+    "library": "bush-small",
+    "count": 2,
+    "near": "cottage"
+   },
+   {
+    "library": "flower-yellow",
+    "count": 3,
+    "near": "bench"
+   },
+   {
+    "library": "lily-pad",
+    "count": 2,
+    "near": "jetty"
+   }
+  ]
+ },
+ "script": {
+  "version": 1,
+  "title": "Four friends under the oak",
+  "scene": "In a park on a sunny afternoon, three friends sit on the grass by a big oak tree, a fourth friend walks over to them and waves, they wave back, and all four of them laugh together.",
+  "terrain": {
+   "time_of_day": "golden",
+   "weather": "clear",
+   "biome": "park"
+  },
+  "props": [
+   {
+    "key": "oak",
+    "library": "tree-oak",
+    "position": [
+     1.29,
+     -2.21
+    ],
+    "rotation": -18.0
+   },
+   {
+    "key": "tree-oak-1",
+    "library": "tree-oak",
+    "position": [
+     -6.95,
+     -12.31
+    ],
+    "rotation": -150
+   },
+   {
+    "key": "bush-small-2",
+    "library": "bush-small",
+    "position": [
+     4.05,
+     3.7
+    ],
+    "rotation": -90
+   },
+   {
+    "key": "bush-small-3",
+    "library": "bush-small",
+    "position": [
+     2.07,
+     5.01
+    ],
+    "rotation": 135
+   },
+   {
+    "key": "flower-yellow-4",
+    "library": "flower-yellow",
+    "position": [
+     8.81,
+     2.49
+    ],
+    "rotation": 60
+   },
+   {
+    "key": "flower-yellow-5",
+    "library": "flower-yellow",
+    "position": [
+     -6.51,
+     -2.89
+    ],
+    "rotation": 60
+   },
+   {
+    "key": "flower-yellow-6",
+    "library": "flower-yellow",
+    "position": [
+     -5.75,
+     -2.58
+    ],
+    "rotation": 150
+   }
+  ],
+  "cast": [
+   {
+    "id": "friend1",
+    "name": "Friend 1",
+    "character": "avatar_female",
+    "start": {
+     "position": [
+      0.59,
+      -0.12
+     ],
+     "facing": 162.0
+    },
+    "scale": 1.071,
+    "look": {
+     "top": "#f2f0ea",
+     "bottom": "#b5a46e",
+     "hair": "#5a3a22",
+     "skin": "#efc9ab",
+     "outfit": "casual"
+    }
+   },
+   {
+    "id": "friend2",
+    "name": "Friend 2",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      2.45,
+      -0.33
+     ],
+     "facing": -148.0
+    },
+    "scale": 0.871,
+    "look": {
+     "top": "#23305e",
+     "bottom": "#b5a46e",
+     "hair": "#1d1a1c",
+     "skin": "#c48a5e",
+     "outfit": "casual"
+    }
+   },
+   {
+    "id": "friend3",
+    "name": "Friend 3",
+    "character": "avatar_female",
+    "start": {
+     "position": [
+      -0.76,
+      -1.4
+     ],
+     "facing": 112.0
+    },
+    "scale": 1.039,
+    "look": {
+     "top": "#c8352e",
+     "bottom": "#2f5fb0",
+     "hair": "#e0c070",
+     "skin": "#fbe3d4",
+     "accessory": "glasses",
+     "outfit": "casual",
+     "build": "slim"
+    }
+   },
+   {
+    "id": "friend4",
+    "name": "Friend 4",
+    "character": "avatar_male",
+    "start": {
+     "position": [
+      3.48,
+      -1.89
+     ],
+     "facing": -98.0
+    },
+    "scale": 0.896,
+    "look": {
+     "top": "#3f8a45",
+     "bottom": "#23305e",
+     "hair": "#5a3a22",
+     "skin": "#efc9ab",
+     "accessory": "cap",
+     "outfit": "casual",
+     "build": "sturdy"
+    }
+   }
+  ],
+  "beats": [
+   {
+    "id": "friend1-1",
+    "cast": "friend1",
+    "start": 0.0,
+    "duration": 9.0,
+    "prompt": "A person sits still on the grass under a big oak tree.",
+    "action": "sits by the oak tree",
+    "facing": "oak",
+    "motion": "sit_ground_idle"
+   },
+   {
+    "id": "friend2-1",
+    "cast": "friend2",
+    "start": 0.0,
+    "duration": 9.0,
+    "prompt": "A person sits still on the grass under a big oak tree.",
+    "action": "sits by the oak tree",
+    "facing": "oak",
+    "seed": 1,
+    "motion": "sit_ground_idle"
+   },
+   {
+    "id": "friend3-1",
+    "cast": "friend3",
+    "start": 0.0,
+    "duration": 9.0,
+    "prompt": "A person sits still on the grass under a big oak tree.",
+    "action": "sits by the oak tree",
+    "facing": "oak",
+    "seed": 2,
+    "motion": "sit_ground_idle"
+   },
+   {
+    "id": "friend4-1",
+    "cast": "friend4",
+    "start": 0.0,
+    "duration": 6.0,
+    "prompt": "A person walks forward.",
+    "action": "walks over to the friends",
+    "facing": "oak",
+    "motion": "walk"
+   },
+   {
+    "id": "friend4-2",
+    "cast": "friend4",
+    "start": 6.0,
+    "duration": 3.0,
+    "prompt": "A person waves hello with their right hand.",
+    "action": "waves at the friends",
+    "facing": "oak",
+    "motion": "wave"
+   },
+   {
+    "id": "friend1-2",
+    "cast": "friend1",
+    "start": 9.0,
+    "duration": 4.0,
+    "prompt": "A person sits and waves hello with their right hand.",
+    "action": "waves back",
+    "facing": "friend4",
+    "motion": "sit_ground_idle"
+   },
+   {
+    "id": "friend2-2",
+    "cast": "friend2",
+    "start": 9.0,
+    "duration": 4.0,
+    "prompt": "A person sits and waves hello with their right hand.",
+    "action": "waves back",
+    "facing": "friend4",
+    "seed": 1,
+    "motion": "sit_ground_idle"
+   },
+   {
+    "id": "friend3-2",
+    "cast": "friend3",
+    "start": 9.0,
+    "duration": 4.0,
+    "prompt": "A person sits and waves hello with their right hand.",
+    "action": "waves back",
+    "facing": "friend4",
+    "seed": 2,
+    "motion": "sit_ground_idle"
+   },
+   {
+    "id": "friend4-3",
+    "cast": "friend4",
+    "start": 9.0,
+    "duration": 4.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits",
+    "facing": "friend1",
+    "motion": "idle"
+   },
+   {
+    "id": "friend1-3",
+    "cast": "friend1",
+    "start": 13.0,
+    "duration": 4.0,
+    "prompt": "A person sits and laughs heartily.",
+    "action": "laughs together",
+    "facing": "oak",
+    "motion": "sit_ground_idle"
+   },
+   {
+    "id": "friend2-3",
+    "cast": "friend2",
+    "start": 13.0,
+    "duration": 4.0,
+    "prompt": "A person sits and laughs heartily.",
+    "action": "laughs together",
+    "facing": "oak",
+    "seed": 1,
+    "motion": "sit_ground_idle"
+   },
+   {
+    "id": "friend3-3",
+    "cast": "friend3",
+    "start": 13.0,
+    "duration": 4.0,
+    "prompt": "A person sits and laughs heartily.",
+    "action": "laughs together",
+    "facing": "oak",
+    "seed": 2,
+    "motion": "sit_ground_idle"
+   },
+   {
+    "id": "friend4-4",
+    "cast": "friend4",
+    "start": 13.0,
+    "duration": 4.0,
+    "prompt": "A person laughs heartily.",
+    "action": "laughs together",
+    "facing": "oak",
+    "motion": "laugh"
+   }
+  ],
+  "shots": [
+   {
+    "id": "s1",
+    "start": 0.0,
+    "duration": 5.67,
+    "framing": "wide",
+    "subject": [
+     "friend1",
+     "friend2",
+     "friend3",
+     "friend4"
+    ],
+    "angle": 35
+   },
+   {
+    "id": "s2",
+    "start": 5.67,
+    "duration": 5.66,
+    "framing": "medium",
+    "subject": "friend1",
+    "angle": -25
+   },
+   {
+    "id": "s3",
+    "start": 11.33,
+    "duration": 5.67,
+    "framing": "wide",
+    "subject": [
+     "friend1",
+     "friend2",
+     "friend3",
+     "friend4"
+    ],
+    "angle": 55
+   }
+  ],
+  "audio": {
+   "ambience": {
+    "prompt": "A sunny park afternoon by a big oak tree: birdsong, distant children playing, and a gentle breeze rustling leaves.",
+    "layers": {
+     "birds": 0.5,
+     "wind": 0.3
+    }
+   },
+   "music": {
+    "prompt": "Very soft, slow acoustic guitar and light piano, gentle and sparse, no drums, no vocals.",
+    "mood": "warm"
+   },
+   "volume": 0.25,
+   "source": "nemotron"
+  }
+ }
+}

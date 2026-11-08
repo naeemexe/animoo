@@ -205,7 +205,12 @@ button:disabled { opacity: 0.5; cursor: default; }
 .tl-spacer { flex: 1; }
 .tl-progress { width: 140px; }
 .tl-download { text-decoration: none; }
-.tl-body { display: flex; flex: 1; min-height: 0; }
+.tl-body { display: flex; flex: 1; min-height: 0; overflow-y: auto; }
+/* 4+ cast (task 36): thinner lanes, and the body scrolls past five. */
+.timeline:has(.tl-labels > div:nth-child(6)) .tl-labels > div:not(.tl-ruler-label),
+.timeline:has(.tl-labels > div:nth-child(6)) .tl-lanes > .tl-lane { height: 20px; }
+.timeline:has(.tl-labels > div:nth-child(6)) { height: 180px; } /* up to the panel's bottom (196 px) */
+.timeline:has(.tl-labels > div:nth-child(6)) .tl-block { top: 2px; bottom: 2px; line-height: 15px; font-size: 10.5px; }
 .tl-labels { width: 116px; flex: none; display: flex; flex-direction: column; font-size: 12.5px; }
 .tl-labels > div, .tl-lanes > .tl-lane { height: 26px; flex: none; }
 .tl-ruler-label, .tl-ruler { height: 16px !important; flex: none; }

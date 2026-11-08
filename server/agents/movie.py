@@ -104,6 +104,7 @@ MAX_GENERATE = 2
 # Both adults land in 1.65-1.8 m with a small gap (task 22); a kid is KID x that, only when the story asks.
 HEIGHT = {"avatar_male": (2.01, 1.76), "avatar_female": (1.54, 1.70)}
 KID = 0.8
+MAX_CAST = 5  # task 36: scenes with up to five named characters
 SEATS = {"bench", "stump", "chair", "armchair", "sofa"}
 BENCHLIKE = {"bench": 90, "sofa": 0}  # seats for several, side by side: the model's rotation offset from its front
 SIT_BACK = 0.45  # Kimodo's sit-down clips step back 0.1-0.45 m: stand a little in front of the seat  # props a character sits on (others: sit or stand beside them)
@@ -195,7 +196,7 @@ ORCHESTRATOR_ROLE = """You are the orchestrator of a team of agents that turns a
 animated storybook film. Each character's motion is made by a text-to-motion model (Kimodo) one short
 clip at a time, so you split the scene into beats: one simple full-body action per beat per character.
 Reply with the whole plan in ONE JSON object. Rules:
-- cast: 1 to 3 characters. character is "avatar_male" or "avatar_female"; kid is true for children.
+- cast: 1 to 5 characters (every named person in the scene; a group like "three friends" is three cast). character is "avatar_male" or "avatar_female"; kid is true for children.
   starts_at is the place where the character is at the start.
   look: how the story pictures them, so each cast looks its own: height_m (adults 1.6 to 1.85, kids
   1.1 to 1.45), top and bottom (clothing colors: a color word like red, navy, white, khaki, or #rrggbb;
@@ -218,7 +219,7 @@ Reply with the whole plan in ONE JSON object. Rules:
   of them). music: prompt (a very soft, slow instrumental bed, no drums, no vocals) and mood (calm, warm,
   tender, playful, hopeful, melancholy, mysterious, cozy, or none). If the scene names sounds or music,
   use those.
-- beats: 3 to 12 in story order, ids b1, b2, ... Give every action the scene names its own beat, for
+- beats: 3 to 16 in story order, ids b1, b2, ... Give every action the scene names its own beat, for
   every character (e.g. grabs, runs off, shouts, chases, trips, gives back: six beats). Each beat: cast (a cast id), action (a few words for
   the timeline), prompt (for the motion model: starts with "A person", one simple full-body action,
   present tense, no names, e.g. "A person walks forward.", "A person jumps up and cheers with both
@@ -741,7 +742,7 @@ def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
                 fixes.append(f"place {p['key']} ({p['what']}) is no prop: merged into {into['key']}")
         places = real
     cast, cmap = [], {}
-    for i, c in enumerate((raw.get("cast") or [])[:3]):
+    for i, c in enumerate((raw.get("cast") or [])[:MAX_CAST]):
         if not isinstance(c, dict):
             continue
         k = _key(c.get("id") or c.get("name") or f"hero{i}", used)
@@ -770,7 +771,7 @@ def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
         s = None if str(c["starts_at"]) in nowhere else ref(c["starts_at"])
         c["starts_at"] = s if s in [p["key"] for p in places] else None
     beats, bids = [], set()
-    for i, b in enumerate((raw.get("beats") or [])[:12]):
+    for i, b in enumerate((raw.get("beats") or [])[:16]):
         if not isinstance(b, dict) or cmap.get(str(b.get("cast"))) is None:
             fixes.append(f"dropped a beat with unknown cast {b.get('cast') if isinstance(b, dict) else b!r}")
             continue
@@ -1310,16 +1311,16 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
         if p["library"] in BENCHLIKE or p.get("bench"):
             c, face = p.get("bench") or (p["center"], p["face"])
             along = _dir(face + 90)
-            off = [-0.45, 0.45, 0.0][i % 3]
+            off = [-0.45, 0.45, 0.0, -0.9, 0.9][i % 5]
             front = _dir(face)
             return (c[0] + along[0] * off + front[0] * (SIT_BACK - 0.2), c[1] + along[1] * off + front[1] * (SIT_BACK - 0.2)), face
         if p["use"] == "water" and water:
             ang = _heading(water["center"], p["foot"]) if water else 0
             d = _dir(ang + 90)
-            off = [0, 1.0, -1.0][i % 3]
+            off = [0, 1.0, -1.0, 2.0, -2.0][i % 5]
             pt = (p["foot"][0] + d[0] * off, p["foot"][1] + d[1] * off)
             return pt, _heading(pt, p["center"])
-        ang = _heading(p["center"], p["foot"]) + [0, 50, -50][i % 3]
+        ang = _heading(p["center"], p["foot"]) + [0, 50, -50, 100, -100][i % 5]  # up to 5 around one place
         dd = _dir(ang)
         rr = p["R"] + (1.0 if p["use"] == "sit" else 0.7)
         pt = (p["center"][0] + dd[0] * rr, p["center"][1] + dd[1] * rr)
@@ -1340,6 +1341,15 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
                                    if b["cast"] == c["id"] and (b.get("move_to") or b.get("goto"))), None)
                 if first_move in places and first_move != c["starts_at"] and not is_seat(c["starts_at"]):
                     face = _heading(pt, places[first_move]["foot"])  # about to leave for it
+                elif c["starts_at"] in places and not is_seat(c["starts_at"]) and next(
+                        (b.get("move_to") for b in plan["beats"] if b["cast"] == c["id"] and b.get("move_to")), None) == c["starts_at"]:
+                    # "Walks over to them" while the plan starts them there too (task 36: a group
+                    # at one place and a newcomer): start 7 m out on the approach side, facing in.
+                    p = places[c["starts_at"]]
+                    d = _dir(_heading(p["center"], p["foot"]) + 25)
+                    pt = (p["center"][0] + d[0] * 7.0, p["center"][1] + d[1] * 7.0)
+                    face = _heading(pt, p["center"])
+                    notes.append(f"{c['id']} walks over to {c['starts_at']}: starts 7 m away instead of there")
             else:
                 foot, h = _along(route, 1.0 + 2.0 * i)
                 pt, face = (foot[0] + 1.2 * i, foot[1] - 1.2 * i), h
