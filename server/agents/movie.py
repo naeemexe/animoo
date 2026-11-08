@@ -50,6 +50,10 @@ TIMES = ["sunrise", "day", "golden", "dusk"]
 CHARACTERS = ["avatar_male", "avatar_female"]
 GEN_CATEGORIES = ["buildings", "village", "nature", "vehicles", "water"]
 MAX_GENERATE = 2
+# The VRMs' own standing heights (measured on the Movie page) and the heights we want:
+# the male model is 2.0 m tall, the female 1.54 m.
+HEIGHT = {"avatar_male": (2.01, 1.78), "avatar_female": (1.54, 1.66)}
+KID = 0.8
 SEATS = {"bench", "stump"}  # props a character sits on (others: sit or stand beside them)
 
 
@@ -645,6 +649,27 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
             along = _dir(p["face"] + 90)
             p["seats"] = [((p["center"][0] + along[0] * 1.1 * j, p["center"][1] + along[1] * 1.1 * j), p["face"])
                           for j in range(n_seat)]
+    # "Sits on the dock": a place that is no seat gets a bench in front of it, so nobody sits on air.
+    SIT = re.compile(r"\bsits?\b(?! and)")
+    for i, b in enumerate(plan["beats"]):
+        k = b.get("goto") or next((x.get("move_to") for x in reversed(plan["beats"][:i])
+                                   if x["cast"] == b["cast"] and x.get("move_to")), None)
+        if not b.get("move_to") and SIT.search(b["prompt"].lower()) and k in places:
+            p = places[k]
+            e = entries.get(p["library"])
+            if p["library"] in SEATS or p.get("seats") or (e and "seat" in e.get("tags", [])) or \
+                    re.search(r"boat|canoe|raft", p["library"]) or p.get("bench"):
+                continue
+            if p["use"] == "water" and water:
+                ang = _heading(water["center"], p["foot"])
+                d = _dir(ang)
+                c = (water["center"][0] + d[0] * (water["radius"] + 1.7), water["center"][1] + d[1] * (water["radius"] + 1.7))
+                p["bench"] = (c, _heading(c, water["center"]))
+            else:
+                d = _dir(_heading(p["center"], p["foot"]))
+                c = (p["center"][0] + d[0] * (p["R"] + 1.2), p["center"][1] + d[1] * (p["R"] + 1.2))
+                p["bench"] = (c, _heading(p["center"], c))
+            notes.append(f"{k}: a bench to sit on")
     # A path from the first place to the last, through each place's foot.
     path_pts = [_pt(places[k]["foot"]) for k in order if k not in anchor]
 
@@ -659,12 +684,17 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
             if p.get("generate"):
                 prop["generate"] = p["generate"]
             props.append(prop)
+        if p.get("bench"):
+            (c, face) = p["bench"]
+            props.append({"key": f"{k}-bench", "library": "bench", "position": _pt(c),
+                          "rotation": _r(((face + 90 + 180) % 360) - 180, 0)})
 
     def is_boat(k):
         return bool(water and k in places and places[k]["use"] == "water" and re.search(r"boat|canoe|raft", places[k]["library"]))
 
     def is_seat(k):
-        return k in places and (places[k]["library"] in SEATS or bool(places[k].get("seats")) or is_boat(k))
+        return k in places and (places[k]["library"] in SEATS or bool(places[k].get("seats") or places[k].get("bench"))
+                                or is_boat(k))
 
     def slot(k, cid):
         p = places[k]
@@ -673,11 +703,12 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
             return p["seats"][i % len(p["seats"])]
         if is_boat(k):  # in the boat
             return p["center"], p["face"]
-        if p["library"] == "bench":
-            along = _dir(p["face"] + 90)
+        if p["library"] == "bench" or p.get("bench"):
+            c, face = p.get("bench") or (p["center"], p["face"])
+            along = _dir(face + 90)
             off = [-0.45, 0.45, 0.0][i % 3]
-            back = _dir(p["face"] + 180)
-            return (p["center"][0] + along[0] * off + back[0] * 0.15, p["center"][1] + along[1] * off + back[1] * 0.15), p["face"]
+            back = _dir(face + 180)
+            return (c[0] + along[0] * off + back[0] * 0.15, c[1] + along[1] * off + back[1] * 0.15), face
         if p["use"] == "water" and water:
             ang = _heading(water["center"], p["foot"]) if water else 0
             d = _dir(ang + 90)
@@ -711,8 +742,8 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
             pos[c["id"]] = pt
             out = {"id": c["id"], "name": c["name"], "character": c["character"],
                    "start": {"position": _pt(pt), "facing": _r(((face + 180) % 360) - 180, 0)}}
-            if c["kid"]:
-                out["scale"] = 0.8
+            natural, want = HEIGHT.get(c["character"], (1.7, 1.7))
+            out["scale"] = _r(want / natural * (KID if c["kid"] else 1.0), 3)
             cast_out.append(out)
         cast_by = {c["id"]: c for c in cast_out}
 
@@ -971,6 +1002,8 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
 
     # Decor, scattered so nothing overlaps the places, the path or the cast.
     taken = [(p["center"], p["R"] + 0.6) for p in places.values()]
+    taken += [(q, 1.0) for p in places.values() for q, _ in (p.get("seats") or [])]
+    taken += [(p["bench"][0], 1.4) for p in places.values() if p.get("bench")]
     for a, b in zip(path_pts, path_pts[1:]):
         steps = max(1, int(_dist(a, b)))
         taken += [((a[0] + (b[0] - a[0]) * j / steps, a[1] + (b[1] - a[1]) * j / steps), 1.3) for j in range(steps + 1)]
