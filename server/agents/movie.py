@@ -156,9 +156,11 @@ PLAN_EXAMPLE = {
     ],
     "cast": [
         {"id": "girl", "name": "Girl", "character": "avatar_female", "kid": True, "starts_at": "cottage",
-         "look": {"height_m": 1.3, "top": "yellow", "bottom": "blue", "hair": "auburn", "skin": "light", "accessory": "none"}},
+         "look": {"height_m": 1.3, "top": "yellow", "bottom": "blue", "hair": "auburn", "skin": "light", "accessory": "none",
+                  "outfit": "dress", "build": "slim"}},
         {"id": "grandpa", "name": "Grandpa", "character": "avatar_male", "kid": False, "starts_at": "cottage",
-         "look": {"height_m": 1.72, "top": "green", "bottom": "brown", "hair": "gray", "skin": "tan", "accessory": "cap"}},
+         "look": {"height_m": 1.72, "top": "green", "bottom": "brown", "hair": "gray", "skin": "tan", "accessory": "cap",
+                  "outfit": "casual", "build": "sturdy"}},
     ],
     "beats": [
         {"id": "b1", "cast": "grandpa", "action": "walks to the bench", "prompt": "A person walks forward slowly.", "duration": 6, "move_to": "bench"},
@@ -198,7 +200,8 @@ Reply with the whole plan in ONE JSON object. Rules:
   look: how the story pictures them, so each cast looks its own: height_m (adults 1.6 to 1.85, kids
   1.1 to 1.45), top and bottom (clothing colors: a color word like red, navy, white, khaki, or #rrggbb;
   a chef in white, a firefighter in red), hair (black, brown, blonde, auburn, red, gray, white),
-  skin (pale, light, tan, brown, dark), accessory (none, hat, cap, chef_hat, glasses, apron).
+  skin (pale, light, tan, brown, dark), accessory (none, hat, cap, chef_hat, hard_hat, beanie, glasses,
+  apron), outfit (casual, dress, suit, chef, worker, winter_coat) and build (slim, average, sturdy, heavy).
 - places: 2 to 6 locations or objects the story needs, with a short key. use is "sit" for something to
   sit on (bench, log, stump), "water" for something at the water's edge (dock, jetty, boat), else "stand".
   Every place, cast member and beat must come from the scene; don't invent extra story.
@@ -373,7 +376,16 @@ HAIR = {"black": "#1d1a1c", "brown": "#5a3a22", "dark brown": "#3b2618", "light 
         "gray": "#9a9a9a", "grey": "#9a9a9a", "white": "#e8e6e0", "silver": "#c8c8cc"}
 SKIN = {"pale": "#fbe3d4", "fair": "#f6d6c0", "light": "#efc9ab", "medium": "#d9a77f", "tan": "#c48a5e",
         "olive": "#b98a5e", "brown": "#8d5a3b", "dark": "#5e3a26", "deep": "#4a2c1d"}
-ACCESSORIES = {"none", "hat", "cap", "chef_hat", "glasses", "apron"}
+ACCESSORIES = {"none", "hat", "cap", "chef_hat", "hard_hat", "beanie", "glasses", "apron"}
+# Task 35 skins: outfit presets and builds the browser knows (web/js/characters/look.js, build.js).
+OUTFITS = {"casual", "dress", "suit", "chef", "worker", "winter_coat"}
+OUTFIT_WORDS = [  # rule fallback: what the plan's words (outfit, name, id) suggest
+    (r"winter|coat|parka|jacket|snow", "winter_coat"), (r"chef|cook|baker", "chef"),
+    (r"suit|business|office|lawyer|banker|tuxedo|groom", "suit"), (r"dress|gown|skirt|bride", "dress"),
+    (r"worker|builder|construction|mechanic|plumber|janitor|farmer|overalls|uniform", "worker"),
+    (r"casual|jeans|t-?shirt|hoodie", "casual")]
+BUILD_WORDS = [(r"slim|thin|skinny|slender|lean|petite", "slim"), (r"heavy|fat|plump|chubby|stout|big|large|round", "heavy"),
+               (r"sturdy|stocky|broad|burly|muscular|strong|athletic", "sturdy"), (r"average|medium|normal|regular", "average")]
 ADULT_H, KID_H = (1.6, 1.85), (1.1, 1.45)
 
 
@@ -386,8 +398,14 @@ def _color(v, table) -> str | None:
     return next((table[w] for w in sorted(table, key=len, reverse=True) if re.search(rf"\b{w}\b", v)), None)
 
 
-def repair_look(raw, kid: bool) -> dict | None:
-    """The plan's look for one cast member, cleaned: hex colors, a height in range, a known accessory.
+def _word(v, table) -> str | None:
+    v = str(v or "").strip().lower().replace("_", " ")
+    return next((name for rx, name in table if re.search(rf"\b({rx})s?\b", v)), None)
+
+
+def repair_look(raw, kid: bool, who: str = "") -> dict | None:
+    """The plan's look for one cast member, cleaned: hex colors, a height in range, a known accessory,
+    an outfit and build the browser knows (from the plan's words, else the cast's name: "the chef").
     None when the plan gave nothing usable (old plans), so the cast looks as before."""
     if not isinstance(raw, dict):
         return None
@@ -404,6 +422,13 @@ def repair_look(raw, kid: bool) -> dict | None:
     acc = {"chef's_hat": "chef_hat", "toque": "chef_hat", "baseball_cap": "cap", "spectacles": "glasses"}.get(acc, acc)
     if acc in ACCESSORIES and acc != "none":
         look["accessory"] = acc
+    outfit = str(raw.get("outfit") or "").strip().lower().replace(" ", "_")
+    outfit = outfit if outfit in OUTFITS else (_word(raw.get("outfit"), OUTFIT_WORDS) or _word(who, OUTFIT_WORDS))
+    if outfit:
+        look["outfit"] = outfit
+    build = _word(raw.get("build"), BUILD_WORDS)
+    if build and build != "average":
+        look["build"] = build
     return look or None
 
 
@@ -725,7 +750,7 @@ def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
         ch = ("avatar_female" if re.search(r"female|woman|girl|lady", ch) else "avatar_male") if ch not in CHARACTERS else ch
         m = {"id": k, "name": str(c.get("name") or k.title()), "character": ch,
              "kid": bool(c.get("kid")), "starts_at": c.get("starts_at")}
-        look = repair_look(c.get("look"), m["kid"])
+        look = repair_look(c.get("look"), m["kid"], f"{m['name']} {k}")
         if look:
             m["look"] = look
         cast.append(m)
