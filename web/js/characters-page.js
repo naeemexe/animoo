@@ -5,10 +5,14 @@
 //   ?live                      ask the Kimodo server (tunnel on :8101) instead,
 //                              for "A person walks forward" then "A person waves hello"
 //   ?t=3.2                     start paused at 3.2 s (for screenshots)
+//   ?outfit=chef&build=heavy&hair=red   a skin (task 35) on the hero
+//   ?lineup=avatar_male:suit:slim,avatar_female:dress:heavy:blonde
+//                              more figures beside the hero (char:outfit:build:hair),
+//                              playing the same clips 1.2 m apart
 import * as THREE from 'three';
 import { createStage } from './stage.js';
 import { createLook } from './look.js';
-import { loadCharacter, fetchBVH, generateMotion } from './characters/index.js';
+import { loadCharacter, fetchBVH, generateMotion, applyLook } from './characters/index.js';
 
 const params = new URLSearchParams(location.search);
 const stage = createStage(document.getElementById('app'));
@@ -51,12 +55,26 @@ async function clipsFor(hero) {
   return bvhs.map((b, i) => hero.makeClip(b, names[i]));
 }
 
+const skinOf = (outfit, build, hair) => (outfit || build || hair ? { outfit, build, hair: hair && HAIRS[hair] || hair } : null);
+const HAIRS = { black: '#1d1a1c', brown: '#5a3a22', blonde: '#e0c070', auburn: '#8a3b1f', red: '#b0451f', gray: '#9a9a9a', white: '#e8e6e0' };
 const hero = await loadCharacter(params.get('char') ?? 'avatar_male');
+applyLook(hero, skinOf(params.get('outfit'), params.get('build'), params.get('hair')));
 stage.scene.add(hero.group);
 const clips = await clipsFor(hero);
 const merged = hero.setClips(clips);
 // Start the walk so the whole sequence stays on the island.
 hero.group.position.set(-1, 0, -4);
+const lineup = await Promise.all((params.get('lineup')?.split(',') ?? []).map(async (spec, i) => {
+  const [id, outfit, build, hair] = spec.split(':');
+  const h = await loadCharacter(id || 'avatar_male');
+  applyLook(h, skinOf(outfit, build, hair));
+  stage.scene.add(h.group);
+  h.setClips(await clipsFor(h));
+  h.group.position.set(-1 + 1.2 * (i + 1), 0, -4);
+  return h;
+}));
+// A row of skins: look at it from the front.
+if (lineup.length) { camOffset.set(0, 0.8, 4 + 1.9 * lineup.length); closeUp(); }
 setStatus(`${clips.map((c) => c.name).join(' → ')} · ${merged.duration.toFixed(2)} s`, 'ok');
 
 // Foot target markers: green when planted. Transparent so they draw after
@@ -102,6 +120,7 @@ function frameInfo() {
 stage.renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.1);
   hero.update(hero.playing ? dt : 0);
+  for (const h of lineup) { h.ik = hero.ik; h.time = Math.min(hero.time, h.duration); h.apply(); h.vrm.update(dt); }
   const { f, seg, blending } = frameInfo();
   ['left', 'right'].forEach((s, i) => {
     footMarks[i].position.fromArray(merged.feet[s], f * 3);
@@ -113,6 +132,7 @@ stage.renderer.setAnimationLoop(() => {
   // Follow the character, gently.
   hero.vrm.humanoid.getNormalizedBoneNode('hips').getWorldPosition(hipsWorld);
   hipsWorld.y = 0.9;
+  if (lineup.length) hipsWorld.x = hero.group.position.x + 0.6 * lineup.length; // the middle of the row
   const k = hero.playing ? 0.06 : 1;
   const move = hipsWorld.sub(stage.controls.target).multiplyScalar(k);
   stage.controls.target.add(move);
@@ -121,4 +141,4 @@ stage.renderer.setAnimationLoop(() => {
   look.render();
 });
 
-window.animo = { stage, look, hero, merged, frameInfo, seek: (t) => { setPlaying(false); hero.seek(t); } };
+window.animo = { stage, look, hero, lineup, merged, frameInfo, seek: (t) => { setPlaying(false); hero.seek(t); } };
