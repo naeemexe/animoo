@@ -70,7 +70,25 @@ class LLMError(RuntimeError):
     """The backend failed, timed out, or never produced usable output."""
 
 
+_ENV = Path(__file__).resolve().parent.parent / ".env"
+_env_mtime = None
+
+
+def _reload_env() -> None:
+    """Re-read .env when it changes, so switching backend needs no server restart."""
+    global _env_mtime
+    try:
+        mt = _ENV.stat().st_mtime
+    except OSError:
+        return
+    if mt != _env_mtime:
+        _env_mtime = mt
+        from dotenv import load_dotenv
+        load_dotenv(_ENV, override=True)
+
+
 def backend() -> str:
+    _reload_env()
     return (os.getenv("LLM_BACKEND") or "opencode").strip().lower()
 
 
