@@ -601,7 +601,8 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
             start = max(start, timing[b["after"]][1])
         if b.get("with") in timing:
             start = max(start, timing[b["with"]][0])
-        if cursor[cid] > 0 or any(x["cast"] == cid for x in beats):
+        # Someone placed at the start is on screen from 0 s (without starts_at, they enter later).
+        if cursor[cid] > 0 or any(x["cast"] == cid for x in beats) or at_place.get(cid):
             idle(cid, start)
         start = max(start, cursor[cid])
         t0 = start
