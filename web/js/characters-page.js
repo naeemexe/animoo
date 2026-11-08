@@ -5,9 +5,9 @@
 //   ?live                      ask the Kimodo server (tunnel on :8101) instead,
 //                              for "A person walks forward" then "A person waves hello"
 //   ?t=3.2                     start paused at 3.2 s (for screenshots)
-//   ?outfit=chef&build=heavy&hair=red   a skin (task 35) on the hero
+//   ?outfit=chef&build=heavy&hair=red&accessory=glasses   a skin (task 35) on the hero
 //   ?lineup=avatar_male:suit:slim,avatar_female:dress:heavy:blonde
-//                              more figures beside the hero (char:outfit:build:hair),
+//                              more figures beside the hero (char:outfit:build:hair:accessory),
 //                              playing the same clips 1.2 m apart
 import * as THREE from 'three';
 import { createStage } from './stage.js';
@@ -55,19 +55,19 @@ async function clipsFor(hero) {
   return bvhs.map((b, i) => hero.makeClip(b, names[i]));
 }
 
-const skinOf = (outfit, build, hair) => (outfit || build || hair ? { outfit, build, hair: hair && HAIRS[hair] || hair } : null);
+const skinOf = (outfit, build, hair, accessory) => (outfit || build || hair || accessory ? { outfit, build, accessory, hair: hair && HAIRS[hair] || hair } : null);
 const HAIRS = { black: '#1d1a1c', brown: '#5a3a22', blonde: '#e0c070', auburn: '#8a3b1f', red: '#b0451f', gray: '#9a9a9a', white: '#e8e6e0' };
 const hero = await loadCharacter(params.get('char') ?? 'avatar_male');
-applyLook(hero, skinOf(params.get('outfit'), params.get('build'), params.get('hair')));
+applyLook(hero, skinOf(params.get('outfit'), params.get('build'), params.get('hair'), params.get('accessory')));
 stage.scene.add(hero.group);
 const clips = await clipsFor(hero);
 const merged = hero.setClips(clips);
 // Start the walk so the whole sequence stays on the island.
 hero.group.position.set(-1, 0, -4);
 const lineup = await Promise.all((params.get('lineup')?.split(',') ?? []).map(async (spec, i) => {
-  const [id, outfit, build, hair] = spec.split(':');
+  const [id, outfit, build, hair, accessory] = spec.split(':');
   const h = await loadCharacter(id || 'avatar_male');
-  applyLook(h, skinOf(outfit, build, hair));
+  applyLook(h, skinOf(outfit, build, hair, accessory));
   stage.scene.add(h.group);
   h.setClips(await clipsFor(h));
   h.group.position.set(-1 + 1.2 * (i + 1), 0, -4);

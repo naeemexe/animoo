@@ -115,7 +115,8 @@ function headFrame(vrm) {
   vrm.scene.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(vrm.scene);
   const at = head.getWorldPosition(new THREE.Vector3());
-  return { head, at, top: box.max.y - at.y, height: box.max.y - box.min.y };
+  const y = (b) => vrm.humanoid.getRawBoneNode(b)?.getWorldPosition(new THREE.Vector3()).y;
+  return { head, at, top: box.max.y - at.y, height: box.max.y - box.min.y, neckY: y('neck'), hipsY: y('hips') };
 }
 
 const MAT = (color, rough = 0.8) => new THREE.MeshStandardMaterial({ color, roughness: rough });
@@ -176,22 +177,27 @@ function makeAccessory(kind, look, f) {
     g.add(bridge);
     g.position.set(f.at.x, f.at.y + f.top * 0.36, f.at.z + r * 0.98);
   } else if (kind === 'apron') {
-    const h = f.height;
-    const cloth = new THREE.Mesh(new THREE.PlaneGeometry(h * 0.19, h * 0.36), new THREE.MeshStandardMaterial({
+    // From mid-chest to mid-thigh (bone heights), just in front of the body (and its belly).
+    const top = f.hipsY + (f.neckY - f.hipsY) * 0.6, bottom = f.hipsY * 0.62, mid = (top + bottom) / 2;
+    const cloth = new THREE.Mesh(new THREE.PlaneGeometry(0.34, top - bottom), new THREE.MeshStandardMaterial({
       color: '#f4f1ea', roughness: 0.95, side: THREE.DoubleSide }));
     g.add(cloth);
-    // From the chest to mid-thigh, just in front of the body (and its belly).
-    g.position.set(f.at.x, h * 0.6, (f.front?.(h * 0.52) ?? f.at.z + h * 0.08) + 0.012);
-    return { group: g, bone: 'chest' };
+    let z = -1;
+    for (let k = 0; k <= 8; k++) z = Math.max(z, f.front?.(top + (bottom - top) * k / 8) ?? -1); // over the pocket and belly
+    g.position.set(f.at.x, mid, (z > -1 ? z : f.at.z + 0.14) + 0.04); // clear of the walk's chest lean and the hem
+    return { group: g, bone: 'spine' }; // the belly and pocket follow the spine, not the chest
   } else if (kind === 'tie') {
-    const h = f.height, silk = MAT('#8a2030', 0.5);
-    const knot = new THREE.Mesh(new THREE.BoxGeometry(h * 0.022, h * 0.02, h * 0.012), silk);
-    const blade = new THREE.Mesh(new THREE.CylinderGeometry(h * 0.02, h * 0.008, h * 0.17, 4, 1), silk);
-    blade.rotation.y = Math.PI / 4; blade.scale.z = 0.25;
-    knot.position.y = h * 0.085; blade.position.y = 0;
+    // From just under the collar to the belt (bone heights, not the bounding box: hair spring bones stretch it).
+    const silk = MAT('#8a2030', 0.5), top = f.neckY - 0.045, len = (top - f.hipsY) * 0.82;
+    const knot = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.03, 0.02), silk);
+    const blade = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.012, len, 4, 1), silk);
+    blade.rotation.y = Math.PI / 4; blade.scale.z = 0.3;
+    knot.position.y = 0; blade.position.y = -0.015 - len / 2;
     g.add(knot, blade);
-    const y = h * 0.735;
-    g.position.set(f.at.x, y, (f.front?.(y) ?? f.at.z + h * 0.07) + 0.006);
+    g.position.set(f.at.x, top, (f.front?.(top - len * 0.3) ?? f.at.z + 0.12) + 0.008);
+    // Lean the blade with the chest: from the collar's front to the belly's front.
+    const zb = f.front?.(top - len * 0.95);
+    if (zb != null) blade.rotation.x = 0, g.rotation.x = -Math.atan2(zb + 0.008 - g.position.z, len);
     return { group: g, bone: 'upperChest' };
   } else if (kind === 'scarf') {
     const h = f.height, wool = MAT(look.scarf || '#e8d9a8', 0.95);
@@ -259,7 +265,11 @@ export function applyLook(hero, raw) {
     if (!made) continue;
     made.group.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
     const bone = vrm.humanoid.getRawBoneNode(made.bone) ?? vrm.humanoid.getRawBoneNode('spine');
-    vrm.scene.add(made.group); // the group above is identity here: scene frame = world
+    // made.group is in world space (the character's group is at the origin
+    // when the look is applied); attach() keeps that world transform. Adding it
+    // under vrm.scene first would turn it by the VRM 0 half turn (rotateVRM0),
+    // which put front pieces (cap bill, glasses, apron, tie) behind the body.
+    made.group.updateMatrixWorld(true);
     bone.attach(made.group);
   }
 }
