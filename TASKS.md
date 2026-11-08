@@ -25,7 +25,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 09a | A | Movie page UI with a mocked scene script: agent log, world build from script, per-character timeline, play, export WebM | 2.5 h | done | 04, 05 |
 | 09b | A | Movie: wire the real agents in, motion agent generates clips on the pod, director merges | 1.5 h | todo | 08, 09a |
 | 10 | A | Chat page: a character talks (Nemotron + browser voice) and demonstrates moves | 2 h | done (mock replies; live Nemotron path untested) | 05, 06 |
-| 11 | A | Prop generation in the world agent (image → TRELLIS.2 → library) | 1.5 h | todo | 07, 08 |
+| 11 | A | Prop generation in the world agent (image → TRELLIS.2 → library) | 1.5 h | doing | 07, 08 |
 | 12 | A | Demo: cache the demo scenes, record the video, write the submission | 2 h | todo | 09, 10 |
 
 **Cut rule.** If it's 6:00 am and task 09 isn't working, demo the Chat page plus a
