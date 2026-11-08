@@ -34,7 +34,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 15 | A | World fill + backdrop: no empty island. Ground scatter (grass, flowers, rocks), a dense tree/hill ring, a painted sky/backdrop that fills the frame | 2.5 h | done | 08 |
 | 16 | A | Cinematic camera: the director picks shots per beat (wide, medium, close, side, over-the-shoulder, low), with cuts and moves (dolly, orbit, crane) | 2.5 h | done (rules, no LLM call) | 08 |
 | 17 | A | Time of day + weather: day/dusk/night lighting with glowing lamps and windows at night, plus rain/snow/fog. The orchestrator sets it from the prompt | 2 h | done | 15 |
-| 18 | A | Edit mode: select, move/rotate/scale, duplicate, delete, replace with a library item, regenerate a prop on the GPU | 3 h | doing | 14 |
+| 18 | A | Edit mode: select, move/rotate/scale, duplicate, delete, replace with a library item, regenerate a prop on the GPU | 3 h | done | 14 |
 | 19 | A | Camera paths: draw a keyframed camera path between two timestamps in edit mode; it overrides the director for that span | 2.5 h | todo | 16, 18 |
 | 21 | A | Full pipeline check + optimization: load times, GLB sizes, caching, LLM call budget, GPU memory, bug bash | 2 h | done (session closed early: export width, snow ground, shot defaults, 2 scenes cached; timing table not written) | 13–17 |
 | 22 | A | Motion control: a game-style action library (cached clips) plus position control: paths around props, facing, gestures aimed at a target, consistent heights | 3 h | done | 14, 16 |
@@ -602,3 +602,24 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
 - 27: still only two base VRMs (no CC0 VRM fetched), so two cast of the same gender share a face and hair shape.
   The "old man sitting on a bench" stands and waits in both the old and the re-planned park script.
   The cast-on-set log line prints hex colors; color names would read better.
+- 18 (2026-11-08): edit mode is an "edit set" checkbox (top right of the Movie page, shown once a film is ready); off,
+  nothing is attached (no gizmo, no canvas listeners), and playback, the director camera and export are as before.
+  On: the film pauses, orbit controls take over from a high view framed on the props (offset right of the agent
+  panel), click selects a script prop, W/E/R move (ground plane) / rotate (yaw) / scale (one handle, uniform,
+  0.2–5×), Ctrl+D duplicate (`key-2`, 1.5 m to the side), Del delete, "replace with…" (all manifest props by
+  category; keeps key and transform), "regenerate" (`generate_prop('<id>-s<seed>', prompt, seed)`, a new library
+  id, then swapped in), "save" (POST `/api/movie/script` writes `edits.props` and `script.props` into the scene's
+  cache file; `plan_movie` replays use them, with a log line "set edited by hand"). Leaving edit mode re-runs
+  `direct()` + `planShots()` around the edited set (new `redirect()` in page.js). Code: `web/js/movie/edit.js`.
+- 18 checked on the city park scene: move (fountain x 3.16 → 6.35), rotate (27° → 57°), scale (bench ×3.5),
+  duplicate + delete, replace fountain → wooden-well, exit (re-directed, 7 shots, director camera back), save,
+  reload (the well and the big bench came back from the cache); no console errors. Regenerate ran once for real
+  (bench-s7358, 71 s on the Brev box, which was already up): it came out 0.43 m long because the page sent the
+  height as `size_m`; fixed to send the longest side for LENGTHWISE things (not re-run). The test bench was removed
+  from the library and the park cache file restored, so no demo scene changed. GPU-down: a faked 503 shows
+  "The GPU is not reachable right now (tunnel down?)… Replace it from the library instead."
+- 18: not done: beats aren't moved with their props (moving a bench leaves the sit/walk targets where layout put
+  them; the director's seat snap only reaches ~1 m), the fill (trees, bushes) isn't re-run, so a moved prop can
+  overlap scatter until the next replay; no undo; saving needs an existing cache file (the mock scene can't be
+  saved); editing only covers the script's props, not the fill or characters. A scene with saved edits keeps
+  them even with `?fresh` only if Nemotron fails (a fresh plan overwrites the file and drops `edits`).
