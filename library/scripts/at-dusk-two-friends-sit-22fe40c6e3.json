@@ -1,99 +1,133 @@
 {
  "scene": "At dusk two friends sit by a campfire next to their tent. One tells a story with big arm gestures, the other laughs, then they both stand up and dance around the fire.",
- "created": "2026-11-08T04:06:04+00:00",
- "model": "nemotron",
- "backend": "openai",
+ "created": "2026-11-08T04:41:06+00:00",
+ "model": "nvidia/nemotron-3.5-super-vl-120b-a12b + nvidia/nemotron-3.5-lightning-30b-a3b",
+ "backend": "nvidia",
+ "llm_calls": [
+  {
+   "agent": "orchestrator",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+   "ok": true,
+   "seconds": 5.31
+  },
+  {
+   "agent": "world",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+   "ok": true,
+   "seconds": 1.51
+  }
+ ],
  "llm_seconds": [
-  7.42,
-  2.86
+  5.31,
+  1.51
  ],
  "plan": {
-  "title": "Campfire Stories",
+  "title": "Campfire friends",
   "thoughts": [
-   "Two friends sharing a story and dancing at dusk. The campfire and tent are central locations.",
-   "The scene starts with sitting by the fire, then moves to standing and dancing.",
-   "Beats should capture storytelling, laughter, and the transition to dancing."
+   "Two friends sit by a campfire next to their tent at dusk.",
+   "Places: the tent, the campfire, and a log to sit on.",
+   "One friend tells a story with big arm gestures while seated; the other laughs, then both stand up and dance around the fire."
   ],
   "time_of_day": "dusk",
   "water": false,
   "places": [
+   {
+    "key": "tent",
+    "what": "a small camping tent",
+    "use": "stand"
+   },
    {
     "key": "campfire",
     "what": "a crackling campfire",
     "use": "stand"
    },
    {
-    "key": "tent",
-    "what": "a small camping tent",
-    "use": "stand"
+    "key": "log",
+    "what": "a wooden log by the fire",
+    "use": "sit"
    }
   ],
   "cast": [
    {
     "id": "friend1",
-    "name": "Friend 1",
+    "name": "Friend one",
     "character": "avatar_male",
     "kid": false,
-    "starts_at": "campfire"
+    "starts_at": "log"
    },
    {
     "id": "friend2",
-    "name": "Friend 2",
+    "name": "Friend two",
     "character": "avatar_female",
     "kid": false,
-    "starts_at": "campfire"
+    "starts_at": "log"
    }
   ],
   "beats": [
    {
     "id": "b1",
     "cast": "friend1",
-    "action": "tells a story with gestures",
-    "prompt": "A person gestures widely while speaking.",
-    "duration": 8,
-    "face": "campfire"
+    "action": "sits by the fire",
+    "prompt": "A person sits on a log by a campfire.",
+    "duration": 4
    },
    {
     "id": "b2",
     "cast": "friend2",
-    "action": "laughs",
-    "prompt": "A person laughs heartily.",
-    "duration": 4,
-    "face": "friend1"
+    "action": "sits by the fire",
+    "prompt": "A person sits on a log by a campfire.",
+    "duration": 4
    },
    {
     "id": "b3",
     "cast": "friend1",
-    "action": "stands up",
-    "prompt": "A person stands up from sitting.",
-    "duration": 3,
-    "move_to": "campfire"
+    "action": "tells a story",
+    "prompt": "A person sits and tells a story with big arm gestures.",
+    "duration": 6,
+    "face": "friend2"
    },
    {
     "id": "b4",
     "cast": "friend2",
-    "action": "stands up",
-    "prompt": "A person stands up from sitting.",
-    "duration": 3,
-    "move_to": "campfire",
-    "with": "b3"
+    "action": "laughs",
+    "prompt": "A person sits and laughs heartily.",
+    "duration": 4,
+    "face": "friend1",
+    "after": "b3"
    },
    {
     "id": "b5",
     "cast": "friend1",
-    "action": "dances around the fire",
-    "prompt": "A person dances joyfully with both arms.",
-    "duration": 6,
-    "face": "campfire"
+    "action": "stands up",
+    "prompt": "A person stands up from a log.",
+    "duration": 3
    },
    {
     "id": "b6",
     "cast": "friend2",
-    "action": "dances around the fire",
-    "prompt": "A person dances joyfully with both arms.",
-    "duration": 6,
-    "face": "friend1",
+    "action": "stands up",
+    "prompt": "A person stands up from a log.",
+    "duration": 3,
     "after": "b5"
+   },
+   {
+    "id": "b7",
+    "cast": "friend1",
+    "action": "dances around the fire",
+    "prompt": "A person dances around a campfire.",
+    "duration": 6,
+    "move_to": "campfire"
+   },
+   {
+    "id": "b8",
+    "cast": "friend2",
+    "action": "dances around the fire",
+    "prompt": "A person dances around a campfire.",
+    "duration": 6,
+    "move_to": "campfire",
+    "after": "b7"
    }
   ],
   "shots": [
@@ -104,74 +138,74 @@
      "friend2",
      "campfire"
     ],
-    "until": "b2"
+    "until": "b4"
    },
    {
     "framing": "medium",
-    "subject": [
-     "friend1",
-     "friend2"
-    ],
+    "subject": "friend1",
     "until": "b5"
    },
    {
-    "framing": "close",
-    "subject": "campfire",
-    "until": "b6"
+    "framing": "wide",
+    "subject": [
+     "friend1",
+     "friend2",
+     "campfire"
+    ],
+    "until": "b8"
    }
   ]
  },
  "world": {
   "thoughts": [
-   "The campfire and tent are in the library; the scene is a cozy dusk camp.",
-   "A camp setting with fire, shelter, and natural elements around."
+   "The tent and campfire are in the library; the log is a sit prop.",
+   "A dusk camp scene: oaks, pines, bushes, flowers and rocks."
   ],
   "choices": [
+   {
+    "place": "tent",
+    "library": "tent"
+   },
    {
     "place": "campfire",
     "library": "campfire"
    },
    {
-    "place": "tent",
-    "library": "tent"
+    "place": "log",
+    "library": "log-stack"
    }
   ],
   "decor": [
    {
     "library": "tree-oak",
     "count": 3,
-    "near": "campfire"
+    "near": "edge"
    },
    {
-    "library": "bush-large",
+    "library": "pine-tall",
     "count": 2,
+    "near": "edge"
+   },
+   {
+    "library": "bush-small",
+    "count": 4,
     "near": "tent"
    },
    {
-    "library": "flower-red",
+    "library": "flower-yellow",
     "count": 3,
     "near": "campfire"
    },
    {
     "library": "rock-small",
-    "count": 4,
-    "near": "edge"
-   },
-   {
-    "library": "stump",
     "count": 2,
-    "near": "tent"
-   },
-   {
-    "library": "lily-pad",
-    "count": 1,
-    "near": "campfire"
+    "near": "edge"
    }
   ]
  },
  "script": {
   "version": 1,
-  "title": "Campfire Stories",
+  "title": "Campfire friends",
   "scene": "At dusk two friends sit by a campfire next to their tent. One tells a story with big arm gestures, the other laughs, then they both stand up and dance around the fire.",
   "terrain": {
    "time_of_day": "dusk",
@@ -179,12 +213,16 @@
     {
      "points": [
       [
-       -3.53,
-       -1.18
+       -7.19,
+       -3.29
       ],
       [
-       4.36,
-       -0.93
+       0.5,
+       0.17
+      ],
+      [
+       7.89,
+       -3.12
       ]
      ],
      "width": 1.4
@@ -193,173 +231,182 @@
   },
   "props": [
    {
+    "key": "log",
+    "library": "log-stack",
+    "position": [
+     -6.69,
+     -4.04
+    ],
+    "rotation": -34.0
+   },
+   {
     "key": "campfire",
     "library": "campfire",
     "position": [
-     -3.03,
-     -2.7
+     -0.01,
+     1.68
     ],
-    "rotation": -18.0
+    "rotation": 162.0
    },
    {
     "key": "tent",
     "library": "tent",
     "position": [
-     5.57,
-     1.5
+     5.59,
+     -4.56
     ],
-    "rotation": -153.0
+    "rotation": 58.0
    },
    {
     "key": "tree-oak-1",
     "library": "tree-oak",
     "position": [
-     -0.75,
-     -4.16
+     -11.59,
+     8.16
     ],
-    "rotation": -105
+    "rotation": -30
    },
    {
     "key": "tree-oak-2",
     "library": "tree-oak",
     "position": [
-     -5.81,
-     -3.21
+     9.43,
+     8.5
     ],
-    "rotation": 0
+    "rotation": 165
    },
    {
     "key": "tree-oak-3",
     "library": "tree-oak",
     "position": [
-     -4.15,
-     -6.08
+     -3.01,
+     -13.53
     ],
-    "rotation": -75
+    "rotation": 105
    },
    {
-    "key": "bush-large-4",
-    "library": "bush-large",
+    "key": "pine-tall-4",
+    "library": "pine-tall",
     "position": [
-     2.22,
-     3.29
+     4.08,
+     13.37
+    ],
+    "rotation": -45
+   },
+   {
+    "key": "pine-tall-5",
+    "library": "pine-tall",
+    "position": [
+     -12.59,
+     -4.96
+    ],
+    "rotation": 150
+   },
+   {
+    "key": "bush-small-6",
+    "library": "bush-small",
+    "position": [
+     8.29,
+     -7.99
+    ],
+    "rotation": -105
+   },
+   {
+    "key": "bush-small-7",
+    "library": "bush-small",
+    "position": [
+     6.53,
+     -8.55
+    ],
+    "rotation": -105
+   },
+   {
+    "key": "bush-small-8",
+    "library": "bush-small",
+    "position": [
+     10.21,
+     -2.65
+    ],
+    "rotation": -135
+   },
+   {
+    "key": "bush-small-9",
+    "library": "bush-small",
+    "position": [
+     8.27,
+     -0.5
+    ],
+    "rotation": -15
+   },
+   {
+    "key": "flower-yellow-10",
+    "library": "flower-yellow",
+    "position": [
+     0.18,
+     5.25
     ],
     "rotation": -120
    },
    {
-    "key": "bush-large-5",
-    "library": "bush-large",
+    "key": "flower-yellow-11",
+    "library": "flower-yellow",
     "position": [
-     2.53,
-     1.48
+     2.38,
+     3.12
     ],
-    "rotation": -165
+    "rotation": -75
    },
    {
-    "key": "flower-red-6",
-    "library": "flower-red",
+    "key": "flower-yellow-12",
+    "library": "flower-yellow",
     "position": [
-     -3.45,
-     1.04
+     3.94,
+     1.23
     ],
-    "rotation": 165
+    "rotation": 45
    },
    {
-    "key": "flower-red-7",
-    "library": "flower-red",
+    "key": "rock-small-13",
+    "library": "rock-small",
     "position": [
-     -3.84,
-     0.56
+     12.81,
+     -4.52
+    ],
+    "rotation": -90
+   },
+   {
+    "key": "rock-small-14",
+    "library": "rock-small",
+    "position": [
+     -11.27,
+     0.89
     ],
     "rotation": 30
-   },
-   {
-    "key": "flower-red-8",
-    "library": "flower-red",
-    "position": [
-     -4.55,
-     -4.39
-    ],
-    "rotation": -150
-   },
-   {
-    "key": "rock-small-9",
-    "library": "rock-small",
-    "position": [
-     -10.27,
-     10.4
-    ],
-    "rotation": -60
-   },
-   {
-    "key": "rock-small-10",
-    "library": "rock-small",
-    "position": [
-     -5.27,
-     12.46
-    ],
-    "rotation": -180
-   },
-   {
-    "key": "rock-small-11",
-    "library": "rock-small",
-    "position": [
-     -7.45,
-     -9.53
-    ],
-    "rotation": -180
-   },
-   {
-    "key": "rock-small-12",
-    "library": "rock-small",
-    "position": [
-     0.83,
-     13.4
-    ],
-    "rotation": -165
-   },
-   {
-    "key": "stump-13",
-    "library": "stump",
-    "position": [
-     9.74,
-     -0.63
-    ],
-    "rotation": 90
-   },
-   {
-    "key": "stump-14",
-    "library": "stump",
-    "position": [
-     5.82,
-     -2.35
-    ],
-    "rotation": -165
    }
   ],
   "cast": [
    {
     "id": "friend1",
-    "name": "Friend 1",
+    "name": "Friend one",
     "character": "avatar_male",
     "start": {
      "position": [
-      -3.44,
-      -1.46
+      -6.16,
+      -2.22
      ],
-     "facing": 162.0
+     "facing": 70.0
     }
    },
    {
     "id": "friend2",
-    "name": "Friend 2",
+    "name": "Friend two",
     "character": "avatar_female",
     "start": {
      "position": [
-      -2.35,
-      -1.59
+      -7.74,
+      -2.46
      ],
-     "facing": -148.0
+     "facing": 72.0
     }
    }
   ],
@@ -368,69 +415,130 @@
     "id": "friend1-1",
     "cast": "friend1",
     "start": 0.0,
-    "duration": 8.0,
-    "prompt": "A person gestures widely while speaking.",
-    "action": "tells a story with gestures",
-    "facing": "campfire"
+    "duration": 4.0,
+    "prompt": "A person sits on a log by a campfire.",
+    "action": "sits by the fire",
+    "facing": "log"
    },
    {
     "id": "friend2-1",
     "cast": "friend2",
     "start": 0.0,
-    "duration": 8.0,
-    "prompt": "A person laughs heartily.",
-    "action": "laughs",
-    "facing": "friend1"
+    "duration": 10.0,
+    "prompt": "A person sits on a log by a campfire.",
+    "action": "sits by the fire",
+    "facing": "log"
    },
    {
     "id": "friend1-2",
     "cast": "friend1",
-    "start": 8.0,
-    "duration": 3.0,
-    "prompt": "A person stands up from sitting.",
-    "action": "stands up"
-   },
-   {
-    "id": "friend2-2",
-    "cast": "friend2",
-    "start": 8.0,
-    "duration": 9.0,
-    "prompt": "A person stands up from sitting.",
-    "action": "stands up"
+    "start": 4.0,
+    "duration": 6.0,
+    "prompt": "A person sits and tells a story with big arm gestures.",
+    "action": "tells a story",
+    "facing": "friend2"
    },
    {
     "id": "friend1-3",
     "cast": "friend1",
-    "start": 11.0,
-    "duration": 6.0,
-    "prompt": "A person dances joyfully with both arms.",
-    "action": "dances around the fire",
-    "facing": "campfire"
+    "start": 10.0,
+    "duration": 3.0,
+    "prompt": "A person stands up from a log.",
+    "action": "stands up",
+    "facing": "log"
+   },
+   {
+    "id": "friend2-2",
+    "cast": "friend2",
+    "start": 10.0,
+    "duration": 4.0,
+    "prompt": "A person sits and laughs heartily.",
+    "action": "laughs",
+    "facing": "friend1"
    },
    {
     "id": "friend1-4",
     "cast": "friend1",
-    "start": 17.0,
-    "duration": 6.0,
-    "prompt": "A person stands still and looks around.",
-    "action": "waits"
+    "start": 13.0,
+    "duration": 5.6,
+    "prompt": "A person walks forward.",
+    "action": "dances around the fire",
+    "to": [
+     0.4,
+     0.45
+    ]
    },
    {
     "id": "friend2-3",
     "cast": "friend2",
-    "start": 17.0,
-    "duration": 6.0,
-    "prompt": "A person dances joyfully with both arms.",
-    "action": "dances around the fire",
-    "facing": "friend1",
+    "start": 14.0,
+    "duration": 3.0,
+    "prompt": "A person stands up from a log.",
+    "action": "stands up",
+    "facing": "log",
     "seed": 1
+   },
+   {
+    "id": "friend2-4",
+    "cast": "friend2",
+    "start": 17.0,
+    "duration": 7.6,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits"
+   },
+   {
+    "id": "friend1-5",
+    "cast": "friend1",
+    "start": 18.6,
+    "duration": 6.0,
+    "prompt": "A person dances around a campfire.",
+    "action": "dances around the fire",
+    "facing": "campfire"
+   },
+   {
+    "id": "friend1-6",
+    "cast": "friend1",
+    "start": 24.6,
+    "duration": 8.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits"
+   },
+   {
+    "id": "friend2-5",
+    "cast": "friend2",
+    "start": 24.6,
+    "duration": 6.0,
+    "prompt": "A person walks forward.",
+    "action": "dances around the fire",
+    "to": [
+     -0.69,
+     0.58
+    ]
+   },
+   {
+    "id": "friend2-6",
+    "cast": "friend2",
+    "start": 30.6,
+    "duration": 6.0,
+    "prompt": "A person dances around a campfire.",
+    "action": "dances around the fire",
+    "facing": "campfire",
+    "seed": 1
+   },
+   {
+    "id": "friend1-7",
+    "cast": "friend1",
+    "start": 32.6,
+    "duration": 4.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits"
    }
   ],
   "shots": [
    {
     "id": "s1",
     "start": 0.0,
-    "duration": 4.0,
+    "duration": 14.0,
     "framing": "wide",
     "subject": [
      "friend1",
@@ -441,21 +549,22 @@
    },
    {
     "id": "s2",
-    "start": 4.0,
-    "duration": 13.0,
+    "start": 14.0,
+    "duration": 2.0,
     "framing": "medium",
-    "subject": [
-     "friend1",
-     "friend2"
-    ],
+    "subject": "friend1",
     "angle": -25
    },
    {
     "id": "s3",
-    "start": 17.0,
-    "duration": 6.0,
-    "framing": "close",
-    "subject": "campfire",
+    "start": 16.0,
+    "duration": 20.6,
+    "framing": "wide",
+    "subject": [
+     "friend1",
+     "friend2",
+     "campfire"
+    ],
     "angle": 55
    }
   ]

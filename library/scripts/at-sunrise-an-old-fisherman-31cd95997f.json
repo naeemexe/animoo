@@ -1,42 +1,58 @@
 {
  "scene": "At sunrise an old fisherman walks out of his hut, stretches, waves at a kid running past the well, and then they both sit on the dock.",
- "created": "2026-11-08T04:07:14+00:00",
- "model": "nemotron",
- "backend": "openai",
+ "created": "2026-11-08T04:41:11+00:00",
+ "model": "nvidia/nemotron-3.5-super-vl-120b-a12b + nvidia/nemotron-3.5-lightning-30b-a3b",
+ "backend": "nvidia",
+ "llm_calls": [
+  {
+   "agent": "orchestrator",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+   "ok": true,
+   "seconds": 3.37
+  },
+  {
+   "agent": "world",
+   "backend": "nvidia",
+   "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+   "ok": true,
+   "seconds": 2.34
+  }
+ ],
  "llm_seconds": [
-  9.29,
-  2.99
+  3.37,
+  2.34
  ],
  "plan": {
-  "title": "Fisherman and Kid at Sunrise",
+  "title": "Fisherman at sunrise",
   "thoughts": [
-   "Two characters: an old fisherman and a kid. Sunrise setting with a dock and well. The fisherman greets the kid and they share a moment sitting together.",
-   "Places: the fisherman's hut, the well, and the dock. The interaction starts at the hut, moves to the well, and ends at the dock.",
-   "The scene begins with the fisherman stretching and waving, then transitions to both characters sitting on the dock at sunrise."
+   "Two characters: an old fisherman and a kid running past the well.",
+   "Places: the fisherman's hut, the well, and the dock at the water's edge.",
+   "Fisherman exits his hut and stretches; kid runs past the well; fisherman waves at the kid; both sit on the dock."
   ],
   "time_of_day": "sunrise",
   "water": true,
   "places": [
    {
     "key": "hut",
-    "what": "an old fisherman's hut",
+    "what": "a small fisherman's hut",
     "use": "stand"
    },
    {
     "key": "well",
-    "what": "a stone well",
+    "what": "a village well",
     "use": "stand"
    },
    {
     "key": "dock",
     "what": "a wooden dock at the water's edge",
-    "use": "sit"
+    "use": "water"
    }
   ],
   "cast": [
    {
     "id": "fisherman",
-    "name": "Old Fisherman",
+    "name": "Fisherman",
     "character": "avatar_male",
     "kid": false,
     "starts_at": "hut"
@@ -53,56 +69,48 @@
    {
     "id": "b1",
     "cast": "fisherman",
-    "action": "walks out of hut and stretches",
-    "prompt": "A person walks forward and stretches their arms.",
-    "duration": 4,
-    "move_to": "well"
-   },
-   {
-    "id": "b2",
-    "cast": "fisherman",
-    "action": "waves at kid",
-    "prompt": "A person waves hello with both hands.",
-    "duration": 3,
-    "face": "kid"
-   },
-   {
-    "id": "b3",
-    "cast": "kid",
-    "action": "runs past well",
-    "prompt": "A person runs forward quickly.",
-    "duration": 4,
-    "move_to": "dock"
-   },
-   {
-    "id": "b4",
-    "cast": "fisherman",
-    "action": "walks to dock",
-    "prompt": "A person walks forward slowly.",
+    "action": "walks out of the hut",
+    "prompt": "A person walks forward out of a hut.",
     "duration": 5,
     "move_to": "dock"
    },
    {
+    "id": "b2",
+    "cast": "kid",
+    "action": "runs past the well",
+    "prompt": "A person runs forward past a well.",
+    "duration": 4
+   },
+   {
+    "id": "b3",
+    "cast": "fisherman",
+    "action": "stretches",
+    "prompt": "A person stretches both arms upward.",
+    "duration": 4,
+    "face": "kid"
+   },
+   {
+    "id": "b4",
+    "cast": "fisherman",
+    "action": "waves at the kid",
+    "prompt": "A person waves with their right hand.",
+    "duration": 3,
+    "face": "kid"
+   },
+   {
     "id": "b5",
     "cast": "fisherman",
-    "action": "sits down",
-    "prompt": "A person sits down on a dock and rests.",
+    "action": "sits on the dock",
+    "prompt": "A person sits down on a dock.",
     "duration": 4
    },
    {
     "id": "b6",
     "cast": "kid",
-    "action": "runs to dock",
-    "prompt": "A person runs forward quickly.",
+    "action": "sits on the dock",
+    "prompt": "A person sits down on a dock.",
     "duration": 4,
-    "move_to": "dock"
-   },
-   {
-    "id": "b7",
-    "cast": "kid",
-    "action": "sits down",
-    "prompt": "A person sits down on a dock and rests.",
-    "duration": 4
+    "after": "b5"
    }
   ],
   "shots": [
@@ -116,8 +124,8 @@
    },
    {
     "framing": "medium",
-    "subject": "kid",
-    "until": "b3"
+    "subject": "fisherman",
+    "until": "b4"
    },
    {
     "framing": "medium",
@@ -125,25 +133,13 @@
      "fisherman",
      "kid"
     ],
-    "until": "b5"
-   },
-   {
-    "framing": "close",
-    "subject": "fisherman",
-    "until": "b5"
-   },
-   {
-    "framing": "close",
-    "subject": "kid",
-    "until": "b7"
+    "until": "b6"
    }
   ]
  },
  "world": {
   "thoughts": [
-   "The hut and dock are in the library; the well is a rock prop.",
-   "A sunrise scene by the water: calm, with natural elements.",
-   "Fishing-boat is generated as a key element for the fisherman's context."
+   "The hut is a stilt-hut from the library. The well must be generated since it's NO MATCH. The dock uses the dock-small library item. The kid and fisherman are characters, not props."
   ],
   "choices": [
    {
@@ -152,36 +148,36 @@
    },
    {
     "place": "well",
-    "library": "rock-large"
+    "generate": {
+     "name": "wooden well",
+     "prompt": "a small wooden village well with a rope and bucket",
+     "size_m": 1.2,
+     "category": "village"
+    }
    },
    {
     "place": "dock",
-    "library": "dock"
+    "library": "dock-small"
    }
   ],
   "decor": [
    {
     "library": "tree-oak",
-    "count": 3,
+    "count": 2,
     "near": "edge"
    },
    {
-    "library": "flower-yellow",
-    "count": 4,
+    "library": "bush-small",
+    "count": 3,
     "near": "hut"
    },
    {
-    "library": "lily-pad",
+    "library": "flower-yellow",
     "count": 2,
-    "near": "dock"
-   },
-   {
-    "library": "rock-small",
-    "count": 3,
     "near": "well"
    },
    {
-    "library": "bush-small",
+    "library": "lily-pad",
     "count": 2,
     "near": "dock"
    }
@@ -189,7 +185,7 @@
  },
  "script": {
   "version": 1,
-  "title": "Fisherman and Kid at Sunrise",
+  "title": "Fisherman at sunrise",
   "scene": "At sunrise an old fisherman walks out of his hut, stretches, waves at a kid running past the well, and then they both sit on the dock.",
   "terrain": {
    "time_of_day": "sunrise",
@@ -207,16 +203,16 @@
     {
      "points": [
       [
-       -10.17,
-       -7.17
+       -7.16,
+       -4.16
       ],
       [
-       -4.01,
-       -1.31
+       -0.7,
+       1.34
       ],
       [
-       3.08,
-       3.29
+       3.6,
+       4.08
       ]
      ],
      "width": 1.4
@@ -228,71 +224,76 @@
     "key": "hut",
     "library": "stilt-hut",
     "position": [
-     -8.05,
-     -9.28
+     -5.05,
+     -6.27
     ],
     "rotation": -45.0
    },
    {
     "key": "well",
-    "library": "rock-large",
+    "library": "wooden-well",
     "position": [
-     -5.26,
-     0.25
+     -1.58,
+     2.45
     ],
-    "rotation": 141.0
+    "rotation": 141.0,
+    "generate": {
+     "prompt": "a small wooden village well with a rope and bucket",
+     "size_m": 1.2,
+     "category": "village"
+    }
    },
    {
     "key": "dock",
-    "library": "dock",
+    "library": "dock-small",
     "position": [
-     3.48,
-     2.48
+     5.02,
+     5.69
     ],
-    "rotation": -27.0
+    "rotation": 41.0
    },
    {
     "key": "tree-oak-1",
     "library": "tree-oak",
     "position": [
-     -12.36,
-     0.31
+     -12.43,
+     -7.03
     ],
-    "rotation": 120
+    "rotation": -15
    },
    {
     "key": "tree-oak-2",
     "library": "tree-oak",
     "position": [
-     10.54,
-     -3.42
+     10.73,
+     -5.68
     ],
-    "rotation": 0
+    "rotation": -180
    },
    {
-    "key": "tree-oak-3",
-    "library": "tree-oak",
+    "key": "bush-small-3",
+    "library": "bush-small",
     "position": [
-     -13.07,
-     -4.58
+     -8.34,
+     -7.0
     ],
-    "rotation": -105
+    "rotation": -135
    },
    {
-    "key": "flower-yellow-4",
-    "library": "flower-yellow",
+    "key": "bush-small-4",
+    "library": "bush-small",
     "position": [
-     -12.34,
-     -7.81
+     -9.68,
+     -4.67
     ],
-    "rotation": 120
+    "rotation": 150
    },
    {
-    "key": "flower-yellow-5",
-    "library": "flower-yellow",
+    "key": "bush-small-5",
+    "library": "bush-small",
     "position": [
-     -4.41,
-     -7.05
+     -9.95,
+     -8.49
     ],
     "rotation": 90
    },
@@ -300,80 +301,35 @@
     "key": "flower-yellow-6",
     "library": "flower-yellow",
     "position": [
-     -6.02,
-     -5.91
+     -2.09,
+     6.28
     ],
-    "rotation": -165
+    "rotation": -105
    },
    {
     "key": "flower-yellow-7",
     "library": "flower-yellow",
     "position": [
-     -5.26,
-     -11.7
+     -5.2,
+     3.33
     ],
-    "rotation": 135
+    "rotation": -90
    },
    {
     "key": "lily-pad-8",
     "library": "lily-pad",
     "position": [
-     7.19,
-     0.45
+     6.35,
+     0.94
     ],
-    "rotation": -150
+    "rotation": -45
    },
    {
     "key": "lily-pad-9",
     "library": "lily-pad",
     "position": [
-     -0.86,
-     5.61
-    ],
-    "rotation": -150
-   },
-   {
-    "key": "rock-small-10",
-    "library": "rock-small",
-    "position": [
-     -7.93,
-     -0.26
-    ],
-    "rotation": 165
-   },
-   {
-    "key": "rock-small-11",
-    "library": "rock-small",
-    "position": [
-     -4.83,
-     4.27
-    ],
-    "rotation": -105
-   },
-   {
-    "key": "rock-small-12",
-    "library": "rock-small",
-    "position": [
-     -7.54,
-     4.11
-    ],
-    "rotation": 120
-   },
-   {
-    "key": "bush-small-13",
-    "library": "bush-small",
-    "position": [
-     5.05,
-     -0.57
-    ],
-    "rotation": 60
-   },
-   {
-    "key": "bush-small-14",
-    "library": "bush-small",
-    "position": [
-     7.31,
-     -1.39
+     8.25,
+     2.34
     ],
     "rotation": -60
    }
@@ -381,14 +337,14 @@
   "cast": [
    {
     "id": "fisherman",
-    "name": "Old Fisherman",
+    "name": "Fisherman",
     "character": "avatar_male",
     "start": {
      "position": [
-      -9.95,
-      -7.38
+      -6.95,
+      -4.37
      ],
-     "facing": 44.0
+     "facing": 51.0
     }
    },
    {
@@ -397,10 +353,10 @@
     "character": "avatar_female",
     "start": {
      "position": [
-      -4.2,
-      -1.08
+      -0.88,
+      1.58
      ],
-     "facing": 59.0
+     "facing": -39.0
     },
     "scale": 0.8
    }
@@ -410,94 +366,96 @@
     "id": "fisherman-1",
     "cast": "fisherman",
     "start": 0.0,
-    "duration": 5.8,
-    "prompt": "A person walks forward and stretches their arms.",
-    "action": "walks out of hut and stretches",
+    "duration": 5.0,
+    "prompt": "A person walks forward out of a hut.",
+    "action": "walks out of the hut",
     "to": [
-     -5.6,
-     -1.42
+     -1.68,
+     -0.15
     ]
    },
    {
     "id": "kid-1",
     "cast": "kid",
     "start": 0.0,
-    "duration": 5.1,
-    "prompt": "A person runs forward quickly.",
-    "action": "runs past well",
-    "to": [
-     2.14,
-     5.17
-    ]
+    "duration": 4.0,
+    "prompt": "A person runs forward past a well.",
+    "action": "runs past the well",
+    "facing": "well"
    },
    {
     "id": "kid-2",
     "cast": "kid",
-    "start": 5.1,
-    "duration": 4.0,
-    "prompt": "A person runs forward quickly.",
-    "action": "runs to dock",
-    "facing": "dock"
+    "start": 4.0,
+    "duration": 8.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits"
    },
    {
     "id": "fisherman-2",
     "cast": "fisherman",
-    "start": 5.8,
-    "duration": 3.0,
-    "prompt": "A person waves hello with both hands.",
-    "action": "waves at kid",
-    "facing": "kid"
+    "start": 5.0,
+    "duration": 5.0,
+    "prompt": "A person walks forward out of a hut.",
+    "action": "walks out of the hut",
+    "to": [
+     3.6,
+     4.08
+    ],
+    "seed": 1
    },
    {
     "id": "fisherman-3",
     "cast": "fisherman",
-    "start": 8.8,
-    "duration": 5.9,
-    "prompt": "A person walks forward slowly.",
-    "action": "walks to dock",
-    "to": [
-     -0.46,
-     1.91
-    ]
+    "start": 10.0,
+    "duration": 4.0,
+    "prompt": "A person stretches both arms upward.",
+    "action": "stretches",
+    "facing": "kid"
    },
    {
     "id": "kid-3",
     "cast": "kid",
-    "start": 9.1,
-    "duration": 4.0,
-    "prompt": "A person sits down on a dock and rests.",
-    "action": "sits down",
-    "facing": "dock",
+    "start": 12.0,
+    "duration": 8.0,
+    "prompt": "A person stands still and looks around.",
+    "action": "waits",
     "seed": 1
    },
    {
     "id": "fisherman-4",
     "cast": "fisherman",
-    "start": 14.7,
-    "duration": 5.9,
-    "prompt": "A person walks forward slowly.",
-    "action": "walks to dock",
-    "to": [
-     4.67,
-     5.24
-    ],
-    "seed": 1
+    "start": 14.0,
+    "duration": 3.0,
+    "prompt": "A person waves with their right hand.",
+    "action": "waves at the kid",
+    "facing": "kid"
    },
    {
     "id": "fisherman-5",
     "cast": "fisherman",
-    "start": 20.6,
+    "start": 17.0,
     "duration": 4.0,
-    "prompt": "A person sits down on a dock and rests.",
-    "action": "sits down",
-    "facing": "dock"
+    "prompt": "A person sits down on a dock.",
+    "action": "sits on the dock",
+    "facing": 41.0
+   },
+   {
+    "id": "kid-4",
+    "cast": "kid",
+    "start": 21.0,
+    "duration": 4.0,
+    "prompt": "A person sits down on a dock.",
+    "action": "sits on the dock",
+    "facing": "well",
+    "seed": 1
    }
   ],
   "shots": [
    {
     "id": "s1",
     "start": 0.0,
-    "duration": 8.8,
+    "duration": 4.0,
     "framing": "wide",
     "subject": [
      "fisherman",
@@ -507,30 +465,22 @@
    },
    {
     "id": "s2",
-    "start": 8.8,
-    "duration": 2.0,
+    "start": 4.0,
+    "duration": 13.0,
     "framing": "medium",
-    "subject": "kid",
+    "subject": "fisherman",
     "angle": -25
    },
    {
     "id": "s3",
-    "start": 10.8,
-    "duration": 13.8,
+    "start": 17.0,
+    "duration": 8.0,
     "framing": "medium",
     "subject": [
      "fisherman",
      "kid"
     ],
     "angle": 55
-   },
-   {
-    "id": "s4",
-    "start": 24.6,
-    "duration": 0.0,
-    "framing": "close",
-    "subject": "fisherman",
-    "angle": 15
    }
   ]
  }
