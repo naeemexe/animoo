@@ -713,15 +713,16 @@ function cityBlocks(rng, blocked, { r0 = 24, r1 = 150, keepEvery = 1 } = {}) {
       }
     }
   }
-  // Street lamps and parked cars along both sides of every street near the square.
+  // Street lamps and parked cars along both sides of every street near the square:
+  // in even rows, 4 and 12 m either side of each block's middle (never in a crossing).
+  // The movie layout (server/agents/movie.py) puts the script's lamps on these spots.
   const streets = [];
+  const spots = [];
+  for (let b = -N; b <= N; b++) for (const o of [-12, -4, 4, 12]) spots.push(b * PERIOD + o);
   for (let s = -N; s < N; s++) {
     const c = s * PERIOD + PERIOD / 2;
     streets.push(c);
-    for (let t = -r1; t <= r1; t += 14) {
-      // Not in a crossing (the cross street's asphalt).
-      const m = (((t - PERIOD / 2) % PERIOD) + PERIOD) % PERIOD;
-      if (m < STREET / 2 + 0.6 || m > PERIOD - STREET / 2 - 0.6) continue;
+    for (const t of spots) {
       for (const side of [-1, 1]) {
         for (const [x, z, rot] of [[c + side * 4.35, t, 0], [t, c + side * 4.35, Math.PI / 2]]) {
           const r = Math.hypot(x, z);

@@ -1026,7 +1026,7 @@ def repair_world(raw: dict, plan: dict, manifest: dict, scene: str = "") -> tupl
                 "lantern-post" if plan.get("biome") in ("city", "park") else "rock-small"
             if mark in ids:
                 fixes.append(f"{pl['key']}: {c['library']} → {mark} (the {pl['key']} is the set itself)")
-                by_place[pl["key"]] = {"library": mark}
+                by_place[pl["key"]] = {"library": mark, "setting": True}
         # A library prop named exactly like the place wins over a stand-in (hedge → hedge, not a pine).
         elif pl["key"] in ids and pl["key"] not in c["library"] and not c.get("generate"):
             fixes.append(f"{pl['key']}: {c['library']} → {pl['key']} (the library has one)")
@@ -1314,6 +1314,8 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
     props = []
     for k in order:
         p = places[k]
+        if p.get("setting") and plan.get("biome") == "city":
+            continue  # "the street" is the city fill itself: no marker lamp in the middle of the action
         rot = p["face"] + BENCHLIKE.get(p["library"], 0)  # the bench's front is its -x side
         if p.get("chairs"):  # the table, then its chairs
             props.append({"key": k, "library": p["library"], "position": _pt(p["center"]), "rotation": _r(((p["face"] + 180) % 360) - 180, 0)})
@@ -1699,7 +1701,52 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
         return math.hypot(*pt) <= ISLAND and all(_dist(pt, q) > r + rq for q, rq in taken)
 
     n_dec = 0
-    for d in world["decor"]:
+    # The city: street furniture stands in order on the square's sidewalk, by the kerb, never
+    # scattered through the action (task 24's fill: a 33 m square, kerbs at ±17 m, street lamps
+    # at ±16.65 m, 4 and 12 m either side of each edge's middle). Lamps take those lamp spots
+    # (the fill leaves out its own there; prop lamps light up at night), benches stand between
+    # them facing into the square, hedges run along the edge, crates and barrels sit near the
+    # corners. Trucks are parked by the fill already.
+    city = plan.get("biome") == "city"
+    edges = [(1, 0), (0, 1), (-1, 0), (0, -1)]  # outward normals
+
+    def edge_slot(n, line, t):
+        pt = (n[0] * line + abs(n[1]) * t, n[1] * line + abs(n[0]) * t)
+        inward = _heading(pt, (pt[0] - n[0], pt[1] - n[1]))
+        along = 0 if n[0] else 90  # a long prop (hedge: 2 m along its z) runs along the edge
+        return pt, inward, along
+
+    used = set()
+    for d in world["decor"] if city else []:
+        lib = d["library"]
+        if lib == "truck" or entries[lib]["size"][1] > 3:
+            continue
+        if lib == "lantern-post":
+            line, ts = 16.65, (4, -4, 12, -12)
+        elif lib in BENCHLIKE or lib in SEATS:
+            line, ts = 15.5, (0, 8, -8)
+        elif lib == "hedge":
+            line, ts = 15.6, (8, -8, 0, 14, -14)
+        else:
+            line, ts = 15.4, (14, -14, 8, -8, 0)
+        r = footprint(entries[lib], None) * 0.9
+        placed = 0
+        for t0 in ts:
+            for n, sign in zip(edges, (1, -1, -1, 1)):  # t = 14 on each edge: four different corners
+                t = t0 * sign
+                if placed >= d["count"] or (n, t) in used:
+                    continue
+                pt, inward, along = edge_slot(n, line, t)
+                if any(_dist(pt, q) <= r + rq for q, rq in taken):
+                    continue
+                used.add((n, t))
+                rot = inward + BENCHLIKE.get(lib, 0) if lib in BENCHLIKE or lib in SEATS else along
+                n_dec += 1
+                placed += 1
+                taken.append((pt, r))
+                props.append({"key": f"{lib}-{n_dec}", "library": lib, "position": _pt(pt),
+                              "rotation": _r(((rot + 180) % 360) - 180, 0)})
+    for d in world["decor"] if not city else []:
         e = entries[d["library"]]
         r = footprint(e, None) * 0.9
         near = places.get(d.get("near"))
