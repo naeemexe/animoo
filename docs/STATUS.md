@@ -33,12 +33,12 @@ open http://localhost:8000               # Movie | Chat
   Details are in `docs/gpu-log.md`.
 - **RunPod:** the old pod is stopped ($0/hr). Its volume `framed-models` still bills a little storage;
   delete the pod and the volume in the RunPod console when convenient.
-- **LLM: self-hosted Nemotron Nano 9B v2** on the Brev box (vLLM, `:8104`, served as `nemotron`), with no key and
-  no rate limit, about 0.6–0.8 s per small JSON call. The app uses `LLM_BACKEND=openai`,
-  `NEMOTRON_BASE_URL=http://localhost:8104/v1`, `NEMOTRON_MODEL=nemotron`. Start it with `bash /opt/app/serve.sh start llm`.
-  Fallbacks: the OpenCode free tier (rate-limited after about 30 calls per 30 min), or a build.nvidia.com key
-  (`LLM_BACKEND=nvidia`, `NVIDIA_API_KEY`), which allows the bigger Nemotron Super for better plans.
-  GPU memory with everything loaded is about 60 of 80 GB.
+- **LLM (Nemotron, per agent):** a build.nvidia.com key is in `.env` (`NVIDIA_API_KEY`; never commit or print it).
+  The orchestrator and self-check use `nvidia/nemotron-3.5-super-vl-120b-a12b` (about 0.6 s for a short reply); the world,
+  motion and director agents and Chat use `nvidia/nemotron-3.5-lightning-30b-a3b` (about 1.3 s; it reasons by default).
+  The fallback chain is: hosted NVIDIA → self-hosted **Nemotron Nano 9B v2** on the Brev box (vLLM `:8104`,
+  model `nemotron`, about 0.7 s, no limit; `bash /opt/app/serve.sh start llm`) → OpenCode free tier → mock.
+  Per-agent routing is being added in task 08. Regenerate the NVIDIA key after the hackathon (it was shared in chat).
 
 ## Next
 
