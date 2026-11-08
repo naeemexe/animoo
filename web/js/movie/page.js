@@ -84,6 +84,8 @@ export function createMoviePage(root, stage, look) {
       cam.setEnabled(camBeforeEdit);
     },
     onScriptChanged() { ui.scriptView.textContent = JSON.stringify(state.script, null, 2); },
+    onPathsChanged() { timeline.setRows(state.rows, state.duration); timeline.setTime(state.t); },
+    seek: (t) => seek(t),
   });
 
   // ---- agent log ----------------------------------------------------------
@@ -312,6 +314,7 @@ export function createMoviePage(root, stage, look) {
     pose(state.t, 0);
     cam.update(state.t, state.rows, 0, true);
     timeline.setTime(state.t);
+    editor.timeChanged();
   }
 
   function frame(dt) {

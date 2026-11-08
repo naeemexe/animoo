@@ -6,16 +6,23 @@
 // in the scene's cache file (POST /api/movie/script), so the next replay of the
 // scene uses them. Leaving edit mode re-directs the film around the new set.
 //
+// Camera paths (task 19): scrub the timeline, "start here" / "end here" set a
+// span, "add key" stores the current orbit view (camera position + target) at
+// the playhead; campath.js runs a spline through the keys, which overrides the
+// director for that span. The path is drawn in the scene while editing,
+// "preview" flies it, and "save" stores it with the props.
+//
 // With the toggle off nothing here runs: no gizmo, no listeners on the canvas.
 import * as THREE from 'three';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { generateProp, loadManifest, loadProp } from '../library.js';
 import { API_BASE } from '../api.js';
+import { samplePath } from './campath.js';
 
 const RAD = Math.PI / 180;
 const r2 = (v) => Math.round(v * 100) / 100;
 
-export function createEditor(root, stage, { state, log, onEnter, onExit, onScriptChanged }) {
+export function createEditor(root, stage, { state, log, onEnter, onExit, onScriptChanged, onPathsChanged, seek }) {
   const bar = document.createElement('div');
   bar.className = 'card edit-bar';
   bar.hidden = true;
@@ -39,10 +46,21 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
         <button type="button" class="ed-save primary">save</button>
       </div>
       <div class="ed-status pill">click a prop</div>
+      <div class="ed-head">camera path</div>
+      <div class="ed-prow">
+        <button type="button" class="ed-ps" title="the path starts at the playhead">start here</button>
+        <button type="button" class="ed-pe" title="the path ends at the playhead">end here</button>
+      </div>
+      <div class="ed-prow">
+        <button type="button" class="ed-pk" title="a key from the current view at the playhead (K)">add key</button>
+        <button type="button" class="ed-pv" title="fly the path">preview</button>
+        <button type="button" class="ed-pc" title="remove this path">clear</button>
+      </div>
+      <div class="ed-pstatus pill">scrub to a time, then "start here"</div>
     </div>`;
   root.appendChild(bar);
   const $ = (s) => bar.querySelector(s);
-  const ui = { on: $('.ed-on'), tools: $('.ed-tools'), lib: $('.ed-lib'), status: $('.ed-status'), save: $('.ed-save'), regen: $('.ed-regen') };
+  const ui = { on: $('.ed-on'), tools: $('.ed-tools'), lib: $('.ed-lib'), status: $('.ed-status'), save: $('.ed-save'), regen: $('.ed-regen'), pstatus: $('.ed-pstatus') };
 
   const gizmo = new TransformControls(stage.camera, stage.renderer.domElement);
   gizmo.setSize(0.8);
@@ -101,11 +119,138 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
   }
 
   function changed(line) {
-    dirty = unsaved = true;
-    ui.save.textContent = 'save*';
+    dirty = true;
+    markUnsaved();
     if (selected) status(line);
     log('world', 'call', `edit: ${line}`);
     onScriptChanged();
+  }
+  function markUnsaved() {
+    unsaved = true;
+    ui.save.textContent = 'save*';
+  }
+
+  // ---- camera paths (task 19) --------------------------------------------------
+  let curPath = null; // the path the buttons act on
+  const paths = () => (state.script.camera_paths ??= []);
+  const r1 = (v) => Math.round(v * 100) / 100;
+  // The path under the playhead, else the one last touched.
+  function current() {
+    const list = state.script.camera_paths ?? [];
+    curPath = list.find((p) => state.t >= p.start && state.t <= p.end) ?? (list.includes(curPath) ? curPath : null);
+    return curPath;
+  }
+  function newPath(start, end) {
+    curPath = { start: r1(start), end: r1(end), keys: [] };
+    paths().push(curPath);
+    return curPath;
+  }
+  function pathChanged(line) {
+    const p = curPath;
+    if (p) p.keys = p.keys.filter((k) => k.t >= p.start - 1e-3 && k.t <= p.end + 1e-3).sort((a, b) => a.t - b.t);
+    if (!paths().length) delete state.script.camera_paths;
+    markUnsaved();
+    log('director', 'call', `camera path: ${line}`);
+    pathStatus();
+    drawPath();
+    onScriptChanged();
+    onPathsChanged();
+  }
+  function pathStatus() {
+    const p = current();
+    ui.pstatus.textContent = p
+      ? `path ${p.start.toFixed(1)}–${p.end.toFixed(1)} s · ${p.keys.length} key${p.keys.length === 1 ? '' : 's'}${p.keys.length ? '' : ' (orbit to a view, "add key")'}`
+      : `no path at ${state.t.toFixed(1)} s: scrub, then "start here"`;
+  }
+  function setStart() {
+    const t = state.t, p = current();
+    if (p && t < p.end - 0.2) p.start = r1(t);
+    else newPath(t, Math.min(t + 4, state.duration));
+    pathChanged(`start ${curPath.start.toFixed(1)} s`);
+  }
+  function setEnd() {
+    const t = state.t, p = current();
+    if (p && t > p.start + 0.2) p.end = r1(t);
+    else newPath(Math.max(0, t - 4), t);
+    pathChanged(`end ${curPath.end.toFixed(1)} s`);
+  }
+  function addKey() {
+    const t = r1(state.t);
+    const p = current() ?? newPath(t, Math.min(t + 4, state.duration));
+    if (t < p.start) p.start = t;
+    if (t > p.end) p.end = t;
+    const c = stage.camera.position, l = stage.controls.target;
+    const key = { t, pos: [r1(c.x), r1(c.y), r1(c.z)], look: [r1(l.x), r1(l.y), r1(l.z)] };
+    p.keys = p.keys.filter((k) => Math.abs(k.t - t) > 0.05);
+    p.keys.push(key);
+    pathChanged(`key at ${t.toFixed(1)} s from (${key.pos.join(', ')}) → (${key.look.join(', ')})`);
+  }
+  function clearPath() {
+    const p = current();
+    if (!p) return;
+    paths().splice(paths().indexOf(p), 1);
+    curPath = null;
+    pathChanged(`removed ${p.start.toFixed(1)}–${p.end.toFixed(1)} s`);
+  }
+
+  // The path in the scene while editing: a line through the spline, a dot per key.
+  let pathGroup = null;
+  function drawPath() {
+    if (pathGroup) { stage.scene.remove(pathGroup); pathGroup.traverse((o) => { o.geometry?.dispose(); o.material?.dispose(); }); }
+    pathGroup = new THREE.Group();
+    pathGroup.name = 'camera-paths';
+    for (const p of state.script.camera_paths ?? []) {
+      if (!p.keys.length) continue;
+      const on = p === curPath;
+      const color = on ? 0xd6336c : 0x9a6b85;
+      const t0 = p.keys[0].t, t1 = p.keys.at(-1).t;
+      const pts = [];
+      for (let i = 0; i <= 60; i++) pts.push(samplePath(p, t0 + (t1 - t0) * i / 60).pos);
+      pathGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color, depthTest: false })));
+      for (const k of p.keys) {
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(on ? 0.22 : 0.16, 12, 8), new THREE.MeshBasicMaterial({ color, depthTest: false }));
+        dot.position.set(...k.pos);
+        pathGroup.add(dot);
+        const aim = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...k.pos), new THREE.Vector3(...k.look)]),
+          new THREE.LineDashedMaterial({ color, dashSize: 0.3, gapSize: 0.2, transparent: true, opacity: 0.5, depthTest: false }));
+        aim.computeLineDistances();
+        pathGroup.add(aim);
+      }
+    }
+    pathGroup.renderOrder = 10;
+    pathGroup.traverse((o) => { o.renderOrder = 10; });
+    stage.scene.add(pathGroup);
+  }
+  function hidePath() { if (pathGroup) { stage.scene.remove(pathGroup); pathGroup = null; } }
+
+  // Fly the path once (the characters play along), then come back to the orbit view.
+  let previewing = false;
+  function preview() {
+    const p = current();
+    if (!p?.keys.length || previewing) return;
+    previewing = true;
+    const cam = stage.camera, from = cam.position.clone(), target = stage.controls.target.clone(), t0 = state.t;
+    stage.controls.enabled = false;
+    if (pathGroup) pathGroup.visible = false;
+    let t = p.start, last = performance.now();
+    const step = (now) => {
+      t = Math.min(p.end, t + (now - last) / 1000);
+      last = now;
+      seek(t);
+      const { pos, look } = samplePath(p, t);
+      cam.position.copy(pos);
+      stage.controls.target.copy(look); // the page's orbit update looks here too
+      cam.lookAt(look);
+      if (t < p.end && ui.on.checked) return requestAnimationFrame(step);
+      previewing = false;
+      seek(t0);
+      cam.position.copy(from);
+      stage.controls.target.copy(target);
+      stage.controls.enabled = true;
+      stage.controls.update();
+      if (pathGroup) pathGroup.visible = true;
+    };
+    requestAnimationFrame(step);
   }
 
   function uniqueKey(base) {
@@ -205,13 +350,13 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
       const res = await fetch(`${API_BASE}/api/movie/script`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scene: state.script.scene ?? state.scene, props: state.script.props }),
+        body: JSON.stringify({ scene: state.script.scene ?? state.scene, props: state.script.props, camera_paths: (state.script.camera_paths ?? []).filter((p) => p.keys.length) }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.detail ?? `save returned ${res.status}`);
       unsaved = false;
       ui.save.textContent = 'save';
-      status(`saved ${state.script.props.length} props into library/scripts/${body.file}`);
+      status(`saved ${state.script.props.length} props${body.camera_paths ? ` and ${body.camera_paths} camera path${body.camera_paths > 1 ? 's' : ''}` : ''} into library/scripts/${body.file}`);
       log('world', 'result', `edits saved to library/scripts/${body.file}`);
     } catch (err) {
       status(`save failed: ${err.message}`, true);
@@ -257,6 +402,7 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
     else if (k === 'delete' || k === 'backspace') { e.preventDefault(); remove(); }
     else if (k === 'd' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); duplicate(); }
     else if (k === 'escape') select(null);
+    else if (k === 'k') addKey();
   }
 
   // A high three-quarter view over the props, so every one of them can be clicked.
@@ -291,10 +437,14 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
     fillLibrary();
     select(null);
     setMode('translate');
-    log('world', 'note', 'edit mode: click a prop; W/E/R move/rotate/scale, Ctrl+D duplicate, Del delete');
+    curPath = null;
+    pathStatus();
+    drawPath();
+    log('world', 'note', 'edit mode: click a prop; W/E/R move/rotate/scale, Ctrl+D duplicate, Del delete; camera path: scrub, "start here", orbit, K adds a key');
   }
   function exit() {
     select(null);
+    hidePath();
     if (helper) stage.scene.remove(helper);
     const el = stage.renderer.domElement;
     el.removeEventListener('pointerdown', onDown);
@@ -313,10 +463,16 @@ export function createEditor(root, stage, { state, log, onEnter, onExit, onScrip
   ui.lib.onchange = () => replace(ui.lib.value);
   ui.regen.onclick = regenerate;
   ui.save.onclick = save;
+  $('.ed-ps').onclick = setStart;
+  $('.ed-pe').onclick = setEnd;
+  $('.ed-pk').onclick = addKey;
+  $('.ed-pc').onclick = clearPath;
+  $('.ed-pv').onclick = preview;
 
   return {
     get on() { return ui.on.checked; },
     show(ready) { bar.hidden = !ready; },
+    timeChanged() { if (ui.on.checked && !previewing) pathStatus(); },
     off() { if (ui.on.checked) { ui.on.checked = false; exit(); } },
     reset() { this.off(); unsaved = false; ui.save.textContent = 'save'; bar.hidden = true; },
   };

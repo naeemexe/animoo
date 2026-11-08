@@ -78,6 +78,11 @@ export function createTimeline(root, { onPlay, onSeek, onDirectorCam, onExport }
       const type = s.type ?? s.framing;
       block(shots, s.start, s.start + s.duration, `${type}${s.move && s.move !== 'static' ? ` ${s.move}` : ''} · ${subj}`, 'shot', `${s.id}: ${type}${s.move ? ` (${s.move})` : ''} on ${subj}${s.partner ? ` over ${s.partner}'s shoulder` : ''}, from ${s.angle ?? 35}°`);
     }
+    // Hand-drawn camera paths (task 19) sit over the shots they replace.
+    for (const p of script.camera_paths ?? []) {
+      block(shots, p.start, p.end, `path · ${p.keys.length} key${p.keys.length === 1 ? '' : 's'}`, 'path',
+        `camera path ${p.start.toFixed(1)}–${p.end.toFixed(1)} s: ${p.keys.length} keys (overrides the director here)`);
+    }
     for (const c of script.cast) {
       const l = lane(c.name, 'cast');
       const placed = rows?.[c.id]?.beats ?? script.beats.filter((b) => b.cast === c.id).map((beat) => ({ beat, start: beat.start, end: beat.start + beat.duration }));
