@@ -11,6 +11,7 @@ import { LOOK } from '../look.js';
 import { meanHeading } from '../characters/merge.js';
 import { isInterior, roomBounds } from './interior.js';
 import { seatsFromSet } from './control.js';
+import { pathAt, samplePath } from './campath.js';
 
 const RAD = Math.PI / 180;
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
@@ -234,6 +235,20 @@ export class DirectorCamera {
 
   update(t, rows, dt, snap = false) {
     if (!this.enabled || !this.script) return;
+    // A hand-drawn camera path (task 19) overrides the director for its span.
+    const path = pathAt(this.script, t);
+    if (path) {
+      const { pos, look } = samplePath(path, t);
+      const cam = this.stage.camera;
+      cam.position.copy(pos);
+      cam.lookAt(look);
+      this.target.copy(look);
+      this.shot = null; // the next director shot comes in as a cut
+      this.focusPoint ??= new THREE.Vector3();
+      this.focusPoint.copy(look);
+      this.look.setFocus({ point: this.focusPoint, blur: TYPES.medium.blur });
+      return;
+    }
     const shot = this.shotAt(t);
     if (!shot) return;
     const cut = shot !== this.shot;
