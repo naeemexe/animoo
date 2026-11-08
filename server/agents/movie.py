@@ -236,6 +236,8 @@ At most {MAX_GENERATE} generates per film. Then add decor that sets the mood: 3 
 props with a count each (20 in all at most) that fit the setting: a market gets more stalls, crates,
 barrels, carts and lanterns; a camp gets logs, stumps, rocks and pines; a village gets fences, flowers,
 bushes and trees. near is a place key or "edge" (the rim of the island, good for trees).
+A window, door or porch is part of a building: choose house or wooden-cottage for it, never generate a
+lone window. A village, street or town gets houses (house, wooden-cottage) and lantern-post in the decor.
 You don't place anything: layout code puts every prop in its spot. Reply with ONE JSON object."""
 
 
@@ -452,7 +454,11 @@ def default_world(plan: dict, manifest: dict) -> dict:
     return {"choices": choices, "decor": [d for d in decor if d["library"] in ids], "thoughts": []}
 
 
-def repair_world(raw: dict, plan: dict, manifest: dict) -> tuple[dict, list[str]]:
+HOUSE_PART = re.compile(r"\b(window|door|doorstep|porch|balcony|room)\b", re.I)
+TOWN = re.compile(r"\b(village|street|town|houses?|cottages?|alley|square)\b", re.I)
+
+
+def repair_world(raw: dict, plan: dict, manifest: dict, scene: str = "") -> tuple[dict, list[str]]:
     fixes = []
     ids = {p["id"] for p in manifest["props"]}
     fallback = {c["place"]: c["library"] for c in default_world(plan, manifest)["choices"]}
@@ -483,6 +489,12 @@ def repair_world(raw: dict, plan: dict, manifest: dict) -> tuple[dict, list[str]
         if k not in by_place:
             by_place[k] = {"library": lib}
             fixes.append(f"{k}: no choice → {lib}")
+    houses = [i for i in ("wooden-cottage", "house") if i in ids]
+    for pl in plan["places"]:  # a window or a door is a house, not a prop of its own
+        c = by_place[pl["key"]]
+        if houses and HOUSE_PART.search(f"{pl['key']} {pl['what']}") and c["library"] not in houses:
+            fixes.append(f"{pl['key']}: {c['library']} → {houses[0]} (a {pl['key']} belongs to a house)")
+            by_place[pl["key"]] = {"library": houses[0]}
     seats = {p["id"] for p in manifest["props"] if "seat" in p.get("tags", [])}
     for pl in plan["places"]:  # a seat must be something to sit on (a log stack is too tall)
         c = by_place[pl["key"]]
@@ -510,6 +522,14 @@ def repair_world(raw: dict, plan: dict, manifest: dict) -> tuple[dict, list[str]
         decor.append({"library": d["library"], "count": n, "near": str(d.get("near") or "")})
     if not decor:
         decor = default_world(plan, manifest)["decor"]
+    # A village street needs houses along it (and, at night, the lamps light it).
+    blds = {p["id"] for p in manifest["props"] if p.get("category") == "buildings"}
+    if houses and TOWN.search(scene) and not any(d["library"] in blds for d in decor) \
+            and sum(c["library"] in blds for c in by_place.values()) < 2:
+        decor.append({"library": "house", "count": 2, "near": "edge"})
+        if "lantern-post" in ids and not any(d["library"] == "lantern-post" for d in decor):
+            decor.append({"library": "lantern-post", "count": 2, "near": ""})
+        fixes.append("a village street: added houses and lanterns to the decor")
     return {"choices": by_place, "decor": decor, "thoughts": [str(t) for t in (raw.get("thoughts") or [])][:3]}, fixes
 
 
@@ -1268,7 +1288,7 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
             yield step("world", "error", f"Nemotron failed: {str(err)[:200]}", (time.perf_counter() - t0) * 1000)
             yield step("world", "note", "Using the best search_library hit for each place instead.")
             raw_world = None
-    world, world_fix = repair_world(raw_world or {}, plan, manifest) if raw_world else (default_world(plan, manifest), [])
+    world, world_fix = repair_world(raw_world or {}, plan, manifest, scene) if raw_world else (default_world(plan, manifest), [])
     if not raw_world:
         world["choices"] = {c["place"]: {"library": c["library"]} for c in world["choices"]}
     for t in world["thoughts"]:
