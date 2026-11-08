@@ -96,7 +96,7 @@ export function createChatPage(root, stage, look) {
     return li;
   }
   function note(li, text, kind = '') {
-    let n = li.querySelector('.note');
+    let n = li.querySelector('.note:not(.offline)');
     if (!n) { n = document.createElement('span'); li.appendChild(n); }
     n.className = `note ${kind}`;
     n.textContent = text;
@@ -175,7 +175,10 @@ export function createChatPage(root, stage, look) {
       } else {
         // Never quietly: the bubble, the footer and the console all say it.
         li.classList.add('mock');
-        note(li, 'Nemotron offline: mock reply', 'err');
+        const tag = document.createElement('span');
+        tag.className = 'note err offline';
+        tag.textContent = 'Nemotron offline: mock reply';
+        li.appendChild(tag);
         ui.brain.textContent = 'brain: mock (Nemotron offline)';
         ui.brain.className = 'bad';
         console.warn(`Chat: Nemotron offline, mock reply (${error || 'no reason given'})`);
