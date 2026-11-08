@@ -213,6 +213,9 @@ export function createMoviePage(root, stage, look) {
       // Characters load while the world agent works.
       const heroesReady = Promise.all(script.cast.map(async (c) => {
         const hero = await loadCharacter(c.character);
+        // ?skin=man:suit:heavy,woman:dress  tries a skin (task 35) on a cached scene's cast.
+        const tryOn = params.get('skin')?.split(',').map((x) => x.split(':')).find(([id]) => id === c.id);
+        if (tryOn) c.look = { ...c.look, outfit: tryOn[1] || c.look?.outfit, build: tryOn[2] || c.look?.build };
         applyLook(hero, c.look); // before scaling: the accessory is placed in the VRM's own frame
         hero.group.scale.setScalar(c.scale ?? 1);
         hero.group.visible = false;
@@ -232,7 +235,7 @@ export function createMoviePage(root, stage, look) {
       log('world', 'result', `set built · ${state.set.children.length} items`);
       await heroesReady;
       mark('set_and_cast', t0Set);
-      log('world', 'result', `cast on set: ${script.cast.map((c) => `${c.name} (${c.character}${c.look ? `, ${[c.look.top, c.look.hair, c.look.accessory].filter(Boolean).join(' ')}` : ''})`).join(', ')}`);
+      log('world', 'result', `cast on set: ${script.cast.map((c) => `${c.name} (${c.character}${c.look ? `, ${[c.look.outfit, c.look.build, c.look.top, c.look.hair, c.look.accessory].filter(Boolean).join(' ')}` : ''})`).join(', ')}`);
 
       // Motion agent: one Kimodo clip per beat.
       const up = await motionServerUp();
