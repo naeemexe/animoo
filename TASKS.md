@@ -48,7 +48,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 28 | A | Look round 3: trees less blocky, roads blend into the ground | 1.5 h | done | 23, 24 |
 | 31 | A | Physical rules: nothing passes through anything (characters avoid each other too), paths re-plan after edits, beats follow moved props | 2 h | done | 22, 18 |
 | 32 | A | Scene audio: the orchestrator plans ambience + a soft music bed from place, weather, time and mood (or the user's words); ElevenLabs sound effects/music when a key is set, procedural WebAudio otherwise; cached; in the WebM export | 2 h | done (procedural; ElevenLabs coded, off until `ELEVENLABS_API_KEY` is set) | 08 |
-| 12b | A | Re-record the 5 demo takes after round 3 (with audio), update `demo/SUBMISSION.md` | 0.5 h | todo | 28–32 |
+| 12b | A | Re-record the 5 demo takes after round 3 (with audio), update `demo/SUBMISSION.md` | 0.5 h | doing | 28–32 |
 
 **Cut rule.** If it's 6:00 am and task 09 isn't working, demo the Chat page plus a
 Movie page with one generated world and the sample clips. A finished small demo
