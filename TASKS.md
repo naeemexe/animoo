@@ -28,7 +28,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 09b | A | Movie: wire the real agents in, motion agent generates clips on the pod, director merges | 1.5 h | done (with 08: real agents over SSE, Kimodo clips, merge, export) | 08, 09a |
 | 10 | A | Chat page: a character talks (Nemotron + browser voice) and demonstrates moves | 2 h | done (mock replies; live Nemotron path untested) | 05, 06 |
 | 11 | A | Prop generation in the world agent (image → TRELLIS.2 → library) | 1.5 h | done (mechanics; the world agent calls it in 08) | 07, 08 |
-| 12 | A | Demo: cache the demo scenes, record the video, write the submission | 2 h | todo | 09, 10 |
+| 12 | A | Demo: cache the demo scenes, record the video, write the submission | 2 h | doing | 09, 10 |
 | 13 | A | Chat: remove the canned mock lines and suggestion chips ("Hi! I can show you a squat…"); Nemotron persona only | 0.5 h | done | 06 |
 | 14 | A | Scale + placement: characters and props at consistent real-world size; grounded, no overlaps, positions that follow the script | 2 h | done | 08 |
 | 15 | A | World fill + backdrop: no empty island. Ground scatter (grass, flowers, rocks), a dense tree/hill ring, a painted sky/backdrop that fills the frame | 2.5 h | done | 08 |
