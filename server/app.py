@@ -172,7 +172,18 @@ def movie_revise(body: dict) -> dict:
         scene, calls, how = revise_movie(base, request)
     except ValueError as err:
         raise HTTPException(status_code=409, detail=str(err))
-    return {"scene": scene, "llm_calls": calls, "how": how}
+    # Only the time of day or weather changed: the page relights the film in place (no rebuild).
+    from .agents.movie import load_cached, repair_plan
+    env = None
+    try:
+        old_p, _ = repair_plan(load_cached(base)["plan"], base)
+        new_p, _ = repair_plan(load_cached(scene)["plan"], scene)
+        rest = lambda p: {k: v for k, v in p.items() if k not in ("time_of_day", "weather", "audio")}
+        if rest(old_p) == rest(new_p):
+            env = {"terrain": {"time_of_day": new_p["time_of_day"], "weather": new_p["weather"]}, "audio": new_p.get("audio")}
+    except (TypeError, KeyError, ValueError):
+        pass
+    return {"scene": scene, "llm_calls": calls, "how": how, "env": env}
 
 
 @app.post("/api/movie/script")

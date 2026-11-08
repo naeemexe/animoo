@@ -12,7 +12,7 @@ import { loadCharacter, applyLook } from '../characters/index.js';
 import { validateScript, plannedDuration } from './script.js';
 import { FISHERMAN_SCENE, FISHERMAN_SCRIPT } from './mock.js';
 import { API_BASE, urlParams } from '../api.js';
-import { buildSet, setTimeOfDay } from './world.js';
+import { buildSet, setTimeOfDay, restyleSet } from './world.js';
 import { motionFor, motionServerUp, MOTION_URL, actionFor, liveFor } from './clips.js';
 import { prepareAction, obstaclesFromSet, seatsFromSet } from './control.js';
 import { direct, makeResolver } from './director.js';
@@ -185,6 +185,23 @@ export function createMoviePage(root, stage, look) {
         if (!r.ok) throw new Error(`revise: ${(await r.json().catch(() => ({}))).detail ?? r.status}`);
         const rev = await r.json();
         text = rev.scene;
+        if (rev.env && state.set) {
+          // Only the time of day or weather changed: relight the set in place, keep the film.
+          const t0 = performance.now();
+          Object.assign(state.script.terrain, rev.env.terrain);
+          if (rev.env.audio) state.script.audio = rev.env.audio;
+          state.script.scene = rev.scene;
+          const c = await restyleSet(stage, state.script, state.set);
+          ui.scriptView.textContent = JSON.stringify(state.script, null, 2);
+          log('orchestrator', 'note', `change to the current film: “${typed}” · ${rev.how === 'cached' ? 'made before' : 'weather/time only'}, 0 LLM calls; same film, relit in place`);
+          log('world', 'call', `set_weather(time_of_day='${rev.env.terrain.time_of_day}', weather='${rev.env.terrain.weather}') → ${[
+            c.windows && `${c.windows} lit windows`, c.lamps && `${c.lamps} lamps`, c.lights && `${c.lights} point lights`,
+            c.weather === 'rain' || c.weather === 'snow' ? `${c.weather} particles` : null].filter(Boolean).join(', ') || 'light and sky only'} · ${(performance.now() - t0).toFixed(0)} ms`);
+          sound.load(state.script).then((x) => x && log('orchestrator', 'result', x.line)).catch((err) => console.warn(err));
+          ui.prompt.value = '';
+          seek(state.t);
+          return;
+        }
         clear();
         log('orchestrator', 'note', `change to the current film: “${typed}” · ${rev.how === 'rule' ? 'weather/time only, 0 LLM calls' : rev.how === 'cached' ? 'made before, 0 LLM calls' : `${rev.llm_calls} Nemotron call (${rev.how})`}; same set`);
       } else {

@@ -252,3 +252,21 @@ export async function buildSet(stage, script, onStep = () => {}) {
   }
   return set;
 }
+
+// A time-of-day or weather change on a built set (follow-up "make it night"): only the light,
+// the sky and scatter around the action (fill) and the lamps, windows and rain (atmosphere)
+// are made again. Props, characters and their clips stay as they are.
+export async function restyleSet(stage, script, set) {
+  const t = script.terrain ?? {};
+  setTimeOfDay(stage, t.time_of_day, t.weather, script);
+  for (const name of ['fill', 'atmosphere']) {
+    const old = set.children.find((o) => o.name === name);
+    if (!old) continue;
+    set.remove(old);
+    old.traverse((o) => { o.geometry?.dispose?.(); });
+  }
+  set.add(await fillWorld(stage, script, set));
+  const atmo = addAtmosphere(stage, script, set);
+  set.add(atmo);
+  return atmo.userData.counts;
+}
