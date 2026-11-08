@@ -290,7 +290,7 @@ export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.3, o
         const hits = bodiesHit(posAt, tJoin, tJoin + c.duration, others, [at.map((v) => v * k), path.at(-1).map((v) => v * k)]);
         if (!hits.length) break;
         gaveWay += hits.length;
-        obsX = obsX.concat(hits.map((q) => ({ key: 'body', c: [q[0] / k, q[1] / k], h: [0.25 / k, 0.25 / k], rot: 0 })));
+        obsX = obsX.concat(hits.map((q) => ({ key: 'body', c: [q[0] / k, q[1] / k], h: [0.3 / k, 0.3 / k], rot: 0 })));
         path = route(obsX); c = walkOn(path); len = pathLength(path);
       }
       const info = `${(len * k).toFixed(1)} m${drawn?.length ? `, drawn (${drawn.length} points${nudged ? `, ${nudged} moved off props` : ''})` : path.length > 2 ? ', around props' : ', straight'}${gaveWay ? ', around people' : ''} · stride ×${c.scale.toFixed(2)}`;

@@ -252,10 +252,17 @@ export function planPath(a, b, obstacles, { clearance = BODY } = {}) {
     pts.push(cells[j]);
     i = j;
   }
-  // Rounding cuts corners inward: keep the most passes (up to 3) that still clear every prop (task 31).
+  // Rounding cuts corners inward: keep the most passes (up to 3) whose curve stays at least
+  // clearance − 0.2 m from every prop (task 31; the city park's run cuts to 0.31 m and keeps all 3).
+  const tight = clearance - 0.2;
+  const cuts = (p, q) => {
+    const n = Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]) / (CELL / 2));
+    for (let i = 1; i <= n; i++) { const x = p[0] + (q[0] - p[0]) * i / n, z = p[1] + (q[1] - p[1]) * i / n; if (obs.some((o) => boxDist(o, x, z) < tight)) return true; }
+    return false;
+  };
   for (let passes = 3; passes > 0; passes--) {
     const r = roundCorners(pts, passes);
-    if (r.every((p, k) => k === 0 || clear(r[k - 1], p))) return r;
+    if (r.every((p, k) => k === 0 || !cuts(r[k - 1], p))) return r;
   }
   return pts;
 }
