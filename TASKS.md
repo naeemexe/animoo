@@ -31,7 +31,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 12 | A | Demo: cache the demo scenes, record the video, write the submission | 2 h | todo | 09, 10 |
 | 13 | A | Chat: remove the canned mock lines and suggestion chips ("Hi! I can show you a squat…"); Nemotron persona only | 0.5 h | done | 06 |
 | 14 | A | Scale + placement: characters and props at consistent real-world size; grounded, no overlaps, positions that follow the script | 2 h | done | 08 |
-| 15 | A | World fill + backdrop: no empty island. Ground scatter (grass, flowers, rocks), a dense tree/hill ring, a painted sky/backdrop that fills the frame | 2.5 h | doing | 08 |
+| 15 | A | World fill + backdrop: no empty island. Ground scatter (grass, flowers, rocks), a dense tree/hill ring, a painted sky/backdrop that fills the frame | 2.5 h | done | 08 |
 | 16 | A | Cinematic camera: the director picks shots per beat (wide, medium, close, side, over-the-shoulder, low), with cuts and moves (dolly, orbit, crane) | 2.5 h | todo | 08 |
 | 17 | A | Time of day + weather: day/dusk/night lighting with glowing lamps and windows at night, plus rain/snow/fog. The orchestrator sets it from the prompt | 2 h | todo | 15 |
 | 18 | A | Edit mode: select, move/rotate/scale, duplicate, delete, replace with a library item, regenerate a prop on the GPU | 3 h | todo | 14 |
@@ -357,3 +357,23 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
 - 14: user idea (2026-11-08): make the set an explicit, visible part of the plan: a "set designer" step that writes
   each prop's position, footprint and collision radius (and the seats and walk lines) into the script and the agent
   log, instead of leaving it implicit in `layout()`.
+- 15: done (`web/js/movie/fill.js`, called from `buildSet()`, so Movie and Chat both get it). A flat textured
+  meadow replaces the island; instanced grass (a 10-triangle tuft, no depth write so the ink pass leaves it soft),
+  flowers, procedural bushes and boulders, about 1,500 library trees out to 95 m with greener per-instance
+  foliage, hills, fog, and a painted sky dome (gradient, clouds, three ridges, a tree line) tinted per time of day.
+  Scatter keeps off paths, ponds, prop footprints (from the loaded models' boxes), cast starts and every walk
+  line. Checked: screenshots of all four cached scenes (wide and medium shots) and the Chat page, no console
+  errors, the fill builds in about 33 ms.
+- 15: frame rate is not verified for real: the Browser pane was hidden, so the page ran throttled (7–10 fps with
+  the fill on or off). Timed GPU renders came out the same with and without the fill (about 40 ms per frame in that
+  throttled state); triangles per frame went from 0.57 M to 1.4 M. Check the fps on a visible window before the demo.
+- 15: the trees in the forest ring disappear while they're within 9 m of the film camera or stand on its line of
+  sight to the subject (CPU check per frame, uploaded only on change). Task 16's camera moves get this for free.
+- 15: with today's framings (camera pitch 24° or more, 28° lens) the sky is almost never in frame; the forest fills
+  the top of every shot. Task 16's low shots will show the dome; it's painted for that.
+- 15: the fill raises `camera.far` to 420. The ink pass fades outlines at `cameraFar` × 0.5–0.8, so ink now
+  reaches about 210 m (still hidden by the fog).
+- 15: the hero props still use the kit's teal foliage, and the fill's trees are greener. Retint the props' leaves
+  the same way if the mix bothers anyone.
+- 15: in the lighthouse scene the lighthouse looks only about two characters tall in the wide shot (task 14 scale).
+- 15: SANA paint-over for the ground and backdrop wasn't done; the procedural dome and ground texture held up.
