@@ -404,12 +404,36 @@ def _word(v, table) -> str | None:
     return next((name for rx, name in table if re.search(rf"\b({rx})s?\b", v)), None)
 
 
+AGE_OLD = re.compile(r"\b(old|elderly|aged|senior|grand(pa|ma|father|mother|dad|mum)|granny|gramps|retired)\b", re.I)
+JOB_LOOKS = [  # rule look for a plan without one: what a reader pictures for that word
+    (r"fisher(man|woman)?|sailor|captain|boatman", {"outfit": "worker", "top": "#2f5d7c", "bottom": "#4a4038", "accessory": "cap"}),
+    (r"farmer|gardener", {"outfit": "worker", "top": "#7a8a3a", "bottom": "#3d5a80", "accessory": "hat"}),
+    (r"chef|cook|baker", {"outfit": "chef"}), (r"builder|worker|mechanic", {"outfit": "worker", "accessory": "hard_hat"}),
+    (r"waiter|waitress|businessman|businesswoman|lawyer", {"outfit": "suit"}),
+    (r"lamplighter|watchman|guard", {"outfit": "winter_coat", "accessory": "hat"})]
+
+
+def story_look(who: str) -> dict:
+    """A look from the words around a cast member ("an old fisherman"), for plans that gave none."""
+    raw = {}
+    for rx, lk in JOB_LOOKS:
+        if re.search(rf"\b({rx})s?\b", who, re.I):
+            raw.update(lk)
+            break
+    if AGE_OLD.search(who):
+        raw.update({"hair": "#c9c9c4", "build": "sturdy", "height_m": 1.68})
+        raw.setdefault("top", "#6b5d4f")
+    return raw
+
+
 def repair_look(raw, kid: bool, who: str = "") -> dict | None:
     """The plan's look for one cast member, cleaned: hex colors, a height in range, a known accessory,
     an outfit and build the browser knows (from the plan's words, else the cast's name: "the chef").
     None when the plan gave nothing usable (old plans), so the cast looks as before."""
     if not isinstance(raw, dict):
-        return None
+        raw = story_look(who)
+        if not raw:
+            return None
     look = {}
     for k, table in (("top", COLORS), ("bottom", COLORS), ("shoes", COLORS), ("hair", HAIR), ("skin", SKIN)):
         c = _color(raw.get(k), table) or (_color(raw.get(k), COLORS) if table is not COLORS else None)
@@ -751,7 +775,12 @@ def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
         ch = ("avatar_female" if re.search(r"female|woman|girl|lady", ch) else "avatar_male") if ch not in CHARACTERS else ch
         m = {"id": k, "name": str(c.get("name") or k.title()), "character": ch,
              "kid": bool(c.get("kid")), "starts_at": c.get("starts_at")}
-        look = repair_look(c.get("look"), m["kid"], f"{m['name']} {k}")
+        who = f"{m['name']} {k}"
+        if not isinstance(c.get("look"), dict):  # an old plan: read the story's words around this cast member
+            word = re.escape(re.sub(r"\d+$", "", k).replace("_", " ").split()[-1] if k else "")
+            near = re.search(rf"(\b\w+\s+){{0,3}}\b{word}", scene, re.I) if word else None
+            who += f" {near.group(0)}" if near else ""
+        look = repair_look(c.get("look"), m["kid"], who)
         if look:
             m["look"] = look
         cast.append(m)

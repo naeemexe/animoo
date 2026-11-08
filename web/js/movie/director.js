@@ -142,16 +142,26 @@ function snapSeat(clip, from, beat, seats) {
   if (!seats.length || !isSeated(beat) || from >= clip.frames - 1) return null;
   const L = clip.frames - 1;
   const end = [clip.hips[L * 3], clip.hips[L * 3 + 2]];
-  let best = null, bd = 1.3;
+  // A seated clip that ends up to 2.5 m from a seat goes onto it (closer than that, Kimodo's
+  // own step-back is the error); without a seat in reach it would sit on air.
+  let best = null, bd = 2.5;
   for (const s of seats) {
     // Distance to the seat's line (a bench or sofa seats several along it).
     const side = [-s.front[1], s.front[0]];
-    const a = Math.max(-s.half, Math.min(s.half, (end[0] - s.c[0]) * side[0] + (end[1] - s.c[1]) * side[1]));
+    let a = Math.max(-s.half, Math.min(s.half, (end[0] - s.c[0]) * side[0] + (end[1] - s.c[1]) * side[1]));
+    // Someone already sits there: take the next free spot along the seat (0.6 m apart).
+    s.taken ??= [];
+    for (let i = 0; i < 6 && s.taken.some((t) => t.cast !== beat.cast && Math.abs(t.a - a) < 0.55); i++) {
+      const t = s.taken.find((u) => u.cast !== beat.cast && Math.abs(u.a - a) < 0.55);
+      const up = t.a + 0.6, down = t.a - 0.6;
+      a = up <= s.half + 0.15 && (Math.abs(up - a) <= Math.abs(down - a) || down < -s.half - 0.15) ? up : down;
+    }
     const p = [s.c[0] + s.front[0] * s.back + side[0] * a, s.c[1] + s.front[1] * s.back + side[1] * a];
     const d = Math.hypot(end[0] - p[0], end[1] - p[1]);
-    if (d < bd) { bd = d; best = { s, p }; }
+    if (d < bd) { bd = d; best = { s, p, a }; }
   }
   if (!best) return null;
+  if (!best.s.taken.some((t) => t.cast === beat.cast)) best.s.taken.push({ cast: beat.cast, a: best.a });
   const dx = best.p[0] - end[0], dz = best.p[1] - end[1];
   const sitDown = SIT_DOWN.test(beat.motion ?? '') || (!SEATED.test(beat.motion ?? '') && /sits? down|sits on|takes a seat/i.test(beat.prompt ?? ''));
   const y0 = clip.hips[from * 3 + 1], y1 = clip.hips[L * 3 + 1];
@@ -228,7 +238,7 @@ export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.5, o
   const offset = beats[0].start;
   // Obstacles in this character's group space (world / scale).
   const obs = obstacles.map((o) => ({ ...o, c: [o.c[0] / k, o.c[1] / k], h: [o.h[0] / k, o.h[1] / k] }));
-  const seatsK = seats.map((s) => ({ ...s, c: [s.c[0] / k, s.c[1] / k], half: s.half / k, back: s.back / k }));
+  const seatsK = seats.map((s) => ({ ...s, taken: (s.taken ??= []), c: [s.c[0] / k, s.c[1] / k], half: s.half / k, back: s.back / k }));
   let acc = null;
   const placed = [];
 

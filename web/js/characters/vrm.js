@@ -17,6 +17,11 @@ export async function loadVRM(url) {
   // the mesh's bones. The normalized root has to be in the scene for that.
   const root = vrm.humanoid.normalizedHumanBonesRoot;
   if (root && !root.parent) vrm.scene.add(root);
+  // The female VRM ships with cat ears, a fox tail and glasses; story characters get accessories from their look.
+  const COSTUME = /CatEar|FoxTail|Accessory_Glasses/i;
+  vrm.scene.traverse((o) => {
+    if (o.isMesh && [].concat(o.material).some((m) => COSTUME.test(m?.name ?? ''))) o.visible = false;
+  });
   vrm.scene.traverse((o) => {
     if (o.isMesh) {
       o.castShadow = true;
