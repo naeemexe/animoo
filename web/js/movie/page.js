@@ -55,7 +55,65 @@ export function createMoviePage(root, stage, look) {
     freeCam: false, // the timeline's "free camera" toggle (edit mode turns it on too)
     exporting: false,
     timings: {},
+    // A film in parts ("then they go inside..."): each part has its own set, cast figures and rows.
+    // state.script, set, heroes, rows... are the active part's; the others wait, hidden.
+    parts: [],
+    part: 0,
   };
+  const PART_KEYS = ['script', 'set', 'heroes', 'rows', 'clipsByCast', 'extras', 'duration', 'obstacles', 'seats', 'source', 'planSeconds', 'timings'];
+  const snapshot = () => ({ ...Object.fromEntries(PART_KEYS.map((k) => [k, state[k]])), fog: stage.scene.fog, camShots: cam.shots });
+  function showPart(p, on) {
+    if (p.set) p.set.visible = on;
+    if (p.extras) p.extras.group.visible = on;
+    if (!on) for (const h of Object.values(p.heroes ?? {})) h.group.visible = false;
+  }
+  function disposePart(p) {
+    if (p.set) stage.scene.remove(p.set);
+    for (const h of Object.values(p.heroes ?? {})) stage.scene.remove(h.group);
+    p.extras?.dispose();
+  }
+  // Make part i the one on screen and on the timeline, at its time t.
+  function activate(i, t = 0) {
+    const cur = state.parts[state.part];
+    if (cur && state.part !== i) { Object.assign(cur, snapshot()); showPart(cur, false); }
+    editor.off();
+    state.part = i;
+    const p = state.parts[i];
+    for (const k of PART_KEYS) state[k] = p[k];
+    showPart(p, true);
+    stage.scene.fog = p.fog ?? stage.scene.fog;
+    const tr = state.script.terrain ?? {};
+    setTimeOfDay(stage, tr.time_of_day, tr.weather, state.script);
+    cam.setScript(state.script, makeResolver(state.script));
+    cam.shots = p.camShots ?? null;
+    timeline.setScript(state.script);
+    timeline.setRows(state.rows, state.duration);
+    ui.scriptView.textContent = JSON.stringify(state.script, null, 2);
+    sound.load(state.script).catch((err) => console.warn(err));
+    renderParts();
+    seek(t);
+  }
+  // Part tabs under "New scene": click one to watch it; Play runs on into the next part.
+  const partsBar = document.createElement('div');
+  partsBar.className = 'movie-parts';
+  partsBar.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin:6px 0';
+  ui.newScene.after(partsBar);
+  function renderParts() {
+    partsBar.replaceChildren();
+    partsBar.hidden = state.parts.length < 2;
+    state.parts.forEach((p, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'pill';
+      b.style.cssText = `cursor:pointer;border:1px solid currentColor;${i === state.part ? 'font-weight:700;' : 'opacity:0.7;'}`;
+      b.textContent = `Part ${i + 1} · ${p.script.terrain?.biome ?? ''} · ${p.duration.toFixed(0)} s`;
+      b.title = p.script.part_text ?? p.script.scene;
+      b.onclick = () => { if (state.busy) return; setPlaying(false); activate(i); };
+      partsBar.append(b);
+    });
+  }
+  const partOffset = () => state.parts.slice(0, state.part).reduce((a, p) => a + p.duration, 0);
+  const filmDuration = () => (state.parts.length ? state.parts.reduce((a, p, i) => a + (i === state.part ? state.duration : p.duration), 0) : state.duration);
   // For checks from the console (task 31): window.animoMovie.state / .redirect().
   const sound = createSceneAudio(); // task 32: ambience + a soft music bed, following the timeline
   window.animoMovie = { state, sound, redirect: () => { redirect(); seek(state.t); } };
@@ -158,9 +216,11 @@ export function createMoviePage(root, stage, look) {
   function clear() {
     editor.reset();
     setPlaying(false);
-    if (state.set) stage.scene.remove(state.set);
-    for (const h of Object.values(state.heroes)) stage.scene.remove(h.group);
-    state.extras?.dispose();
+    if (state.parts[state.part]) Object.assign(state.parts[state.part], snapshot());
+    for (const p of state.parts.length ? state.parts : [snapshot()]) disposePart(p);
+    state.parts = [];
+    state.part = 0;
+    renderParts();
     Object.assign(state, { script: null, set: null, heroes: {}, rows: {}, t: 0, duration: 0, extras: null });
     sound.load(null);
     ui.log.innerHTML = '';
@@ -185,6 +245,18 @@ export function createMoviePage(root, stage, look) {
         if (!r.ok) throw new Error(`revise: ${(await r.json().catch(() => ({}))).detail ?? r.status}`);
         const rev = await r.json();
         text = rev.scene;
+        if (rev.part && state.set) {
+          // The story moves on to a new place: a new part after this one, the film so far kept.
+          log('orchestrator', 'note', `next part of the film: “${typed}” · ${rev.how === 'cached part' ? 'planned before, 0 LLM calls' : `${rev.llm_calls} Nemotron call`}; part ${state.parts.length + 1}, a new set with the same cast`);
+          setPlaying(false);
+          Object.assign(state.parts[state.part], snapshot());
+          showPart(state.parts[state.part], false);
+          state.parts.splice(state.part + 1); // a new continuation replaces what came after this part
+          await buildPart(await planned(text), state.parts.length);
+          activate(state.parts.length - 1);
+          finishMake();
+          return;
+        }
         if (rev.env && state.set) {
           // Only the time of day or weather changed: relight the set in place, keep the film.
           const t0 = performance.now();
@@ -192,6 +264,7 @@ export function createMoviePage(root, stage, look) {
           if (rev.env.audio) state.script.audio = rev.env.audio;
           state.script.scene = rev.scene;
           const c = await restyleSet(stage, state.script, state.set);
+          if (state.parts[state.part]) Object.assign(state.parts[state.part], snapshot());
           ui.scriptView.textContent = JSON.stringify(state.script, null, 2);
           log('orchestrator', 'note', `change to the current film: “${typed}” · ${rev.how === 'cached' ? 'made before' : 'weather/time only'}, 0 LLM calls; same film, relit in place`);
           log('world', 'call', `set_weather(time_of_day='${rev.env.terrain.time_of_day}', weather='${rev.env.terrain.weather}') → ${[
@@ -202,19 +275,67 @@ export function createMoviePage(root, stage, look) {
           seek(state.t);
           return;
         }
+        const note = `change to the current film: “${typed}” · ${rev.how === 'rule' ? 'weather/time only, 0 LLM calls' : rev.how === 'cached' ? 'made before, 0 LLM calls' : `${rev.llm_calls} Nemotron call (${rev.how})`}; same set`;
+        if (state.parts.length > 1) {
+          // Change this part only; the other parts stay as they are.
+          setPlaying(false);
+          const i = state.part;
+          Object.assign(state.parts[i], snapshot());
+          disposePart(state.parts[i]);
+          log('orchestrator', 'note', `${note} · part ${i + 1}`);
+          await buildPart(await planned(text), i, true);
+          activate(i);
+          finishMake();
+          return;
+        }
         clear();
-        log('orchestrator', 'note', `change to the current film: “${typed}” · ${rev.how === 'rule' ? 'weather/time only, 0 LLM calls' : rev.how === 'cached' ? 'made before, 0 LLM calls' : `${rev.llm_calls} Nemotron call (${rev.how})`}; same set`);
+        log('orchestrator', 'note', note);
       } else {
         clear();
       }
-      const t0Plan = performance.now();
-      let planned;
-      try {
-        planned = await planOnServer(text);
-      } catch (err) {
-        log('orchestrator', 'error', `${err.message}; playing the mock fisherman scene.`, { err: true });
-        planned = { script: null, source: 'mock' };
+      // A later part replays with the parts before it, first part first.
+      const last = await planned(text);
+      const chain = [last];
+      while (chain[0].script?.previous) chain.unshift(await planned(chain[0].script.previous));
+      for (const [i, p] of chain.entries()) {
+        if (chain.length > 1) log('orchestrator', 'note', `part ${i + 1} of ${chain.length}`);
+        await buildPart(p, i);
       }
+      activate(0);
+      finishMake();
+    } catch (err) {
+      console.error(err);
+      log('director', 'error', err.message, { err: true });
+    } finally {
+      state.busy = false;
+      ui.make.disabled = false;
+    }
+  }
+
+  async function planned(text) {
+    try {
+      return await planOnServer(text);
+    } catch (err) {
+      log('orchestrator', 'error', `${err.message}; playing the mock fisherman scene.`, { err: true });
+      return { script: null, source: 'mock' };
+    }
+  }
+
+  function finishMake() {
+    editor.show(true);
+    ui.make.textContent = 'Apply change';
+    ui.newScene.hidden = false;
+    ui.prompt.value = '';
+    ui.prompt.placeholder = 'Describe a change to this film: weather, time of day, what happens next…';
+    if (!params.has('t')) setPlaying(true);
+    else seek(+params.get('t'));
+  }
+
+  // Build one part of the film (set, cast, clips, rows) into state, then keep it in state.parts[index]
+  // (hidden until activated). `replace`: the part at index is being rebuilt.
+  async function buildPart(planned, index, replace = false) {
+      Object.assign(state, { script: null, set: null, heroes: {}, rows: {}, t: 0, duration: 0, extras: null, clipsByCast: null });
+      const t0Plan = performance.now();
       const manifest = await loadManifest();
       // The orchestrator's output, checked against the contract.
       const script = planned.script ?? structuredClone(FISHERMAN_SCRIPT);
@@ -339,21 +460,11 @@ export function createMoviePage(root, stage, look) {
       }
       state.timings.total = +((performance.now() - t0Plan) / 1000).toFixed(2);
       log('director', 'result', `film ready · ${state.duration.toFixed(1)} s · merged in ${(performance.now() - t0).toFixed(0)} ms · ${state.timings.total} s from the prompt`);
-      seek(0);
-      editor.show(true);
-      ui.make.textContent = 'Apply change';
-      ui.newScene.hidden = false;
-      ui.prompt.value = '';
-      ui.prompt.placeholder = 'Describe a change to this film: weather, time of day, what happens next…';
-      if (!params.has('t')) setPlaying(true);
-      else seek(+params.get('t'));
-    } catch (err) {
-      console.error(err);
-      log('director', 'error', err.message, { err: true });
-    } finally {
-      state.busy = false;
-      ui.make.disabled = false;
-    }
+      const part = snapshot();
+      if (replace) state.parts[index] = part;
+      else state.parts.splice(index, 0, part);
+      showPart(part, false);
+      state.part = index;
   }
   ui.make.onclick = make;
   ui.newScene.onclick = () => {
@@ -394,7 +505,10 @@ export function createMoviePage(root, stage, look) {
   // ---- playback -----------------------------------------------------------
   function setPlaying(on) {
     if (on && editor?.on) editor.off(); // Play leaves edit mode: the film re-directs around the edits, then plays
-    if (on && state.t >= state.duration - 1e-3) seek(0);
+    if (on && state.t >= state.duration - 1e-3) {
+      if (state.parts.length > 1 && state.part === state.parts.length - 1) activate(0); // from the top
+      else seek(0);
+    }
     state.playing = on && state.duration > 0;
     timeline.setPlaying(state.playing);
   }
@@ -419,7 +533,10 @@ export function createMoviePage(root, stage, look) {
   function frame(dt) {
     if (state.playing) {
       state.t = Math.min(state.t + dt, state.duration);
-      if (state.t >= state.duration) setPlaying(false);
+      if (state.t >= state.duration) {
+        if (state.part < state.parts.length - 1) activate(state.part + 1); // cut to the next part, still playing
+        else setPlaying(false);
+      }
     }
     if (Object.keys(state.rows).length) {
       pose(state.t, state.playing ? dt : 0);
@@ -452,11 +569,12 @@ export function createMoviePage(root, stage, look) {
     const resize = () => dispatchEvent(new Event('resize'));
     if (exportPr < pr) { renderer.setPixelRatio(exportPr); resize(); }
     try {
+      if (state.parts.length > 1) activate(0); // the whole film, every part
       seek(0);
       const result = await recordWebM(stage.renderer.domElement, {
         start: () => setPlaying(true),
-        done: () => !state.playing && state.t >= state.duration - 1e-3,
-        progress: () => state.t / state.duration,
+        done: () => !state.playing && state.part === Math.max(0, state.parts.length - 1) && state.t >= state.duration - 1e-3,
+        progress: () => (partOffset() + state.t) / filmDuration(),
         onProgress: (p) => timeline.setExportProgress(p),
         audio: sound.stream(),
       });
