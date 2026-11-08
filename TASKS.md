@@ -46,7 +46,7 @@ Status: `todo` · `doing` · `waiting` · `done`
 | 29 | A | Free spectator camera: WASD + mouse look, scroll zoom, pan around the world (edit mode, or whenever free camera is on) | 1 h | done | 18 |
 | 30 | A | Path editor: camera paths and character paths as numbered, draggable nodes joined by dotted lines; add, drag, delete points | 2 h | done | 19, 29 |
 | 28 | A | Look round 3: trees less blocky, roads blend into the ground | 1.5 h | done | 23, 24 |
-| 31 | A | Physical rules: nothing passes through anything (characters avoid each other too), paths re-plan after edits, beats follow moved props | 2 h | doing | 22, 18 |
+| 31 | A | Physical rules: nothing passes through anything (characters avoid each other too), paths re-plan after edits, beats follow moved props | 2 h | done | 22, 18 |
 | 32 | A | Scene audio: the orchestrator plans ambience + a soft music bed from place, weather, time and mood (or the user's words); ElevenLabs sound effects/music when a key is set, procedural WebAudio otherwise; cached; in the WebM export | 2 h | todo (procedural now; ElevenLabs needs `ELEVENLABS_API_KEY`) | 08 |
 | 12b | A | Re-record the 5 demo takes after round 3 (with audio), update `demo/SUBMISSION.md` | 0.5 h | todo | 28–32 |
 
@@ -711,3 +711,31 @@ Before the deadline, work only on what improves the demo; 18–19 can continue a
   show a small speed dip at each join. Nodes under the agent panel or the edit bar can't be grabbed, so fly the
   camera first. Camera keys added with K sit at the camera itself, so you have to fly back to see them.
   Character-path edits re-direct the whole film on every drop (about 0.1–0.2 s here).
+- 31: done. Physical rules, no physics engine (`web/js/movie/director.js`, `control.js`). (1) Bodies are capsules: after
+  a walk is planned, `bodiesHit()` checks it against where every other character really is at that moment (rows from
+  the director's previous pass); a spot closer than 0.7 m hips to hips becomes a 0.3 m obstacle and the walk is planned
+  again (up to 3 times; log `…, around people`). A later cast member ignores an earlier one only while both walk, so two
+  walkers don't both swerve. A walk doesn't end on top of someone standing there. `direct()` runs an extra pass only
+  when `collisions()` finds a touch. (2) Re-plan after edits was already there (leaving edit mode re-runs `direct()`
+  with fresh footprints). (3) Beats follow props: the layout's props are kept as `script.layout_props` (the page
+  snapshots them on load; a replay of saved edits gets them from the server), and `followProps()` moves every beat `to`
+  and cast start within 2.5 m of a moved/turned/scaled prop rigidly with it (nearest prop wins; numeric facings turn
+  with it). Grass, flowers and paths aren't anchors. A deleted prop leaves its spots, and keys that faced it resolve to
+  where it was (no "unknown target" crash). (4) Drawn paths: a node inside a footprint moves out to the nearest spot
+  0.6 m clear (order kept), and a stretch of the curve that cuts a footprint is replaced by A* between those two nodes
+  (log `drawn (4 points, 1 moved off props)`). Also fixed: A*'s 3-pass corner rounding could cut back into a prop; it
+  now drops passes only when the curve comes within clearance − 0.2 m. Console handle `window.animoMovie.{state, redirect}`.
+- 31 checked with numbers (offline server, scripted edits in the page, no recording). Park bench: unedited, the same as
+  before (`9.2 m, straight · stride ×1.24`, 20.9 s, 0.39 m from the bench, boy–friend min 0.83 m). Bench moved +3 m and
+  turned 30°: the friend's start and the walk goal followed it; `9.2 m, around props`, 0.49 m from the bench, stops 1.43 m
+  from her (screenshot at 17 s: same side, facing). A path drawn through the bench: node pushed off, 0.33 m from the
+  bench, 0.80 m from the friend. City park: unedited paths identical to the old planner (compared with the pre-31
+  `planPath` on the same inputs). Old man placed on the girl's jogging line: 0 m before, now `around people`, min 0.87 m
+  (screenshot at 3.5 s). Fountain moved +2 m: the run end followed (4.13 → 6.12). Hedge deleted: re-direct works, no
+  errors. Other scenes not rendered (efficiency rule).
+- 31: not done: clearance is in the character's group space, so kids (×0.7) keep 0.32 m from props instead of 0.45 m
+  (as in 22). Characters only avoid each other on walks/runs (an idle or a sit-down is placed where the plan says,
+  even if someone stands there); a 'face' or `stretchTail` beat can still overlap. The avoidance uses the walk clip's
+  own timing (before the merge blend), so a touch can be a few cm off. Edit mode still lets you drop a prop on another
+  (my bench test sat on bush-4); props don't push each other. A beat that the layout tied to a place far from any prop
+  (> 2.5 m) doesn't follow. Walk paths drawn by hand don't follow a moved prop (they are the user's own points).
