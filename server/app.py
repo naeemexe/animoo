@@ -173,11 +173,13 @@ def movie_revise(body: dict) -> dict:
     except ValueError as err:
         raise HTTPException(status_code=409, detail=str(err))
     # Only the time of day or weather changed: the page relights the film in place (no rebuild).
-    from .agents.movie import load_cached, repair_plan
+    from .agents.movie import film_parts, load_cached, repair_plan, rules_text
     env = None
+    if how in ("new part", "cached part"):  # the story moves on to a new place: a new part of the film
+        return {"scene": scene, "llm_calls": calls, "how": how, "env": None, "part": True, "parts": film_parts(scene)}
     try:
-        old_p, _ = repair_plan(load_cached(base)["plan"], base)
-        new_p, _ = repair_plan(load_cached(scene)["plan"], scene)
+        old_p, _ = repair_plan(load_cached(base)["plan"], rules_text(load_cached(base)))
+        new_p, _ = repair_plan(load_cached(scene)["plan"], rules_text(load_cached(scene)))
         rest = lambda p: {k: v for k, v in p.items() if k not in ("time_of_day", "weather", "audio")}
         if rest(old_p) == rest(new_p):
             env = {"terrain": {"time_of_day": new_p["time_of_day"], "weather": new_p["weather"]}, "audio": new_p.get("audio")}

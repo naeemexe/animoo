@@ -2241,6 +2241,9 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
     run = uuid.uuid4().hex[:8]
     cached = None if fresh else load_cached(scene)
     source = "cache" if cached else "nemotron"
+    # A later part of a film (revise_movie: "then they go inside..."): its own text drives the rules
+    # (biome, posture, time words); the key still names the whole chain.
+    text = (cached or {}).get("part_text") or scene
     raw_plan = raw_world = None
     if cached:
         raw_plan, raw_world = cached["plan"], cached.get("world")
@@ -2269,7 +2272,7 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
                 return
 
     try:
-        plan, fixes = repair_plan(raw_plan, scene)
+        plan, fixes = repair_plan(raw_plan, text)
     except ValueError as err:
         yield step("orchestrator", "error", f"unusable plan: {err}; playing the mock fisherman scene.")
         yield {"script": None, "source": "mock", "llm_calls": len(_run_calls(run))}
@@ -2302,7 +2305,7 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
                             + (", ".join(f"{h['id']} ({h['height_m']} m; {' '.join(h['tags'])})" for h in searches[p['key']]) or "nothing")
                             + ("" if matched(p) else f"  → NO MATCH: generate a {p['key']} unless the catalog has the same kind of thing")
                             for p in plan["places"])
-                + f"\n\nThe scene: {scene}\nBiome: {plan.get('biome', 'forest')}. Time of day: {plan['time_of_day']}. Weather: {plan['weather']}. Water: {'yes' if plan['water'] else 'no'}."
+                + f"\n\nThe scene: {text}\nBiome: {plan.get('biome', 'forest')}. Time of day: {plan['time_of_day']}. Weather: {plan['weather']}. Water: {'yes' if plan['water'] else 'no'}."
                 + f"\n\nThe whole library catalog (ids by category):\n{catalog(manifest)}")
         yield step("world", "call", f"nemotron.pick_props({len(plan['places'])} places) · {llm.model('world')}")
         t0 = time.perf_counter()
@@ -2313,7 +2316,7 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
             yield step("world", "error", f"Nemotron failed: {str(err)[:200]}", (time.perf_counter() - t0) * 1000)
             yield step("world", "note", "Using the best search_library hit for each place instead.")
             raw_world = None
-    world, world_fix = repair_world(raw_world or {}, plan, manifest, scene) if raw_world else (default_world(plan, manifest), [])
+    world, world_fix = repair_world(raw_world or {}, plan, manifest, text) if raw_world else (default_world(plan, manifest), [])
     if not raw_world:
         world["choices"] = {c["place"]: {"library": c["library"]} for c in world["choices"]}
     for t in world["thoughts"]:
@@ -2326,7 +2329,11 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
     yield step("world", "result", "decor: " + ", ".join(f"{d['library']} ×{d['count']}" for d in world["decor"]))
 
     t0 = time.perf_counter()
-    script, notes = layout(plan, world, manifest, scene)
+    script, notes = layout(plan, world, manifest, text)
+    script["scene"] = scene
+    if (cached or {}).get("previous"):
+        script["previous"] = cached["previous"]  # the part before: the page plays it first
+        script["part_text"] = text
     if cached and cached.get("edits", {}).get("props"):
         # Props placed by hand in the Movie page's edit mode (task 18) win over the layout's.
         # The layout's own props stay as `layout_props`: beats were placed around them, and the
@@ -2370,7 +2377,76 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
                  "plan": raw_plan, "world": raw_world, "script": script}
         path = save_cache(scene, entry)
         yield step("orchestrator", "note", f"cached in library/scripts/{path.name} ({n_calls} LLM calls)")
+    elif cached and cached.get("world") is None and raw_world:
+        # A new part planned by revise_movie: keep its world choices, so replays need no LLM call.
+        cached.update({"world": raw_world, "script": script})
+        cached["llm_calls"] = (cached.get("llm_calls") or 0) + n_calls if isinstance(cached.get("llm_calls"), int) else n_calls
+        path = save_cache(scene, cached)
+        yield step("orchestrator", "note", f"cached the new part's set in library/scripts/{path.name}")
     yield {"script": script, "source": source, "llm_calls": n_calls}
+
+
+
+# ---- film parts: "then they go inside..." continues the film in a new place --------------
+NEXT_PART = re.compile(r"\b(next scene|new scene|cut to|meanwhile|later that|the next (day|morning|evening))\b", re.I)
+GOES_IN = re.compile(r"\b(go(es)?|get(s)?|walk(s)?|head(s)?|step(s)?|come(s)?|move(s)?|run(s)?)\s+(back\s+)?"
+                     r"(inside|indoors|in|into|home|to (their|his|her|the|a) (room|house|home|flat|apartment|building))\b|"
+                     r"\b(enter(s)?|inside (a|the|their|his|her) )", re.I)
+
+
+def rules_text(entry: dict) -> str:
+    """The text the rules read for a cached film: a part's own text, else its scene."""
+    return entry.get("part_text") or entry["scene"]
+
+
+def is_new_part(entry: dict, request: str) -> bool:
+    """Does the follow-up move the story to a new place (a new part with its own set)?"""
+    try:
+        plan, _ = repair_plan(entry["plan"], rules_text(entry))
+    except (ValueError, KeyError, TypeError):
+        return False
+    here, there = plan.get("biome"), biome_from_text(request)
+    if NEXT_PART.search(request):
+        return True
+    if there and there != here:
+        return True
+    return bool(GOES_IN.search(request)) and here not in INTERIORS
+
+
+def plan_part(base: str, entry: dict, request: str) -> tuple[str, int, str]:
+    """Plan the next part: Nemotron plans the request as its own scene with the same cast (ids,
+    names, looks), the time and weather carry over unless the request names them, and the entry
+    links to the part before it. Its world is chosen when it is first played (plan_movie)."""
+    scene = base + CHANGE + request
+    prev, _ = repair_plan(entry["plan"], rules_text(entry))
+    cast = [{k: c[k] for k in ("id", "name", "character", "kid", "look") if k in c} for c in entry["plan"].get("cast", [])]
+    user = (f"The scene:\n{request}\n\nThis is the next part of a film. The part before: {rules_text(entry).split(CHANGE)[0]}\n"
+            f"Use the same characters where the scene means them (\"they\" means all of them): exactly this cast, the same "
+            f"ids, names, character, kid and look: {json.dumps(cast, ensure_ascii=False)}. The places are new, for this "
+            f"part only; the characters start at the first one (walking in, arriving).")
+    try:
+        raw = _ask(ORCHESTRATOR_ROLE, user, PLAN_SCHEMA, PLAN_EXAMPLE, "orchestrator", uuid.uuid4().hex[:8])
+    except llm.LLMError as err:
+        raise ValueError(f"Nemotron couldn't plan the next part: {str(err)[:160]}") from err
+    same = {c["id"]: c for c in cast}
+    for c in raw.get("cast") or []:
+        if isinstance(c, dict) and str(c.get("id")) in same:
+            c.update(same[str(c["id"])])  # the same person looks the same in every part
+    raw["time_of_day"] = time_from_text(CHANGE + request) or prev["time_of_day"]
+    raw["weather"] = _latest(request, WEATHER_WORDS) or prev.get("weather", "clear")
+    new = {"scene": scene, "part_text": request, "previous": base, "request": request, "plan": raw, "world": None,
+           "created": datetime.now(timezone.utc).isoformat(timespec="seconds"), "llm_calls": 1}
+    save_cache(scene, new)
+    return scene, 1, "new part"
+
+
+def film_parts(scene: str) -> list[str]:
+    """The chain of parts that ends with this scene, first part first."""
+    chain, seen = [scene], {scene}
+    while (e := load_cached(chain[0])) and e.get("previous") and e["previous"] not in seen:
+        chain.insert(0, e["previous"])
+        seen.add(e["previous"])
+    return chain
 
 
 # ---- follow-up requests (build on the current film, don't start over) --------------------
@@ -2389,6 +2465,10 @@ def revise_movie(base: str, request: str) -> tuple[str, int, str]:
     if not entry:
         raise ValueError("the current film isn't cached; make it first")
     scene = base + CHANGE + request
+    if load_cached(scene) and load_cached(scene).get("previous") == base:
+        return scene, 0, "cached part"
+    if is_new_part(entry, request):
+        return plan_part(base, entry, request)
     rest = request.lower()
     for _, rx in TIME_WORDS + WEATHER_WORDS:
         rest = re.sub(rx, " ", rest)
@@ -2416,6 +2496,8 @@ def revise_movie(base: str, request: str) -> tuple[str, int, str]:
         raw["weather"] = wx
     if tod:
         raw["time_of_day"] = tod
+    if entry.get("part_text"):
+        entry = {**entry, "part_text": entry["part_text"] + CHANGE + request}
     new = {**entry, "scene": scene, "plan": raw, "revised_from": base, "request": request,
            "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
            "llm_calls": calls}
