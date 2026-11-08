@@ -102,6 +102,24 @@ def _post(url: str, body: dict, timeout: float) -> tuple[bytes, dict]:
         raise GenerateError(f"{url} failed: {e}") from e
 
 
+LENGTHWISE = re.compile(r"\b(boat|canoe|raft|ship|cart|wagon|car|truck|bus|bridge|dock|pier|jetty|bench|log|fence|table)s?\b")
+
+
+def fit_size(size: list[float], size_m: float, category: str | None = None, text: str = "") -> list[float]:
+    """The real size of a generated prop from its normalized size (height = size_m).
+    Long, low things (boats, carts, vehicles, docks, benches) take size_m as their longest
+    side, so a "4 m fishing boat" is 4 m long, not 4 m tall and 10 m long. Anything else
+    keeps its height but is never more than twice size_m (and 1.5 m) across."""
+    w, h, d = size
+    longest = max(w, h, d)
+    if category in ("vehicles", "water") or LENGTHWISE.search(text.lower()):
+        k = size_m / longest if longest else 1.0
+    else:
+        k = h and size_m / h
+        k = min(k, max(2.0 * size_m, 1.5) / (max(w, d) * k)) * k if max(w, d) * k > max(2.0 * size_m, 1.5) else k
+    return [round(v * k, 2) for v in size]
+
+
 def _write_manifest(manifest: dict) -> None:
     tmp = MANIFEST.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(manifest, indent=1, ensure_ascii=False))
@@ -140,6 +158,8 @@ def generate_prop(name: str, prompt: str | None = None, size_m: float | None = N
         glb, info = normalize_glb(glb, size_m, trim_base=trim_base)
         if not info.get("normalized"):
             info["size"] = [size_m, size_m, size_m]  # unknown footprint; the loader rescales by height
+        else:  # the loader scales the GLB so its height is size[1]
+            info["size"] = fit_size(info["size"], size_m, category, f"{name} {prompt}")
 
         OUT_DIR.mkdir(parents=True, exist_ok=True)
         (OUT_DIR / f"{prop_id}.glb").write_bytes(glb)
@@ -186,7 +206,7 @@ TOOL = {
             "properties": {
                 "name": {"type": "string", "description": "short id-like name, e.g. 'windmill'"},
                 "prompt": {"type": "string", "description": "one object, e.g. 'a red wooden windmill'"},
-                "size_m": {"type": "number", "description": "real-world height in meters"},
+                "size_m": {"type": "number", "description": "real-world size in meters: height, or length for boats, carts and vehicles"},
                 "category": {"type": "string", "enum": ["buildings", "village", "nature", "vehicles", "water"]},
             },
             "required": ["name", "size_m"],

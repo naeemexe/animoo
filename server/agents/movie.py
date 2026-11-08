@@ -197,7 +197,7 @@ a stall for a shop). A place marked NO MATCH that matters to the story (a lighth
 windmill) should be generated, not replaced by something of another kind (a rock is no lighthouse).
 To make one, use generate instead
 (an image-to-3D model makes it, about a minute): name (short), prompt (one object, e.g. "a stone
-lighthouse with a red roof"), size_m (real height in meters), category ({' | '.join(GEN_CATEGORIES)}).
+lighthouse with a red roof"), size_m (real size in meters: the height, but the length for boats, carts, vehicles and docks), category ({' | '.join(GEN_CATEGORIES)}).
 At most {MAX_GENERATE} generates per film. Then add decor that sets the mood: 3 to 6 kinds of small library
 props with a count each (20 in all at most) that fit the setting: a market gets more stalls, crates,
 barrels, carts and lanterns; a camp gets logs, stumps, rocks and pines; a village gets fences, flowers,
