@@ -14,7 +14,8 @@
 //   "title": "Morning on the dock",
 //   "scene": "the user's scene text, unchanged",
 //   "terrain": {
-//     "time_of_day": "sunrise" | "day" | "golden" | "dusk",
+//     "time_of_day": "sunrise" | "day" | "golden" | "dusk" | "night",
+//     "weather": "clear" | "rain" | "snow" | "fog" | "windy",   (optional, default clear)
 //     "water": [{ "shape": "pond", "center": [x, z], "radius": m }],   // optional
 //     "paths": [{ "points": [[x, z], ...], "width": m }]                // optional
 //   },

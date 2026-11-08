@@ -46,7 +46,33 @@ SCRIPTS = ROOT / "library" / "scripts"
 RAD = math.pi / 180
 MAX_BEAT = 10.0
 ISLAND = 15.0  # stay inside this radius (the island is 18 m)
-TIMES = ["sunrise", "day", "golden", "dusk"]
+TIMES = ["sunrise", "day", "golden", "dusk", "night"]
+WEATHERS = ["clear", "rain", "snow", "fog", "windy"]
+# Words in the scene text that settle the time of day and the weather, so the
+# cached scenes pick them up on replay without asking Nemotron again.
+TIME_WORDS = [
+    ("night", r"\b(at night|night|midnight|moonlit|moonlight|starry|after dark|in the dark)\b"),
+    ("sunrise", r"\b(sunrise|dawn|daybreak|first light|early morning|morning)\b"),
+    ("dusk", r"\b(dusk|sunset|twilight|evening|nightfall)\b"),
+    ("golden", r"\b(afternoon|golden hour|late day)\b"),
+    ("day", r"\b(noon|midday|daytime|sunny|bright day|broad daylight)\b"),
+]
+WEATHER_WORDS = [
+    ("snow", r"\b(snow\w*|blizzard|wintry|frost\w*)\b"),
+    ("rain", r"\b(rain\w*|storm\w*|drizzl\w*|downpour|thunder\w*|wet)\b"),
+    ("fog", r"\b(fog\w*|mist\w*|haz[ey])\b"),
+    ("windy", r"\b(wind\w*|breez\w*|gust\w*|blustery)\b"),
+]
+
+
+def time_from_text(text: str) -> str | None:
+    t = text.lower()
+    return next((k for k, rx in TIME_WORDS if re.search(rx, t)), None)
+
+
+def weather_from_text(text: str) -> str | None:
+    t = text.lower()
+    return next((k for k, rx in WEATHER_WORDS if re.search(rx, t)), None)
 CHARACTERS = ["avatar_male", "avatar_female"]
 GEN_CATEGORIES = ["buildings", "village", "nature", "vehicles", "water"]
 MAX_GENERATE = 2
@@ -92,6 +118,7 @@ PLAN_EXAMPLE = {
                  "Places: their cottage, a bench, the jetty at the pond.",
                  "Grandpa walks to the bench and sits; the girl skips to the pond, feeds the ducks and waves at him once he sits."],
     "time_of_day": "golden",
+    "weather": "clear",
     "water": True,
     "places": [
         {"key": "cottage", "what": "a small cottage", "use": "stand"},
@@ -123,6 +150,7 @@ PLAN_SCHEMA = {
         "title": {"type": "string"},
         "thoughts": {"type": "array", "items": {"type": "string"}},
         "time_of_day": {"type": "string"},
+        "weather": {"type": "string"},
         "water": {"type": "boolean"},
         "places": {"type": "array", "items": {"type": "object", "required": ["key", "what"],
                    "properties": {"key": {"type": "string"}, "what": {"type": "string"}, "use": {"type": "string"}}}},
@@ -144,7 +172,8 @@ Reply with the whole plan in ONE JSON object. Rules:
   sit on (bench, log, stump), "water" for something at the water's edge (dock, jetty, boat), else "stand".
   Every place, cast member and beat must come from the scene; don't invent extra story.
 - water: true only if the scene has a pond, lake, river or sea.
-- time_of_day: one of sunrise, day, golden, dusk.
+- time_of_day: one of sunrise, day, golden, dusk, night (what the scene says; golden if it says nothing).
+- weather: one of clear, rain, snow, fog, windy (clear unless the scene names weather).
 - beats: 3 to 12 in story order, ids b1, b2, ... Give every action the scene names its own beat, for
   every character (e.g. grabs, runs off, shouts, chases, trips, gives back: six beats). Each beat: cast (a cast id), action (a few words for
   the timeline), prompt (for the motion model: starts with "A person", one simple full-body action,
@@ -383,7 +412,16 @@ def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
         raise ValueError("the plan has no usable beats")
     tod = str(raw.get("time_of_day", "golden")).lower()
     tod = tod if tod in TIMES else {"morning": "sunrise", "dawn": "sunrise", "noon": "day", "afternoon": "golden",
-                                    "evening": "dusk", "sunset": "dusk", "night": "dusk"}.get(tod, "golden")
+                                    "evening": "dusk", "sunset": "dusk", "midnight": "night"}.get(tod, "golden")
+    wx = str(raw.get("weather", "clear")).lower()
+    wx = wx if wx in WEATHERS else {"rainy": "rain", "storm": "rain", "stormy": "rain", "snowy": "snow", "foggy": "fog",
+                                    "misty": "fog", "mist": "fog", "wind": "windy", "breezy": "windy"}.get(wx, "clear")
+    # The scene's own words win over the model (and fill in old cached plans).
+    for name, got, have in (("time_of_day", time_from_text(scene), tod), ("weather", weather_from_text(scene), wx)):
+        if got and got != have:
+            fixes.append(f"{name} {have} → {got} (from the scene text)")
+    tod = time_from_text(scene) or tod
+    wx = weather_from_text(scene) or wx
     shots = []
     for s in (raw.get("shots") or [])[:6]:
         if not isinstance(s, dict):
@@ -394,7 +432,7 @@ def repair_plan(raw: dict, scene: str = "") -> tuple[dict, list[str]]:
         fr = s.get("framing") if s.get("framing") in ("wide", "medium", "close") else "medium"
         shots.append({"framing": fr, "subject": subj or [c["id"] for c in cast],
                       "until": str(s.get("until")) if str(s.get("until")) in bids else None})
-    plan = {"title": str(raw.get("title") or "Untitled"), "time_of_day": tod,
+    plan = {"title": str(raw.get("title") or "Untitled"), "time_of_day": tod, "weather": wx,
             "water": bool(WATER_WORDS.search(scene)) if scene else bool(raw.get("water")),
             "places": places, "cast": cast, "beats": beats, "shots": shots,
             "thoughts": [str(t) for t in (raw.get("thoughts") or [])][:4]}
@@ -1048,7 +1086,7 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
                                   "rotation": rng.randrange(-180, 180, 15)})
                     break
 
-    terrain = {"time_of_day": plan["time_of_day"]}
+    terrain = {"time_of_day": plan["time_of_day"], "weather": plan.get("weather", "clear")}
     if water:
         terrain["water"] = [water]
     if len(path_pts) > 1:
@@ -1195,7 +1233,7 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
     for t in plan["thoughts"]:
         yield step("orchestrator", "thought", t)
     yield step("orchestrator", "result",
-               f"“{plan['title']}” · {plan['time_of_day']} · cast {', '.join(c['id'] for c in plan['cast'])} · "
+               f"“{plan['title']}” · {plan['time_of_day']}, {plan['weather']} · cast {', '.join(c['id'] for c in plan['cast'])} · "
                f"places {', '.join(p['key'] for p in plan['places'])} · {len(plan['beats'])} beats · {len(plan['shots'])} shots")
     for f in fixes[:6]:
         yield step("orchestrator", "note", f"repaired: {f}")
@@ -1219,7 +1257,7 @@ def plan_movie(scene: str, fresh: bool = False) -> Iterator[dict]:
                             + (", ".join(f"{h['id']} ({h['height_m']} m; {' '.join(h['tags'])})" for h in searches[p['key']]) or "nothing")
                             + ("" if matched(p) else f"  → NO MATCH: generate a {p['key']} unless the catalog has the same kind of thing")
                             for p in plan["places"])
-                + f"\n\nThe scene: {scene}\nTime of day: {plan['time_of_day']}. Water: {'yes' if plan['water'] else 'no'}."
+                + f"\n\nThe scene: {scene}\nTime of day: {plan['time_of_day']}. Weather: {plan['weather']}. Water: {'yes' if plan['water'] else 'no'}."
                 + f"\n\nThe whole library catalog (ids by category):\n{catalog(manifest)}")
         yield step("world", "call", f"nemotron.pick_props({len(plan['places'])} places) · {llm.model('world')}")
         t0 = time.perf_counter()
