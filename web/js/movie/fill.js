@@ -596,8 +596,11 @@ function cityBlocks(rng, blocked, { r0 = 24, r1 = 150, keepEvery = 1 } = {}) {
     const c = s * PERIOD + PERIOD / 2;
     streets.push(c);
     for (let t = -r1; t <= r1; t += 14) {
+      // Not in a crossing (the cross street's asphalt).
+      const m = (((t - PERIOD / 2) % PERIOD) + PERIOD) % PERIOD;
+      if (m < STREET / 2 + 0.6 || m > PERIOD - STREET / 2 - 0.6) continue;
       for (const side of [-1, 1]) {
-        for (const [x, z, rot] of [[c + side * 3.6, t, 0], [t, c + side * 3.6, Math.PI / 2]]) {
+        for (const [x, z, rot] of [[c + side * 4.35, t, 0], [t, c + side * 4.35, Math.PI / 2]]) {
           const r = Math.hypot(x, z);
           if (r > 70 || blocked(x, z, 0.5)) continue;
           lamps.push([x, z, rot, 1]);
@@ -627,6 +630,49 @@ function streetMeshes(streets, half) {
       for (let t = -120; t <= 120; t += 5) dashes.push(vertical ? [c, t, 0] : [t, c, Math.PI / 2]);
     }
   }
+  // Curbs: a low light-stone kerb along both edges of every street, broken
+  // at the crossings, so the asphalt reads as set into the paving (task 28).
+  const RW = half - 0.7, CW = 0.32;
+  const sorted = [...streets].sort((a, b) => a - b);
+  const curbs = [];
+  for (const c of streets) {
+    for (let k = 0; k < sorted.length - 1; k++) {
+      const t0 = sorted[k] + RW, t1 = sorted[k + 1] - RW, mid = (t0 + t1) / 2, len = t1 - t0;
+      for (const side of [-1, 1]) {
+        const o = c + side * (RW + CW / 2);
+        curbs.push([o, mid, len, 0, side], [mid, o, len, Math.PI / 2, side]);
+      }
+    }
+  }
+  const curbMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(CW, 0.13, 1), toonMaterial('#c9c4ba'), curbs.length);
+  const cm = new THREE.Matrix4(), cq = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
+  curbs.forEach(([x, z, len, rot], i) => curbMesh.setMatrixAt(i, cm.compose(new THREE.Vector3(x, 0.065, z), cq.setFromAxisAngle(up, rot), new THREE.Vector3(1, 1, len))));
+  curbMesh.receiveShadow = true;
+  curbMesh.frustumCulled = false;
+  g.add(curbMesh);
+  // A soft dark gutter just inside each curb, fading toward the lane.
+  const gutterTex = (() => {
+    const cv = document.createElement('canvas');
+    cv.width = 32; cv.height = 1;
+    const cx = cv.getContext('2d'), gr = cx.createLinearGradient(0, 0, 32, 0);
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(0,0,0,1)');
+    cx.fillStyle = gr; cx.fillRect(0, 0, 32, 1);
+    return new THREE.CanvasTexture(cv);
+  })();
+  const gutterMat = toonMaterial('#4f4e54', { alphaMap: gutterTex, transparent: true, opacity: 0.55, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  const gutter = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.9, 1).rotateX(-Math.PI / 2), gutterMat, curbs.length);
+  const gq = new THREE.Quaternion();
+  curbs.forEach(([x, z, len, rot, side], i) => {
+    // Just inside the curb, its dark (u = 0) side against the curb.
+    const vertical = rot === 0, off = -side * (CW / 2 + 0.45);
+    const p = vertical ? new THREE.Vector3(x + off, 0.003, z) : new THREE.Vector3(x, 0.003, z + off);
+    const flip = vertical ? side > 0 : side < 0;
+    gq.setFromAxisAngle(up, rot + (flip ? Math.PI : 0));
+    gutter.setMatrixAt(i, cm.compose(p, gq, new THREE.Vector3(1, 1, len)));
+  });
+  gutter.frustumCulled = false;
+  gutter.renderOrder = 1;
+  g.add(gutter);
   const im = new THREE.InstancedMesh(dash, paint, dashes.length);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
   dashes.forEach(([x, z, rot], i) => im.setMatrixAt(i, m.compose(new THREE.Vector3(x, 0.004, z), q.setFromEuler(e.set(-Math.PI / 2, 0, rot)), new THREE.Vector3(1, 1, 1))));

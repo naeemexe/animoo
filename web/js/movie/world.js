@@ -101,24 +101,68 @@ function pond({ center, radius }) {
 // The walked path's color per biome: a dirt track, a sidewalk, sand, park gravel.
 const PATH = { forest: '#e6c891', city: '#d8d2c6', sea: '#f1e3bd', park: '#e9d9b0' };
 
+// Alpha masks for the path: a strip whose edges fade out with a slow wobble
+// along its length, and a round end cap, so the path melts into the ground
+// instead of ending at a hard line (task 28).
+let edgeMasks = null;
+function pathMasks() {
+  if (edgeMasks) return edgeMasks;
+  const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  const make = (w, h, alpha) => {
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const g = c.getContext('2d'), img = g.createImageData(w, h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const a = Math.round(255 * alpha(x / (w - 1), y / (h - 1)));
+      img.data.set([a, a, a, 255], (y * w + x) * 4);
+    }
+    g.putImageData(img, 0, 0);
+    const t = new THREE.CanvasTexture(c);
+    t.wrapT = THREE.RepeatWrapping;
+    return t;
+  };
+  // Across: 0..1, along: 0..1 (repeats every 3 m). Solid core, soft broken edge.
+  const wob = (v, k) => 0.05 * Math.sin(v * Math.PI * 2 + k) + 0.02 * Math.sin(v * Math.PI * 2 * 3 + 2 * k);
+  const strip = make(64, 128, (u, v) => {
+    const d = Math.abs(u - 0.5) * 2; // 0 centre, 1 edge
+    const e = 0.86 + wob(v, u < 0.5 ? 0 : 1.7);
+    return 1 - smooth(e - 0.48, e, d);
+  });
+  const cap = make(64, 64, (u, v) => 1 - smooth(0.38, 0.86, Math.hypot(u - 0.5, v - 0.5) * 2));
+  cap.wrapT = THREE.ClampToEdgeWrapping;
+  edgeMasks = { strip, cap };
+  return edgeMasks;
+}
+
 function path({ points, width = 1.2 }, biome = 'forest') {
   const g = new THREE.Group();
-  const mat = toonMaterial(PATH[biome] ?? PATH.forest, { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  const masks = pathMasks();
+  const opts = { transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 };
+  const mat = toonMaterial(PATH[biome] ?? PATH.forest, { ...opts, alphaMap: masks.strip });
+  const capMat = toonMaterial(PATH[biome] ?? PATH.forest, { ...opts, alphaMap: masks.cap });
+  const W = width * 1.7; // the fade reaches past the old hard edge
   for (let i = 0; i < points.length - 1; i++) {
     const [a, b] = [points[i], points[i + 1]];
     const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    const strip = new THREE.Mesh(new THREE.PlaneGeometry(width, len), mat);
+    const geo = new THREE.PlaneGeometry(W, len);
+    const uv = geo.attributes.uv;
+    for (let k = 0; k < uv.count; k++) uv.setY(k, uv.getY(k) * (len / 3) + i * 0.37);
+    const strip = new THREE.Mesh(geo, mat);
     strip.rotation.set(-Math.PI / 2, 0, Math.atan2(b[0] - a[0], b[1] - a[1]));
     strip.position.set((a[0] + b[0]) / 2, 0.003, (a[1] + b[1]) / 2);
     strip.receiveShadow = true;
+    strip.renderOrder = 1;
     g.add(strip);
   }
   for (const p of points) {
-    const dot = new THREE.Mesh(new THREE.CircleGeometry(width / 2, 12), mat);
+    const dot = new THREE.Mesh(new THREE.CircleGeometry(W * 0.5, 20), capMat);
     dot.rotation.x = -Math.PI / 2;
-    dot.position.set(p[0], 0.003, p[1]);
+    dot.position.set(p[0], 0.0035, p[1]);
+    dot.receiveShadow = true;
+    dot.renderOrder = 1;
     g.add(dot);
   }
+  g.userData.ink = 0.4;
   return g;
 }
 
