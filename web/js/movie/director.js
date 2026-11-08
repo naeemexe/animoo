@@ -7,7 +7,7 @@
 import * as THREE from 'three';
 import { Clip } from '../characters/clip.js';
 import { mergeClips, plantFeet, meanHeading } from '../characters/merge.js';
-import { planPath, warpToPath, pickVariant, pathLength, talkSpot, lineClear, pushOut } from './control.js';
+import { planPath, warpToPath, pickVariant, pathLength, talkSpot, lineClear, pushOut, resample } from './control.js';
 
 const RAD = Math.PI / 180;
 const angleTo = (from, to) => Math.atan2(to[0] - from[0], to[1] - from[1]);
@@ -280,7 +280,9 @@ export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.5, o
       };
       const walkOn = (path) => {
         const len = pathLength(path);
-        let c = pickVariant(act.variants, len).clone();
+        // `gait` (the second of two walking together): the clip a little slower, out of step.
+        const pick = (L) => { const v = pickVariant(act.variants, L).clone(); return beat.gait ? resample(v, beat.gait) : v; };
+        let c = pick(len);
         // A path (drawn or planned) can be longer than any walk clip: chain the walk, so the
         // stride stays natural. Stretched past ~1.15× the legs can't reach the foot targets
         // (task 33: that is where knees snapped straight and flipped).
@@ -289,7 +291,7 @@ export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.5, o
           // Each extension is the length variant that best fills what is left (task 34: two
           // walk_longs for an 11 m path came out at stride ×0.62, an 18 s slow-motion walk).
           for (let i = 0; i < 4 && len / Math.max(reach(c), 0.5) > 1.15; i++) {
-            c = mergeClips(c, pickVariant(act.variants, Math.max(0.5, len - reach(c))), { blend: 0.6, match: 1.0 });
+            c = mergeClips(c, pick(Math.max(0.5, len - reach(c))), { blend: 0.6, match: 1.0 });
           }
           c.segments = [{ name: base.name, start: 0, end: c.frames }]; // one beat on the timeline
         }
@@ -344,14 +346,19 @@ export function buildRow(castEntry, beats, clips, resolveWorld, { blend = 0.5, o
     }
 
     const current = meanHeading(acc, joinAt, acc.frames);
+    // After a walk, this beat happens where the walk ends (not where its blend starts).
+    const fromWalk = !!placed.at(-1)?.path;
+    const here = fromWalk ? [acc.hips[(acc.frames - 1) * 3], acc.hips[(acc.frames - 1) * 3 + 2]] : at;
     let heading;
     if (typeof beat.facing === 'number') heading = beat.facing * RAD;
-    else if (beat.facing !== undefined) heading = angleTo(at, resolve(beat.facing, tJoin));
-    if (beat.to !== undefined && tr.dist > 0.3) heading = angleTo(at, resolve(beat.to, tJoin)) - tr.angle;
+    // Where the one faced stands once this beat is under way (a partner 0.9 m away may still be
+    // finishing their last step at the join).
+    else if (beat.facing !== undefined) heading = angleTo(here, resolve(beat.facing, Math.max(tJoin, beat.start) + 0.5));
+    if (beat.to !== undefined && tr.dist > 0.3) heading = angleTo(here, resolve(beat.to, tJoin)) - tr.angle;
     // Big turns get a longer blend so the character pivots instead of snapping.
     const turn = heading === undefined ? 0 : Math.abs(wrap(heading - current));
     const b = blend + 1.0 * turn / Math.PI;
-    acc = mergeClips(acc, c, { blend: b, heading: heading === undefined ? undefined : current + wrap(heading - current) });
+    acc = mergeClips(acc, c, { blend: b, heading: heading === undefined ? undefined : current + wrap(heading - current), anchorEnd: fromWalk });
     const seg = acc.segments.at(-1);
     const stretch = beat.to !== undefined && !act ? stretchTail(acc, seg.start, resolve(beat.to, tJoin)) : 1;
     const seat = snapSeat(acc, seg.start, beat, seatsK);
@@ -435,6 +442,10 @@ export function direct(script, clipsByCast, opts) {
   let rows = {};
   const shift = {};
   const rank = new Map(script.cast.map((c, i) => [c.id, i]));
+  // A beat that faces (or walks up to) another character needs where they really are, which the
+  // first pass only knows from their start: run at least a second pass then.
+  const ids = new Set(script.cast.map((c) => c.id));
+  const minPasses = script.beats.some((b) => ids.has(b.facing) || ids.has(b.to)) ? 2 : 1;
   for (let pass = 0; pass < 4; pass++) {
     const resolve = makeResolver(script, rows);
     const aimed = aimGestures(script, resolve, shift);
@@ -447,7 +458,7 @@ export function direct(script, clipsByCast, opts) {
     }
     rows = next;
     const synced = syncReactions(script, aimed, rows, shift);
-    if (!synced && !(pass < 3 && collisions(script, rows, rank).length)) break;
+    if (pass + 1 >= minPasses && !synced && !(pass < 3 && collisions(script, rows, rank).length)) break;
   }
   return rows;
 }

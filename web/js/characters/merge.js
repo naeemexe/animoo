@@ -72,7 +72,9 @@ function dropFrames(B, k0) {
 // slerp across a big turn flips the short arc mid-blend and pops).
 // `match` (seconds): B may start up to that far in, at the frame whose pose
 // best continues A's (task 33), so a join never jumps pose.
-export function mergeClips(A, B, { blend = 0.5, heading, match = 0.4 } = {}) {
+// `anchorEnd`: B stands where A ends, not where A was when the blend starts (after a walk, the
+// blend starts up to a second before the walker arrives: anchored there, they stopped short).
+export function mergeClips(A, B, { blend = 0.5, heading, match = 0.4, anchorEnd = false } = {}) {
   if (A.fps !== B.fps) throw new Error(`clips differ in fps (${A.fps} vs ${B.fps})`);
   let n = Math.max(1, Math.min(Math.round(blend * A.fps), A.frames - 1, B.frames - 1));
   const start = A.frames - n; // first overlap frame in A
@@ -84,9 +86,10 @@ export function mergeClips(A, B, { blend = 0.5, heading, match = 0.4 } = {}) {
   const headA = meanHeading(A, start, A.frames);
   const target = heading ?? headA;
   const turn = target - meanHeading(b, 0, n);
-  b.transform(turn, [b.hips[0], b.hips[2]], [A.hips[start * 3] - b.hips[0], A.hips[start * 3 + 2] - b.hips[2]]);
+  const af = anchorEnd ? A.frames - 1 : start;
+  b.transform(turn, [b.hips[0], b.hips[2]], [A.hips[af * 3] - b.hips[0], A.hips[af * 3 + 2] - b.hips[2]]);
   const delta = wrap(target - headA);
-  const pivot = [A.hips[start * 3], A.hips[start * 3 + 2]];
+  const pivot = [A.hips[af * 3], A.hips[af * 3 + 2]];
   const out = Clip.like(A, A.frames + B.frames - n, `${A.name} + ${B.name}`);
   for (let f = 0; f < start; f++) out.copyFrame(f, A, f);
 
