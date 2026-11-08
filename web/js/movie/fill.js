@@ -97,20 +97,32 @@ async function instanced(id, placements, { shadow = false, hideNear = 0, camera 
     meshes.push(im);
     group.add(im);
   });
-  // Tall things near the film camera would fill the frame: drop them while
-  // the camera is close (checked per render, re-uploaded only on change).
+  // Tall things near the film camera, or standing between it and what it
+  // looks at, would fill the frame: drop them while that holds (checked per
+  // render, re-uploaded only when something changes).
   if (hideNear && camera && meshes.length) {
     const zero = new THREE.Matrix4().makeScale(0, 0, 0);
     const hidden = new Uint8Array(base.length);
-    const last = new THREE.Vector2(Infinity, Infinity);
+    const fwd = new THREE.Vector3();
+    let lastKey = '';
     meshes[0].onBeforeRender = (renderer, scene, cam) => {
       if (cam !== camera) return;
-      if (Math.hypot(cam.position.x - last.x, cam.position.z - last.y) < 0.05) return;
-      last.set(cam.position.x, cam.position.z);
+      cam.getWorldDirection(fwd);
+      const key = `${cam.position.x.toFixed(2)},${cam.position.y.toFixed(2)},${cam.position.z.toFixed(2)},${fwd.x.toFixed(3)},${fwd.z.toFixed(3)}`;
+      if (key === lastKey) return;
+      lastKey = key;
+      // Where the view meets the ground (about chest height), as a 2D segment.
+      const reach = fwd.y < -0.02 ? Math.min(60, (cam.position.y - 0.8) / -fwd.y) : 40;
+      const a = [cam.position.x, cam.position.z], b = [a[0] + fwd.x * reach, a[1] + fwd.z * reach];
+      const L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
       let changed = false;
       for (let i = 0; i < base.length; i++) {
-        const e = base[i].elements;
-        const h = Math.hypot(e[12] - cam.position.x, e[14] - cam.position.z) < hideNear * Math.max(1, e[5]) ? 1 : 0;
+        const e = base[i].elements, sc = Math.max(1, e[5]);
+        const near = Math.hypot(e[12] - a[0], e[14] - a[1]) < hideNear * sc;
+        // On the line of sight, short of the subject: the trunk side of the frame.
+        const along = ((e[12] - a[0]) * (b[0] - a[0]) + (e[14] - a[1]) * (b[1] - a[1])) / (L * L);
+        const block = along > 0 && along < 0.8 && segDist(e[12], e[14], a, b) < 2.2 + 1.3 * sc;
+        const h = near || block ? 1 : 0;
         if (h === hidden[i]) continue;
         hidden[i] = h;
         changed = true;
@@ -127,7 +139,7 @@ async function instanced(id, placements, { shadow = false, hideNear = 0, camera 
 function grassTufts(placements, rng) {
   if (!placements.length) return Promise.resolve(null);
   const pos = [], col = [];
-  const greens = [new THREE.Color('#7fae47'), new THREE.Color('#a3c95f'), new THREE.Color('#6d9c3e')];
+  const greens = [new THREE.Color('#8cbd52'), new THREE.Color('#b0d46c'), new THREE.Color('#7aab48')];
   for (let k = 0; k < 5; k++) {
     const a = (k / 5) * Math.PI * 2 + rng() * 0.6, lean = 0.12 + rng() * 0.12;
     const bx = Math.cos(a) * 0.07, bz = Math.sin(a) * 0.07, w = 0.05;
@@ -141,13 +153,42 @@ function grassTufts(placements, rng) {
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-  geo.computeVertexNormals();
+  // Normals point up: blades shade like the ground under them (no dark
+  // backs) and give the outline pass no normal edge, so the meadow stays soft.
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(pos.map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
   const im = new THREE.InstancedMesh(geo, toonMaterial('#ffffff', { vertexColors: true }), placements.length);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
   placements.forEach(([x, z, rot, sc], i) => im.setMatrixAt(i, m.compose(p.set(x, 0, z), q.setFromAxisAngle(up, rot), s.setScalar(sc))));
+  // No depth write (drawn last, still depth-tested): the ink pass finds no
+  // depth edge on thin blades, so grass reads as soft texture, not scribbles.
+  im.material.depthWrite = false;
+  im.renderOrder = 2;
   im.receiveShadow = true;
   im.frustumCulled = false;
   im.name = 'fill-grass';
+  return Promise.resolve(im);
+}
+
+// Low-poly bushes and boulders: a faceted blob per instance, with a per-
+// instance tint, so the edge of the clearing reads green and full.
+function blobs(name, placements, rng, { detail = 0, stretch = [1, 0.75, 1], colors, shadow = true, lift = 0.45, poly = 'ico' }) {
+  if (!placements.length) return Promise.resolve(null);
+  const raw = poly === 'dodeca' ? new THREE.DodecahedronGeometry(0.5, detail) : new THREE.IcosahedronGeometry(0.5, detail);
+  const geo = faceted(raw);
+  const im = new THREE.InstancedMesh(geo, toonMaterial('#ffffff'), placements.length);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), e = new THREE.Euler();
+  const cs = colors.map((c) => new THREE.Color(c));
+  placements.forEach(([x, z, rot, sc], i) => {
+    const sy = stretch[1] * sc * (0.85 + rng() * 0.3);
+    s.set(stretch[0] * sc, sy, stretch[2] * sc * (0.8 + rng() * 0.4));
+    q.setFromEuler(e.set((rng() - 0.5) * 0.3, rot, (rng() - 0.5) * 0.3));
+    im.setMatrixAt(i, m.compose(p.set(x, sy * lift, z), q, s));
+    im.setColorAt(i, cs[Math.floor(rng() * cs.length)]);
+  });
+  im.castShadow = shadow;
+  im.receiveShadow = true;
+  im.frustumCulled = false;
+  im.name = `fill-${name}`;
   return Promise.resolve(im);
 }
 
@@ -349,27 +390,26 @@ export async function fillWorld(stage, script, set, { seed = 11 } = {}) {
 
   // Trees: a few at the edge of the play area, then a dense ring out to the hills.
   const trees = scatter(rng, {
-    r0: 15, r1: 95, step: 3.4, margin: 1.4, blocked, scale: [0.85, 1.45],
-    density: (x, z, r) => (r < 19 ? 0.3 : r < 50 ? 0.9 : 0.55),
+    r0: 8, r1: 95, step: 3.4, margin: 1.6, blocked, scale: [0.85, 1.45],
+    density: (x, z, r) => (r < 13 ? 0.12 : r < 19 ? 0.4 : r < 50 ? 0.9 : 0.55),
   });
-  const bushes = scatter(rng, { r0: 4, r1: 30, step: 2.4, margin: 0.6, blocked, scale: [0.8, 1.3], density: (x, z, r) => (r < 12 ? 0.12 : 0.35) });
-  const grass = scatter(rng, { r0: 0, r1: 34, step: 0.85, margin: 0.15, blocked, scale: [0.7, 1.3], density: (x, z) => 0.25 + 0.6 * meadow(x * 0.18, z * 0.18) });
+  const bushes = scatter(rng, { r0: 4, r1: 40, step: 2.2, margin: 0.7, blocked, scale: [0.7, 1.4], density: (x, z, r) => (r < 10 ? 0.15 : 0.45) });
+  const grass = scatter(rng, { r0: 0, r1: 34, step: 0.7, margin: 0.15, blocked, scale: [0.8, 1.5], density: (x, z) => 0.3 + 0.6 * meadow(x * 0.18, z * 0.18) });
   const flowers = scatter(rng, { r0: 0, r1: 28, step: 1.0, margin: 0.1, blocked, scale: [0.8, 1.4], density: (x, z) => Math.max(0, drift(x * 0.22, z * 0.22) - 0.45) * 1.6 });
   const rocks = scatter(rng, { r0: 2, r1: 40, step: 3.2, margin: 0.3, blocked, scale: [0.7, 1.5], density: 0.14 });
-  const big = scatter(rng, { r0: 12, r1: 60, step: 7, margin: 1, blocked, scale: [0.8, 1.8], density: 0.22 });
+  const big = scatter(rng, { r0: 10, r1: 60, step: 7, margin: 1, blocked, scale: [0.8, 1.8], density: 0.22 });
   const small = scatter(rng, { r0: 3, r1: 26, step: 4, margin: 0.2, blocked, scale: [0.8, 1.2], density: 0.12 });
 
   const treeIds = deal(rng, trees, ['tree-oak', 'tree-round', 'tree-fat', 'pine-tall', 'pine-round', 'pine-tall', 'tree-oak', 'tree-autumn']);
-  const bushIds = deal(rng, bushes, ['bush-large', 'bush-small']);
-  const flowerIds = deal(rng, flowers, ['flower-red', 'flower-yellow', 'flower-yellow']);
+    const flowerIds = deal(rng, flowers, ['flower-red', 'flower-yellow', 'flower-yellow']);
   const smallIds = deal(rng, small, ['mushrooms', 'stump']);
   const jobs = [
     ...Object.entries(treeIds).map(([id, p]) => instanced(id, p, { hideNear: 9, camera })),
-    ...Object.entries(bushIds).map(([id, p]) => instanced(id, p, { shadow: true })),
+    blobs('bushes', bushes, rng, { detail: 1, stretch: [1.4, 1.0, 1.4], colors: ['#5f9a3e', '#6fa847', '#548c3a', '#7bb04e'], lift: 0.4 }),
     grassTufts(grass, rng),
     ...Object.entries(flowerIds).map(([id, p]) => instanced(id, p)),
-    instanced('rock-small', rocks),
-    instanced('rock-large', big, { shadow: true }),
+    blobs('rocks', rocks, rng, { poly: 'dodeca', stretch: [0.6, 0.38, 0.55], colors: ['#b8ad9a', '#a39a8a', '#c7bca6'], lift: 0.3, shadow: false }),
+    blobs('boulders', big, rng, { poly: 'dodeca', stretch: [1.8, 1.1, 1.5], colors: ['#a89f8e', '#968e80', '#b9ae98'], lift: 0.32 }),
     ...Object.entries(smallIds).map(([id, p]) => instanced(id, p)),
   ];
   const groups = await Promise.all(jobs.map((j) => j.catch((err) => { console.warn('fill:', err.message); return null; })));
