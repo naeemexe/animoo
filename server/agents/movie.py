@@ -823,7 +823,8 @@ DAP_PROMPT = "A person gives a fist bump, reaching one fist forward."
 TALKING = re.compile(r"\b(talk\w*|chat\w*|convers\w*|speak\w*)\b", re.I)
 TALK_PROMPT = "A person talks, gesturing with both hands."
 DOCKLIKE = re.compile(r"dock|pier|jetty")  # platforms over the water (boats are sat in, so they stay)
-SIDE_BY_SIDE = 0.9  # m between two people walking together (hips)
+SIDE_BY_SIDE = 0.9
+GAIT = 1.1  # the second of two walking together plays the walk this much slower (out of step)  # m between two people walking together (hips)
 
 
 def _is_walk(b: dict) -> bool:
@@ -1502,6 +1503,10 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
             pts = [(A["center"][0] + _dir(base + 110 * j)[0] * gap, A["center"][1] + _dir(base + 110 * j)[1] * gap)
                    for j in range(n_seat)]
             p["seats"] = [(q, _heading(q, A["center"])) for q in pts]
+        elif n_seat == 2:  # two seats for two people: angled toward each other, a conversation corner
+            along = _dir(p["face"] + 90)
+            p["seats"] = [((p["center"][0] + along[0] * 1.5 * j, p["center"][1] + along[1] * 1.5 * j),
+                           p["face"] + (35 if j == 0 else -35)) for j in range(2)]
         else:  # side by side
             along = _dir(p["face"] + 90)
             p["seats"] = [((p["center"][0] + along[0] * 1.1 * j, p["center"][1] + along[1] * 1.1 * j), p["face"])
@@ -1812,9 +1817,12 @@ def layout(plan: dict, world: dict, manifest: dict, scene: str) -> tuple[dict, l
                         pos[cid] = (src[0] + off[0], src[1] + off[1])
                         cast_by[cid]["start"] = {"position": _pt(pos[cid]), "facing": _r(((h + 180) % 360) - 180, 0)}
                     dest = (dl[0] + off[0], dl[1] + off[1])
+                    if is_seat(mv):  # going to sit: each to their own seat, not to the leader's shoulder
+                        dest, _ = slot(mv, cid)
                     walked[b["id"]] = (pos[cid], dest)
+                    # Own gait: the same clip 10% slower, so their steps don't land in lockstep.
                     notes.append(f"{b['id']} {cid} → {mv} beside {b['together']}: "
-                                 + go(cid, dest, b["prompt"], b["action"], start))
+                                 + go(cid, dest, b["prompt"], b["action"], start, gait=GAIT))
                     at_place[cid] = mv if mv in places else None
                     timing[b["id"]] = (t0, cursor[cid])
                     continue
