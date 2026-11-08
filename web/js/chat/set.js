@@ -1,0 +1,35 @@
+// The Chat page's little set: a corner of a village made of library props,
+// written in the Movie page's scene-script shape so buildSet() can place it.
+// The character stands at the origin facing +Z, toward the camera.
+export const CHAT_SET = {
+  terrain: {
+    time_of_day: 'golden',
+    paths: [{ points: [[0, 7], [0, 1], [0.4, -3], [2.5, -6.5]], width: 1.5 }],
+  },
+  props: [
+    { key: 'house', library: 'house', position: [4.2, -10], rotation: -15 },
+    { key: 'stall', library: 'market-stall', position: [-3.4, -3.4], rotation: 25 },
+    { key: 'oak', library: 'tree-oak', position: [-6.5, -6.5] },
+    { key: 'round', library: 'tree-round', position: [6.8, -4.2] },
+    { key: 'pine', library: 'pine-tall', position: [-1.5, -11.5] },
+    { key: 'autumn', library: 'tree-autumn', position: [-9, -1.5] },
+    { key: 'lantern', library: 'lantern-post', position: [1.7, -0.9] },
+    { key: 'bench', library: 'bench', position: [3.3, -2.4], rotation: 90 },
+    { key: 'barrel', library: 'barrel', position: [-2.3, -0.6] },
+    { key: 'crate', library: 'crate', position: [-2.9, -1.6], rotation: 15 },
+    { key: 'pumpkin', library: 'pumpkin', position: [-1.8, 0.5] },
+    { key: 'sign', library: 'signpost', position: [-1.6, 2.4], rotation: -20 },
+    { key: 'fence1', library: 'fence-wood', position: [-1.6, -4.6], rotation: 0 },
+    { key: 'fence2', library: 'fence-wood', position: [2.2, -4.4], rotation: -8 },
+    { key: 'bush1', library: 'bush-large', position: [4.6, -0.6] },
+    { key: 'bush2', library: 'bush-small', position: [-4.4, -0.8] },
+    { key: 'flower1', library: 'flower-red', position: [1.2, 0.9] },
+    { key: 'flower2', library: 'flower-yellow', position: [-1.1, 1.3] },
+    { key: 'flower3', library: 'flower-red', position: [1.0, -1.6] },
+    { key: 'flower4', library: 'flower-yellow', position: [2.4, 1.6] },
+    { key: 'tuft1', library: 'grass-tuft', position: [-0.9, 3.4] },
+    { key: 'tuft2', library: 'grass-tuft', position: [1.6, 3.0] },
+    { key: 'rock', library: 'rock-small', position: [2.8, 0.4] },
+    { key: 'mush', library: 'mushrooms', position: [-3.4, 1.4] },
+  ],
+};

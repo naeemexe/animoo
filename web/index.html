@@ -27,10 +27,27 @@
   </header>
 
   <section id="page-chat" class="page" hidden>
-    <div class="card chat-soon">
-      <p><strong>Chat</strong> comes in task 10: a character in this little world talks with you
-        (Nemotron writes the replies, the browser speaks them) and performs moves you ask for.</p>
-    </div>
+    <aside class="card chat-panel">
+      <div class="chat-head">
+        <span class="panel-title">Talk with Mira</span>
+        <span id="chat-status" class="pill">…</span>
+      </div>
+      <ol id="chat-log" class="chat-log"></ol>
+      <div id="chat-suggest" class="chat-suggest">
+        <button type="button">Hi Mira!</button>
+        <button type="button">What can you do?</button>
+        <button type="button">Show me a squat</button>
+        <button type="button">Teach me a lunge</button>
+      </div>
+      <form id="chat-form" class="chat-form" autocomplete="off">
+        <input id="chat-input" type="text" placeholder="Ask something, or “show me …”" spellcheck="false">
+        <button id="chat-send" type="submit" class="primary">Send</button>
+      </form>
+      <div class="chat-foot">
+        <label>voice <select id="chat-voice"></select></label>
+        <span id="chat-brain">brain: …</span>
+      </div>
+    </aside>
   </section>
 
   <section id="page-movie" class="page" hidden>
