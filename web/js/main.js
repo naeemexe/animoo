@@ -7,6 +7,7 @@ import { createLook } from './look.js';
 import { getHealth } from './api.js';
 import { createChatPage } from './chat/page.js';
 import { createMoviePage } from './movie/page.js';
+import { tickAtmosphere } from './movie/atmosphere.js';
 
 const stage = createStage(document.getElementById('app'));
 const look = createLook(stage.renderer, stage.scene, stage.camera);
@@ -40,6 +41,7 @@ const clock = new THREE.Clock();
 stage.renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.1);
   pages[current].frame(dt);
+  tickAtmosphere(dt, stage.camera);
   // A hidden tab or a collapsed pane has a 0×0 window; render targets of that
   // size are incomplete framebuffers, so skip the frame.
   if (!window.innerWidth || !window.innerHeight) return;

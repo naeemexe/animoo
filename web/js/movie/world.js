@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { generateProp, loadManifest, loadProp } from '../library.js';
 import { toonMaterial } from '../toon.js';
 import { fillWorld } from './fill.js';
+import { addAtmosphere } from './atmosphere.js';
 
 const RAD = Math.PI / 180;
 
@@ -12,16 +13,31 @@ const LIGHT = {
   day: { sun: '#fff1d6', intensity: 3.2, pos: [-14, 30, 12], sky: '#c6d6ec', ground: '#b9a06a', hemi: 1.3 },
   golden: { sun: '#ffd29a', intensity: 3.2, pos: [-22, 26, 14], sky: '#c6c3ec', ground: '#c79a5e', hemi: 1.35 },
   dusk: { sun: '#ff9a6a', intensity: 2.2, pos: [-28, 9, 10], sky: '#9d93d0', ground: '#a07050', hemi: 1.2 },
+  // Moonlight: cool, from high on the other side, with a deep blue fill.
+  night: { sun: '#9fb6ff', intensity: 0.75, pos: [16, 30, -12], sky: '#4a5a9a', ground: '#2c2c48', hemi: 0.75 },
+};
+// Overcast weather dims the sun and greys the fill: [sun ×, fill color, mix].
+const WEATHER = {
+  rain: [0.35, '#8a94a6', 0.55],
+  snow: [0.55, '#dfe6f0', 0.5],
+  fog: [0.45, '#c8ccd2', 0.5],
 };
 
-export function setTimeOfDay(stage, name = 'golden') {
+export function setTimeOfDay(stage, name = 'golden', weather = 'clear') {
   const L = LIGHT[name] ?? LIGHT.golden;
+  const W = WEATHER[weather];
   stage.sun.color.set(L.sun);
-  stage.sun.intensity = L.intensity;
+  stage.sun.intensity = L.intensity * (W ? W[0] : 1);
   stage.sun.position.set(...L.pos);
   stage.hemi.color.set(L.sky);
   stage.hemi.groundColor.set(L.ground);
   stage.hemi.intensity = L.hemi;
+  if (W) {
+    const grey = new THREE.Color(W[1]);
+    if (name === 'night') grey.multiplyScalar(0.45);
+    stage.hemi.color.lerp(grey, W[2]);
+    stage.sun.color.lerp(grey, W[2] * 0.6);
+  }
 }
 
 function pond({ center, radius }) {
@@ -96,7 +112,7 @@ export async function buildSet(stage, script, onStep = () => {}) {
   set.name = 'set';
   stage.scene.add(set);
   const t = script.terrain ?? {};
-  setTimeOfDay(stage, t.time_of_day);
+  setTimeOfDay(stage, t.time_of_day, t.weather);
   for (const w of t.water ?? []) set.add(pond(w));
   for (const p of t.paths ?? []) set.add(path(p));
 
@@ -129,6 +145,18 @@ export async function buildSet(stage, script, onStep = () => {}) {
     await onStep(`fill_world() → ${c.trees} trees, ${c.bushes} bushes, ${c.grass} grass tufts, ${c.flowers} flowers, ${c.rocks} rocks · keeps off paths, water, props and walk lines`, false, 'result');
   } catch (err) {
     console.warn('fill:', err);
+  }
+  // Time of day and weather: lit windows and lamps, fire, rain or snow, wind.
+  try {
+    const atmo = addAtmosphere(stage, script, set);
+    set.add(atmo);
+    const a = atmo.userData.counts;
+    await onStep(`set_weather(time_of_day='${t.time_of_day ?? 'golden'}', weather='${a.weather}') → ${[
+      a.windows && `${a.windows} lit windows`, a.lamps && `${a.lamps} lamps`, a.fires && `${a.fires} campfire`,
+      a.lights && `${a.lights} point lights`, a.weather === 'rain' || a.weather === 'snow' ? `${a.weather} particles` : null,
+    ].filter(Boolean).join(', ') || 'light and sky only'}`, false, 'call');
+  } catch (err) {
+    console.warn('atmosphere:', err);
   }
   return set;
 }

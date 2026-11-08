@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { loadProp } from '../library.js';
 import { mulberry32 } from '../stage.js';
 import { toonMaterial, faceted } from '../toon.js';
+import { addWind } from './atmosphere.js';
 
 const DOME_R = 300;
 
@@ -17,7 +18,30 @@ const PALETTE = {
   day: { top: '#8fbbe0', mid: '#cfe2ee', horizon: '#eef0dc', fog: '#d9e3d6', far: '#a9bccb', mid2: '#8fa9a4', near: '#76a06a', trees: '#5a8a52' },
   golden: { top: '#a9c7d8', mid: '#f3dcb2', horizon: '#f0b98a', fog: '#efcf9f', far: '#c4a9a8', mid2: '#a49a86', near: '#88985f', trees: '#667f48' },
   dusk: { top: '#4f5a8e', mid: '#b48aa8', horizon: '#f0a27c', fog: '#b98f8f', far: '#7d6c90', mid2: '#5f5878', near: '#4f5a5a', trees: '#3f4c45' },
+  night: { top: '#0d1430', mid: '#1f2a52', horizon: '#3a4170', fog: '#222a48', far: '#2a3054', mid2: '#1f2442', near: '#1a2230', trees: '#121a22', stars: true, clouds: 'rgba(120,130,170,0.25)' },
 };
+// Weather greys the sky and pulls the haze in: [overcast color, mix, fog near, fog far].
+const SKY_WEATHER = {
+  rain: ['#7d8794', 0.6, 18, 120],
+  snow: ['#d6dce4', 0.55, 16, 110],
+  fog: ['#c9cdd2', 0.7, 4, 60],
+};
+
+function palette(tod, weather) {
+  const P = { ...(PALETTE[tod] ?? PALETTE.golden) };
+  P.fogNear = tod === 'night' ? 30 : 45;
+  P.fogFar = tod === 'night' ? 190 : 230;
+  const W = SKY_WEATHER[weather];
+  if (!W) return P;
+  const grey = new THREE.Color(W[0]);
+  if (tod === 'night') grey.multiplyScalar(0.3);
+  else if (tod === 'dusk') grey.multiplyScalar(0.7);
+  for (const k of ['top', 'mid', 'horizon', 'fog', 'far', 'mid2']) P[k] = '#' + new THREE.Color(P[k]).lerp(grey, W[1]).getHexString();
+  P.stars = false;
+  P.clouds = tod === 'night' ? 'rgba(90,96,120,0.4)' : 'rgba(235,238,242,0.6)';
+  [P.fogNear, P.fogFar] = [W[2], W[3]];
+  return P;
+}
 
 // ---- keep-out: paths, water, props, walk lines ----------------------------
 
@@ -94,7 +118,7 @@ async function instanced(id, placements, { shadow = false, hideNear = 0, camera,
     const c = node.material.color;
     const leafy = leaves && c && c.g > c.r * 1.2 && c.b > c.r;
     const mat = leafy ? node.material.clone() : node.material;
-    if (leafy) mat.color.set('#ffffff');
+    if (leafy) { mat.color.set('#ffffff'); addWind(mat, 6); }
     const im = new THREE.InstancedMesh(node.geometry, mat, base.length);
     const local = node.matrixWorld.clone();
     base.forEach((b, i) => {
@@ -167,7 +191,7 @@ function grassTufts(placements, rng) {
   // Normals point up: blades shade like the ground under them (no dark
   // backs) and give the outline pass no normal edge, so the meadow stays soft.
   geo.setAttribute('normal', new THREE.Float32BufferAttribute(pos.map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
-  const im = new THREE.InstancedMesh(geo, toonMaterial('#ffffff', { vertexColors: true }), placements.length);
+  const im = new THREE.InstancedMesh(geo, addWind(toonMaterial('#ffffff', { vertexColors: true }), 0.25), placements.length);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
   placements.forEach(([x, z, rot, sc], i) => im.setMatrixAt(i, m.compose(p.set(x, 0, z), q.setFromAxisAngle(up, rot), s.setScalar(sc))));
   // No depth write (drawn last, still depth-tested): the ink pass finds no
@@ -311,9 +335,27 @@ function skyTexture(P, seed) {
   g.fillRect(0, 0, W, hz);
   g.fillStyle = P.fog;
   g.fillRect(0, hz, W, H - hz);
-  // Soft cloud puffs.
   const rng = mulberry32(seed);
-  g.fillStyle = 'rgba(255,250,240,0.55)';
+  // Stars and a moon at night.
+  if (P.stars) {
+    for (let i = 0; i < 700; i++) {
+      const y = Math.pow(rng(), 1.4) * hz * 0.9;
+      g.fillStyle = `rgba(255,250,235,${(0.35 + rng() * 0.65) * (1 - y / hz)})`;
+      g.fillRect(rng() * W, y, rng() < 0.1 ? 2 : 1, rng() < 0.1 ? 2 : 1);
+    }
+    const mx = W * 0.62, my = hz * 0.42;
+    const glow = g.createRadialGradient(mx, my, 0, mx, my, 60);
+    glow.addColorStop(0, 'rgba(220,230,255,0.45)');
+    glow.addColorStop(1, 'rgba(220,230,255,0)');
+    g.fillStyle = glow;
+    g.fillRect(mx - 60, my - 60, 120, 120);
+    g.fillStyle = '#f4f1dc';
+    g.beginPath();
+    g.ellipse(mx, my, 14, 18, 0, 0, Math.PI * 2);
+    g.fill();
+  }
+  // Soft cloud puffs.
+  g.fillStyle = P.clouds ?? 'rgba(255,250,240,0.55)';
   for (let i = 0; i < 28; i++) {
     const x = rng() * W, y = hz * (0.25 + rng() * 0.5), w = 60 + rng() * 140;
     for (let k = 0; k < 5; k++) {
@@ -381,7 +423,7 @@ function dome(P, seed) {
 // ---- the whole fill --------------------------------------------------------
 
 export async function fillWorld(stage, script, set, { seed = 11 } = {}) {
-  const P = PALETTE[script.terrain?.time_of_day] ?? PALETTE.golden;
+  const P = palette(script.terrain?.time_of_day, script.terrain?.weather);
   const rng = mulberry32(seed);
   const blocked = keepOut(script, set);
   const meadow = noise2(seed), drift = noise2(seed + 5);
@@ -395,7 +437,7 @@ export async function fillWorld(stage, script, set, { seed = 11 } = {}) {
 
   // Fog: the haze color is the dome's horizon, so the ground melts into it.
   if (camera.far < DOME_R * 1.4) { camera.far = DOME_R * 1.4; camera.updateProjectionMatrix(); }
-  stage.scene.fog = new THREE.Fog(P.fog, 45, 230);
+  stage.scene.fog = new THREE.Fog(P.fog, P.fogNear, P.fogFar);
   stage.scene.userData.fogLocked = true;
   sky.userData.fog = stage.scene.fog;
 

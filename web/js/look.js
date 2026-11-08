@@ -177,6 +177,9 @@ export function createLook(renderer, scene, camera) {
     const background = scene.background;
     const shadowAuto = renderer.shadowMap.autoUpdate;
     scene.background = null;
+    // Sprites, particles and glows would draw as solid shapes with the override.
+    const skip = [];
+    for (const o of scene.userData.noNormal ?? []) if (o.visible) { o.visible = false; skip.push(o); }
     scene.overrideMaterial = normalMaterial;
     renderer.shadowMap.autoUpdate = false;
     renderer.setRenderTarget(normalRT);
@@ -184,6 +187,7 @@ export function createLook(renderer, scene, camera) {
     renderer.clear();
     renderer.render(scene, camera);
     scene.overrideMaterial = null;
+    for (const o of skip) o.visible = true;
     scene.background = background;
     renderer.shadowMap.autoUpdate = shadowAuto;
     renderer.setRenderTarget(null);
