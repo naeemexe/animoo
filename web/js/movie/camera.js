@@ -231,6 +231,23 @@ export class DirectorCamera {
       const n = Math.max(1, Math.round((b - a) / MAX_SHOT));
       for (let j = 0; j < n; j++) segs.push([a + (b - a) * j / n, a + (b - a) * (j + 1) / n, j > 0]);
     }
+    // Reactions: another character's action that starts inside a shot (too
+    // soon after its cut to get its own) gets a short cut to them.
+    const REACT = 1.4;
+    for (let i = 0; i < segs.length; i++) {
+      const [a, b, split] = segs[i];
+      const lead = placed.find((x) => x.kind !== 'idle' && Math.abs(x.start - a) < 0.6);
+      const other = placed.find((x) => /gesture|dance|sit|act/.test(x.kind) && lead && x.cast !== lead.cast
+        && x.beat.action !== lead.beat.action && x.start > a + 0.2 && x.start < b - REACT && b - a >= 2 * REACT
+        && (() => { // not when they share the frame anyway
+          const p = this.pointAt(x.cast, x.start, rows), q = this.pointAt(lead.cast, x.start, rows);
+          return Math.hypot(p[0] - q[0], p[1] - q[1]) > 2.2;
+        })());
+      if (!other) continue;
+      const m = Math.min(Math.max(other.start, a + REACT), b - REACT);
+      segs.splice(i, 1, [a, m, split], [m, b, false, other.cast]);
+      i++;
+    }
     // A short closing wide shot, if there's room.
     const last = segs.at(-1);
     if (last && last[1] - last[0] >= 2 * MIN_SHOT && segs.length > 1) {
@@ -282,14 +299,14 @@ export class DirectorCamera {
 
     const shots = [];
     let prev = null;
-    segs.forEach(([start, end, split], i) => {
+    segs.forEach(([start, end, split, react], i) => {
       const mid = (start + end) / 2;
       const vis = castIds.filter((id) => visible(id, start + 0.05));
       const all = vis.length ? vis : castIds;
       // Who acts here: the non-idle beats running at the segment's start.
       const acting = all.map((id) => beatAt(id, start + 0.05)).filter((b) => b && b.kind !== 'idle');
       const fresh = acting.filter((b) => Math.abs(b.start - start) < 0.6);
-      let main = (fresh[0] ?? acting[0] ?? null);
+      let main = react ? beatAt(react, start + 0.05) : (fresh[0] ?? acting[0] ?? null);
       let subject = main ? [main.cast] : all;
       // Two characters starting together, close by: a two-shot.
       if (fresh.length >= 2) {
@@ -348,7 +365,7 @@ export class DirectorCamera {
         if (type === 'ots' && !partner) continue;
         const T = TYPES[type];
         // No jump cut: same subject, same size, close angle.
-        const sameSubj = prev && [].concat(prev.subject).join() === subject.join();
+        const sameSubj = prev && [].concat(prev.subject).sort().join() === [...subject].sort().join();
         if (prev && sameSubj && prev.type === type && !first) continue;
         // Faces, not backs: only wide and side shots may swing far around.
         const offs = [0, 20, -20, 40, -40, 60, -60, ...(type === 'wide' || type === 'side' ? [90, -90, 130, -130, 180] : [])];
